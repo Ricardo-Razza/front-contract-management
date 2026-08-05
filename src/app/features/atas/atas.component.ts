@@ -88,9 +88,9 @@ import { Agreement, Secretariat, LookupItem } from '../../core/models/api.models
                       </div>
                     </td>
                     <td>
-                      <span class="badge-status" [ngClass]="ata.situacao === 'Inativo' ? 'status-inactive' : 'status-active'">
+                      <span class="badge-status" [ngClass]="ata.situacao === 'INATIVO' ? 'status-inactive' : 'status-active'">
                         <span class="dot"></span>
-                        {{ ata.situacao || 'Ativo' }}
+                        {{ ata.situacao || 'ATIVO' }}
                       </span>
                     </td>
                     <td style="text-align: right;">
@@ -163,7 +163,7 @@ import { Agreement, Secretariat, LookupItem } from '../../core/models/api.models
                   <label>Tipo do Acordo <span class="required">*</span></label>
                   <select formControlName="tipoId">
                     @for (item of tiposList(); track item.id) {
-                      <option [value]="item.id">{{ item.nome || item.tipo || item.descricao }}</option>
+                      <option [value]="item.id">{{ item.tipoArp || 'Selecione' }}</option>
                     }
                   </select>
                 </div>
@@ -172,7 +172,7 @@ import { Agreement, Secretariat, LookupItem } from '../../core/models/api.models
                   <label>Situação <span class="required">*</span></label>
                   <select formControlName="ativoId">
                     @for (item of statusList(); track item.id) {
-                      <option [value]="item.id">{{ item.nome || item.situacao || item.descricao }}</option>
+                      <option [value]="item.id">{{ item.situacao || 'Selecione' }}</option>
                     }
                   </select>
                 </div>
@@ -300,7 +300,6 @@ import { Agreement, Secretariat, LookupItem } from '../../core/models/api.models
       border: 1px solid $color-border;
     }
 
-    // Modal
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -480,7 +479,7 @@ export class AtasComponent implements OnInit {
     this.submitting.set(true);
     const dto = {
       ...this.form.value,
-      secretariaIds: this.selectedSecretariatIds()
+      secretariasIds: this.selectedSecretariatIds()
     };
 
     this.ataService.create(dto).subscribe({

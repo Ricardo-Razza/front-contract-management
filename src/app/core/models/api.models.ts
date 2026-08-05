@@ -1,3 +1,14 @@
+
+export interface LookupItem {
+  id: number;
+  tipoArp?: string;
+  situacao?: string;
+  nome?: string;
+  descricao?: string;
+  funcao?: string;  // ← ADICIONADO para equipes
+}
+
+
 export interface Secretariat {
   id: number;
   nome: string;
@@ -11,12 +22,13 @@ export interface SecretariatDTO {
   ativoId: number;
 }
 
+
 export interface Servant {
   id: number;
   nome: string;
-  cpf: number | string;
+  cpf: number;
   cargo: string;
-  matricula: number | string;
+  matricula: number;
   email: string;
   telefone: string;
   secretaria: string;
@@ -25,14 +37,15 @@ export interface Servant {
 
 export interface ServantDTO {
   nome: string;
-  cpf: number | string;
+  cpf: number;
   cargo: string;
-  matricula: number | string;
+  matricula: number;
   email: string;
   telefone: string;
   secretariaId: number;
   ativoId: number;
 }
+
 
 export interface Agreement {
   id: number;
@@ -54,8 +67,12 @@ export interface AgreementDTO {
   tipoId: number;
   objeto: string;
   ativoId: number;
-  secretariaIds: number[];
+  secretariasIds: number[];
 }
+
+// =============================================
+// CONTRACT TEAM
+// =============================================
 
 export interface ContractTeam {
   id: number;
@@ -68,32 +85,20 @@ export interface ContractTeam {
 }
 
 export interface ContractTeamDTO {
-  ataId?: number;
-  agreementId?: number;
-  servidorId?: number;
-  servantId?: number;
-  funcaoId?: number;
-  functionId?: number;
-  dataDesignacao?: string;
-  designationDate?: string;
-  dataFim?: string;
-  endDate?: string;
-  ativoId?: number;
-  activeId?: number;
+  ataId: number;
+  servidorId: number;
+  funcaoId: number;
+  dataDesignacao: string;
+  dataFim: string;
+  ativoId: number;
 }
 
-export interface LookupItem {
-  id: number;
-  nome?: string;
-  descricao?: string;
-  situacao?: string;
-  tipo?: string;
-  funcao?: string;
-}
+// =============================================
+// LOOKUP RESPONSE
+// =============================================
 
-export interface DashboardMetrics {
-  totalSecretariats: number;
-  totalServants: number;
-  totalAgreements: number;
-  totalTeams: number;
+export interface LookupResponse {
+  ativos: LookupItem[];
+  tipos: LookupItem[];
+  funcoes: LookupItem[];
 }
