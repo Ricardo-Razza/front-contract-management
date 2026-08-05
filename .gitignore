@@ -1,0 +1,9 @@
+# Node modules & build outputs
+node_modules/
+.angular/
+dist/
+tmp/
+out-tsc/
+.idea/
+.vscode/
+*.log

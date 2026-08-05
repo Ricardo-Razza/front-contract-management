@@ -1,0 +1,36 @@
+// Color Tokens
+$color-primary: #1e293b;
+$color-primary-hover: #334155;
+$color-secondary: #0f172a;
+$color-accent: #3b82f6;
+$color-accent-hover: #2563eb;
+$color-accent-light: #eff6ff;
+
+$color-success: #22c55e;
+$color-success-bg: #f0fdf4;
+$color-danger: #ef4444;
+$color-danger-bg: #fef2f2;
+$color-warning: #f59e0b;
+$color-warning-bg: #fffbebfb;
+
+$color-bg: #f1f5f9;
+$color-card: #ffffff;
+$color-border: #e2e8f0;
+$color-border-dark: #cbd5e1;
+
+$color-text: #0f172a;
+$color-text-muted: #64748b;
+$color-text-light: #94a3b8;
+
+// Dimensions
+$sidebar-width: 220px;
+$header-height: 64px;
+$border-radius-sm: 6px;
+$border-radius-md: 10px;
+$border-radius-lg: 16px;
+
+// Shadows & Elevations
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+$shadow-hover: 0 12px 20px -5px rgba(59, 130, 246, 0.15);

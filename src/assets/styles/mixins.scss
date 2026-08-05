@@ -1,0 +1,42 @@
+@use 'variables' as *;
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin card-style {
+  background: $color-card;
+  border-radius: $border-radius-md;
+  border: 1px solid $color-border;
+  box-shadow: $shadow-sm;
+  transition: all 0.2s ease-in-out;
+}
+
+@mixin badge($bg-color, $text-color) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: $bg-color;
+  color: $text-color;
+  line-height: 1;
+}
+
+@mixin button-reset {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+}
