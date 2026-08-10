@@ -16,7 +16,7 @@ import { CommonModule } from '@angular/common';
       </div>
 
       <div class="header-right">
-        <div class="api-badge" title="API Backend URL: http://localhost:8081/api">
+        <div class="api-badge" title="API Backend URL: http://192.168.12.52:8081/api">
           <span class="status-dot"></span>
           <span class="api-label">API: localhost:8081</span>
         </div>

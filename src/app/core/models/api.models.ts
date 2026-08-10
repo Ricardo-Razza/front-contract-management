@@ -5,7 +5,7 @@ export interface LookupItem {
   situacao?: string;
   nome?: string;
   descricao?: string;
-  funcao?: string;  // ← ADICIONADO para equipes
+  funcao?: string; 
 }
 
 
@@ -26,7 +26,6 @@ export interface SecretariatDTO {
 export interface Servant {
   id: number;
   nome: string;
-  cpf: number;
   cargo: string;
   matricula: number;
   email: string;
@@ -37,7 +36,6 @@ export interface Servant {
 
 export interface ServantDTO {
   nome: string;
-  cpf: number;
   cargo: string;
   matricula: number;
   email: string;
@@ -55,7 +53,12 @@ export interface Agreement {
   dataFim: string;
   tipo: string;
   objeto: string;
-  situacao: string;
+  observacao: string;
+  portariaDesignacao?:string;
+  dataDesignacao?: string;
+  situacao?: string;
+  gestores?:string;
+  fiscais?:string;
   secretarias: Secretariat[];
 }
 
@@ -66,20 +69,18 @@ export interface AgreementDTO {
   dataFim: string;
   tipoId: number;
   objeto: string;
+  observacao: string;
   ativoId: number;
   secretariasIds: number[];
 }
 
-// =============================================
-// CONTRACT TEAM
-// =============================================
+
 
 export interface ContractTeam {
   id: number;
   ata: string;
   servidor: string;
   funcao: string;
-  dataDesignacao: string;
   dataFim: string;
   situacao: string;
 }
@@ -88,14 +89,10 @@ export interface ContractTeamDTO {
   ataId: number;
   servidorId: number;
   funcaoId: number;
-  dataDesignacao: string;
   dataFim: string;
   ativoId: number;
 }
 
-// =============================================
-// LOOKUP RESPONSE
-// =============================================
 
 export interface LookupResponse {
   ativos: LookupItem[];

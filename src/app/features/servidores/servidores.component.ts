@@ -4,9 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { ConfirmModalComponent } from '../../shared/components/confirm-modal/confirm-modal.component';
 import { LoadingSkeletonComponent } from '../../shared/components/loading-skeleton/loading-skeleton.component';
-import { CpfPipe } from '../../shared/pipes/cpf.pipe';
 import { PhonePipe } from '../../shared/pipes/phone.pipe';
-import { CpfMaskDirective } from '../../shared/directives/cpf-mask.directive';
 import { PhoneMaskDirective } from '../../shared/directives/phone-mask.directive';
 import { ServidorService } from '../../core/services/servidor.service';
 import { SecretariaService } from '../../core/services/secretaria.service';
@@ -24,9 +22,7 @@ import { Servant, Secretariat, LookupItem } from '../../core/models/api.models';
     HeaderComponent,
     ConfirmModalComponent,
     LoadingSkeletonComponent,
-    CpfPipe,
     PhonePipe,
-    CpfMaskDirective,
     PhoneMaskDirective
   ],
   template: `
@@ -54,7 +50,7 @@ import { Servant, Secretariat, LookupItem } from '../../core/models/api.models';
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <input
                 type="text"
-                placeholder="Buscar por nome, CPF ou matrícula..."
+                placeholder="Buscar por nome' ou matrícula..."
                 [ngModel]="searchTerm()"
                 (ngModelChange)="searchTerm.set($event)"
               />
@@ -89,7 +85,6 @@ import { Servant, Secretariat, LookupItem } from '../../core/models/api.models';
                 <tr>
                   <th style="width: 70px;">ID</th>
                   <th>Nome Servidor</th>
-                  <th>CPF</th>
                   <th>Matrícula</th>
                   <th>Cargo</th>
                   <th>Secretaria</th>
@@ -103,7 +98,6 @@ import { Servant, Secretariat, LookupItem } from '../../core/models/api.models';
                   <tr>
                     <td>#{{ serv.id }}</td>
                     <td><strong>{{ serv.nome }}</strong></td>
-                    <td>{{ serv.cpf | cpf }}</td>
                     <td><span class="mat-tag">{{ serv.matricula }}</span></td>
                     <td>{{ serv.cargo }}</td>
                     <td><span class="sec-badge">{{ serv.secretaria }}</span></td>
@@ -168,14 +162,6 @@ import { Servant, Secretariat, LookupItem } from '../../core/models/api.models';
               </div>
 
               <div class="form-grid">
-                <div class="col-6 form-group">
-                  <label>CPF <span class="required">*</span></label>
-                  <input type="text" appCpfMask formControlName="cpf" placeholder="000.000.000-00" />
-                  @if (form.get('cpf')?.touched && form.get('cpf')?.hasError('required')) {
-                    <span class="form-error">O CPF é obrigatório</span>
-                  }
-                </div>
-
                 <div class="col-6 form-group">
                   <label>Matrícula <span class="required">*</span></label>
                   <input type="text" formControlName="matricula" placeholder="Ex: 12345" />
@@ -432,7 +418,6 @@ export class ServidoresComponent implements OnInit {
 
   form: FormGroup = this.fb.group({
     nome: ['', Validators.required],
-    cpf: ['', Validators.required],
     cargo: ['', Validators.required],
     matricula: ['', Validators.required],
     email: [''],
@@ -479,7 +464,6 @@ export class ServidoresComponent implements OnInit {
     if (term) {
       result = result.filter(s =>
         s.nome.toLowerCase().includes(term) ||
-        s.cpf.toString().includes(term) ||
         s.matricula.toString().includes(term)
       );
     }
@@ -499,7 +483,6 @@ export class ServidoresComponent implements OnInit {
     this.editingId.set(null);
     this.form.reset({
       nome: '',
-      cpf: '',
       cargo: '',
       matricula: '',
       email: '',
@@ -517,7 +500,6 @@ export class ServidoresComponent implements OnInit {
 
     this.form.patchValue({
       nome: item.nome,
-      cpf: item.cpf,
       cargo: item.cargo,
       matricula: item.matricula,
       email: item.email || '',
@@ -538,7 +520,6 @@ export class ServidoresComponent implements OnInit {
 
     this.submitting.set(true);
     const val = { ...this.form.value };
-    val.cpf = val.cpf.replace(/\D/g, '');
     val.telefone = val.telefone.replace(/\D/g, '');
 
     const id = this.editingId();
