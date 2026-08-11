@@ -58,27 +58,27 @@ import { Agreement, Secretariat, LookupItem } from '../../core/models/api.models
             <table class="data-table">
               <thead>
                 <tr>
-                  <th style="width: 70px;">ID</th>
-                  <th>Nº / Ano</th>
-                  <th>Data Vigente</th>
-                  <th>Status</th>
-                  <th>Secretarias Participantes</th>
-                  <th>Tipo</th>
+                  <th class="text-center" style="width: 60px;">ID</th>
+                  <th class="text-center">Nº / Ano</th>
+                  <th class="text-center">Data Vigente</th>
+                  <th class="text-center">Status</th>
+                  <th class="text-center">Secretarias</th>
+                  <th class="text-center">Tipo</th>
                   <th>Objeto da Ata</th>
-                  <th>Portaria Designação</th>
-                  <th>Data Designação</th>
+                  <th class="text-center">Portaria</th>
+                  <th class="text-center">Data Designação</th>
                   <th>Equipe</th>
                   <th>Observação</th>
-                  <th style="width: 80px; text-align: right;">Ações</th>
+                  <th class="text-center" style="width: 60px;">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 @for (ata of filteredAgreements(); track ata.id) {
                   <tr>
-                    <td>#{{ ata.id }}</td>
-                    <td><strong>{{ ata.numero }}/{{ ata.ano }}</strong></td>
-                    <td>{{ getDataVigente(ata) }}</td>
-                    <td>
+                    <td class="text-center">#{{ ata.id }}</td>
+                    <td class="text-center"><strong>{{ ata.numero }}/{{ ata.ano }}</strong></td>
+                    <td class="text-center">{{ getDataVigente(ata) }}</td>
+                    <td class="text-center">
                       <span class="badge-status" [ngClass]="ata.situacao === 'INATIVO' ? 'status-inactive' : 'status-active'">
                         <span class="dot"></span>
                         {{ ata.situacao || 'ATIVO' }}
@@ -89,14 +89,20 @@ import { Agreement, Secretariat, LookupItem } from '../../core/models/api.models
                         @for (sec of ata.secretarias; track sec.id) {
                           <span class="sec-pill" [title]="sec.nome">{{ sec.sigla || sec.nome }}</span>
                         } @empty {
-                          <span class="text-muted">Nenhuma</span>
+                          <span class="text-muted">-</span>
                         }
                       </div>
                     </td>
-                    <td><span class="type-tag">{{ ata.tipo || 'Bens e Produtos' }}</span></td>
-                    <td class="td-object" [title]="ata.objeto">{{ ata.objeto }}</td>
-                    <td>{{ ata.portariaDesignacao || '-' }}</td>
-                    <td>{{ ata.dataDesignacao | date:'dd/MM/yyyy' }}</td>
+                    <td class="text-center">
+                      <span class="type-badge">{{ ata.tipo || 'PRODUTO' }}</span>
+                    </td>
+                    <td class="td-objeto-completo">
+                      <div class="objeto-full">
+                        {{ ata.objeto }}
+                      </div>
+                    </td>
+                    <td class="text-center">{{ ata.portariaDesignacao || '-' }}</td>
+                    <td class="text-center">{{ ata.dataDesignacao | date:'dd/MM/yyyy' }}</td>
                     <td>
                       @if (ata.equipe && ata.equipe.length > 0) {
                         <div class="equipe-list">
@@ -111,14 +117,16 @@ import { Agreement, Secretariat, LookupItem } from '../../core/models/api.models
                         <span class="text-muted">-</span>
                       }
                     </td>
-                    <td class="td-object" [title]="ata.observacao">{{ ata.observacao || '-' }}</td>
-                    <td style="text-align: right;">
-                      <button class="btn btn-icon btn-icon-danger" title="Excluir (Cascata)" (click)="promptDelete(ata)">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <polyline points="3 6 5 6 21 6"/>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                          <line x1="10" y1="11" x2="10" y2="17"/>
-                          <line x1="14" y1="11" x2="14" y2="17"/>
+                    <td class="td-objeto-completo">
+                      <div class="objeto-full">
+                        {{ ata.observacao || '-' }}
+                      </div>
+                    </td>
+                    <td class="text-center">
+                      <button class="btn-icon btn-icon-primary" title="Editar Ata" (click)="openEditModal(ata)">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                         </svg>
                       </button>
                     </td>
@@ -127,7 +135,7 @@ import { Agreement, Secretariat, LookupItem } from '../../core/models/api.models
                   <tr>
                     <td colspan="12">
                       <div class="empty-state">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48">
                           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                         </svg>
                         <h4>Nenhuma ata cadastrada</h4>
@@ -265,6 +273,128 @@ import { Agreement, Secretariat, LookupItem } from '../../core/models/api.models
       </div>
     }
 
+    <!-- Edit Modal -->
+    @if (isEditModalOpen()) {
+      <div class="modal-backdrop" (click)="closeEditModal()">
+        <div class="modal-card" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3>Editar Ata de Registro de Preços</h3>
+            <button class="modal-close" (click)="closeEditModal()">&times;</button>
+          </div>
+
+          <form [formGroup]="form" (ngSubmit)="update()">
+            <div class="modal-body">
+              <div class="form-grid">
+                <div class="col-6 form-group">
+                  <label>Número <span class="required">*</span></label>
+                  <input type="number" formControlName="numero" placeholder="Ex: 105" />
+                  @if (form.get('numero')?.touched && form.get('numero')?.hasError('required')) {
+                    <span class="form-error">O número é obrigatório</span>
+                  }
+                </div>
+
+                <div class="col-6 form-group">
+                  <label>Ano <span class="required">*</span></label>
+                  <input type="number" formControlName="ano" placeholder="Ex: 2026" />
+                  @if (form.get('ano')?.touched && form.get('ano')?.hasError('required')) {
+                    <span class="form-error">O ano é obrigatório</span>
+                  }
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="col-6 form-group">
+                  <label>Data de Início <span class="required">*</span></label>
+                  <input type="date" formControlName="dataInicio" />
+                </div>
+
+                <div class="col-6 form-group">
+                  <label>Data de Fim <span class="required">*</span></label>
+                  <input type="date" formControlName="dataFim" />
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="col-6 form-group">
+                  <label>Tipo do Acordo <span class="required">*</span></label>
+                  <select formControlName="tipoId">
+                    @for (item of tiposList(); track item.id) {
+                      <option [value]="item.id">{{ item.tipoArp || 'Selecione' }}</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="col-6 form-group">
+                  <label>Situação <span class="required">*</span></label>
+                  <select formControlName="ativoId">
+                    @for (item of statusList(); track item.id) {
+                      <option [value]="item.id">{{ item.situacao || 'Selecione' }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Objeto da Ata <span class="required">*</span></label>
+                <textarea formControlName="objeto" rows="3" placeholder="Resumo do objeto da contratação ou fornecimento..."></textarea>
+                @if (form.get('objeto')?.touched && form.get('objeto')?.hasError('required')) {
+                  <span class="form-error">O objeto é obrigatório</span>
+                }
+              </div>
+
+              <div class="form-group">
+                <label>Observação</label>
+                <textarea formControlName="observacao" rows="2" placeholder="Observações adicionais sobre a ata..."></textarea>
+              </div>
+
+              <div class="form-group">
+                <label>Portaria de Designação <span class="required">*</span></label>
+                <input type="text" formControlName="portariaDesignacao" placeholder="Ex: PORT-001/2026" />
+                @if (form.get('portariaDesignacao')?.touched && form.get('portariaDesignacao')?.hasError('required')) {
+                  <span class="form-error">A portaria de designação é obrigatória!</span>
+                }
+              </div>
+
+              <div class="form-group">
+                <label>Data de Designação <span class="required">*</span></label>
+                <input type="date" formControlName="dataDesignacao" />
+                @if (form.get('dataDesignacao')?.touched && form.get('dataDesignacao')?.hasError('required')) {
+                  <span class="form-error">A data de designação é obrigatória</span>
+                }
+              </div>
+
+              <div class="form-group">
+                <label>Secretarias Participantes <span class="required">*</span></label>
+                <div class="checkbox-grid">
+                  @for (sec of secretariats(); track sec.id) {
+                    <label class="checkbox-label">
+                      <input
+                        type="checkbox"
+                        [checked]="isSecretariatSelected(sec.id)"
+                        (change)="toggleSecretariat(sec.id)"
+                      />
+                      <span>{{ sec.nome }} ({{ sec.sigla }})</span>
+                    </label>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" (click)="closeEditModal()">Cancelar</button>
+              <button type="submit" class="btn btn-primary" [disabled]="submitting() || form.invalid">
+                @if (submitting()) {
+                  <span>Salvando...</span>
+                } @else {
+                  <span>Atualizar Ata</span>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    }
+
     <!-- Cascade Delete Confirmation Modal -->
     <app-confirm-modal
       [isOpen]="isDeleteModalOpen()"
@@ -315,36 +445,102 @@ import { Agreement, Secretariat, LookupItem } from '../../core/models/api.models
       }
     }
 
-    .type-tag {
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 3px 8px;
-      background-color: #eff6ff;
-      color: #2563eb;
-      border-radius: 4px;
+    .text-center {
+      text-align: center;
     }
 
-    .td-object {
-      max-width: 280px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .type-badge {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+      color: #4338ca;
+      border: 1px solid #a5b4fc;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .type-badge:has-text('SERVICO') {
+      background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+      color: #065f46;
+      border-color: #6ee7b7;
+    }
+
+    .data-table td {
+      vertical-align: middle;
+      padding: 10px 12px;
+      font-size: 0.875rem;
+    }
+
+    .data-table th {
+      padding: 12px 8px;
+      font-weight: 600;
+      color: #475569;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      border-bottom: 2px solid #e2e8f0;
+      background: #f8fafc;
+    }
+
+    .data-table tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    .badge-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .badge-status .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-active {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-active .dot {
+      background: #22c55e;
+    }
+
+    .status-inactive {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .status-inactive .dot {
+      background: #ef4444;
     }
 
     .sec-list {
       display: flex;
       flex-wrap: wrap;
       gap: 4px;
+      justify-content: center;
     }
 
     .sec-pill {
       font-size: 0.6875rem;
       font-weight: 600;
-      padding: 2px 6px;
-      background-color: #f1f5f9;
-      color: $color-secondary;
-      border-radius: 4px;
-      border: 1px solid $color-border;
+      padding: 3px 10px;
+      background: #f1f5f9;
+      color: #334155;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      white-space: nowrap;
     }
 
     .equipe-list {
@@ -366,14 +562,60 @@ import { Agreement, Secretariat, LookupItem } from '../../core/models/api.models
       font-weight: 600;
       color: #475569;
       white-space: nowrap;
+      font-size: 0.65rem;
     }
 
     .equipe-nome {
       color: #1e293b;
+      font-size: 0.75rem;
     }
 
     .text-muted {
       color: #94a3b8;
+      font-size: 0.8rem;
+    }
+
+    .td-objeto-completo {
+      max-width: 320px;
+      min-width: 180px;
+      word-wrap: break-word;
+      white-space: normal;
+      line-height: 1.4;
+      vertical-align: middle;
+    }
+
+    .objeto-full {
+      font-size: 0.8125rem;
+      color: #1e293b;
+      max-height: none;
+      overflow: visible;
+      line-height: 1.5;
+    }
+
+    .btn-icon {
+      background: none;
+      border: none;
+      padding: 6px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      color: #64748b;
+    }
+
+    .btn-icon:hover {
+      background: #f1f5f9;
+    }
+
+    .btn-icon-primary {
+      color: #3b82f6;
+    }
+
+    .btn-icon-primary:hover {
+      background: #eff6ff;
+      color: #2563eb;
     }
 
     .modal-backdrop {
@@ -433,6 +675,23 @@ import { Agreement, Secretariat, LookupItem } from '../../core/models/api.models
       justify-content: flex-end;
       gap: 0.75rem;
     }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: #94a3b8;
+    }
+
+    .empty-state h4 {
+      margin: 0.5rem 0 0.25rem;
+      color: #475569;
+      font-weight: 600;
+    }
+
+    .empty-state p {
+      font-size: 0.875rem;
+      margin: 0;
+    }
   `]
 })
 export class AtasComponent implements OnInit {
@@ -455,8 +714,10 @@ export class AtasComponent implements OnInit {
   deleting = signal<boolean>(false);
 
   isModalOpen = signal<boolean>(false);
+  isEditModalOpen = signal<boolean>(false);
   isDeleteModalOpen = signal<boolean>(false);
   itemToDelete = signal<Agreement | null>(null);
+  editingAta = signal<Agreement | null>(null);
 
   form: FormGroup = this.fb.group({
     numero: ['', Validators.required],
@@ -537,6 +798,32 @@ export class AtasComponent implements OnInit {
     this.form.reset();
   }
 
+  openEditModal(ata: Agreement): void {
+    this.editingAta.set(ata);
+
+    this.form.patchValue({
+      numero: ata.numero,
+      ano: ata.ano,
+      dataInicio: ata.dataInicio,
+      dataFim: ata.dataFim,
+      tipoId: this.getTipoIdByNome(ata.tipo),
+      objeto: ata.objeto,
+      observacao: ata.observacao || '',
+      portariaDesignacao: ata.portariaDesignacao || '',
+      dataDesignacao: ata.dataDesignacao || '',
+      ativoId: ata.situacao === 'ATIVO' ? 1 : 2
+    });
+
+    this.selectedSecretariatIds.set(ata.secretarias.map(s => s.id));
+    this.isEditModalOpen.set(true);
+  }
+
+  closeEditModal(): void {
+    this.isEditModalOpen.set(false);
+    this.editingAta.set(null);
+    this.form.reset();
+  }
+
   isSecretariatSelected(secId: number): boolean {
     return this.selectedSecretariatIds().includes(secId);
   }
@@ -565,6 +852,14 @@ export class AtasComponent implements OnInit {
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
   }
 
+  private getTipoIdByNome(tipoNome: string): number {
+    const map: { [key: string]: number } = {
+      'PRODUTO': 1,
+      'SERVICO': 2
+    };
+    return map[tipoNome] || 1;
+  }
+
   save(): void {
     if (this.form.invalid) return;
 
@@ -586,9 +881,42 @@ export class AtasComponent implements OnInit {
         this.closeModal();
         this.loadData();
       },
-      error: () => {
+      error: (err) => {
         this.toast.error('Erro ao cadastrar ata.');
         this.submitting.set(false);
+        console.error(err);
+      }
+    });
+  }
+
+  update(): void {
+    if (this.form.invalid) return;
+
+    if (this.selectedSecretariatIds().length === 0) {
+      this.toast.warning('Selecione pelo menos uma secretaria participante.');
+      return;
+    }
+
+    const ata = this.editingAta();
+    if (!ata) return;
+
+    this.submitting.set(true);
+    const dto = {
+      ...this.form.value,
+      secretariasIds: this.selectedSecretariatIds()
+    };
+
+    this.ataService.update(ata.id, dto).subscribe({
+      next: () => {
+        this.toast.success('Ata atualizada com sucesso!');
+        this.submitting.set(false);
+        this.closeEditModal();
+        this.loadData();
+      },
+      error: (err) => {
+        this.toast.error('Erro ao atualizar ata.');
+        this.submitting.set(false);
+        console.error(err);
       }
     });
   }
@@ -615,9 +943,10 @@ export class AtasComponent implements OnInit {
         this.closeDeleteModal();
         this.loadData();
       },
-      error: () => {
+      error: (err) => {
         this.toast.error('Erro ao excluir ata.');
         this.deleting.set(false);
+        console.error(err);
       }
     });
   }

@@ -26,4 +26,9 @@ export class AtaService {
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
+
+update(id: number, dto: any): Observable<Agreement> {
+  return this.http.put<Agreement>(`${this.apiUrl}/${id}`, dto);
+  //                                       
+}
 }
