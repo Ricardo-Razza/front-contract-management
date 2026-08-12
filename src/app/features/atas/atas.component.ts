@@ -79,7 +79,7 @@ import { Agreement, Secretariat, LookupItem } from '../../core/models/api.models
                     <td class="text-center"><strong>{{ ata.numero }}/{{ ata.ano }}</strong></td>
                     <td class="text-center">{{ getDataVigente(ata) }}</td>
                     <td class="text-center">
-                      <span class="badge-status" [ngClass]="ata.situacao === 'INATIVO' ? 'status-inactive' : 'status-active'">
+                      <span class="badge-status" [ngClass]="ata.situacao === 'DESATIVADO' ? 'status-inactive' : 'status-active'">
                         <span class="dot"></span>
                         {{ ata.situacao || 'ATIVO' }}
                       </span>
