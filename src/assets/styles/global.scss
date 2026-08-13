@@ -38,11 +38,9 @@ html, body {
 
 .main-content {
   flex: 1;
-  margin-left: $sidebar-width;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  transition: margin-left 0.2s ease-in-out;
 }
 
 .page-content {

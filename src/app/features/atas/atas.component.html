@@ -1,0 +1,428 @@
+<!-- src/app/features/atas/atas.component.html -->
+<app-header title="Atas (Agreements)"></app-header>
+
+<div class="page-content">
+  <div class="page-title-group">
+    <div class="title-with-actions">
+      <div>
+        <h1>Acordos e Atas de Registro de Preços</h1>
+        <p>Gerencie as atas registradas, vigências e secretarias aderentes</p>
+      </div>
+      <button class="btn btn-primary" (click)="openCreateModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nova Ata
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== FILTROS AVANÇADOS ===== -->
+  <div class="filters-section">
+    <div class="filters-header">
+      <button class="btn-filters-toggle" (click)="toggleFilters()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+          <line x1="4" y1="21" x2="4" y2="14"/>
+          <line x1="4" y1="10" x2="4" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12" y2="3"/>
+          <line x1="20" y1="21" x2="20" y2="16"/>
+          <line x1="20" y1="12" x2="20" y2="3"/>
+          <line x1="1" y1="14" x2="7" y2="14"/>
+          <line x1="9" y1="8" x2="15" y2="8"/>
+          <line x1="17" y1="16" x2="23" y2="16"/>
+        </svg>
+        Filtros Avançados
+        @if (activeFiltersCount() > 0) {
+          <span class="badge-filters">{{ activeFiltersCount() }}</span>
+        }
+      </button>
+      @if (activeFiltersCount() > 0) {
+        <button class="btn-clear-filters" (click)="clearFilters()">Limpar Filtros</button>
+      }
+    </div>
+
+    @if (showFilters()) {
+      <div class="filters-grid">
+        <!-- Busca Global -->
+        <div class="filter-group full-width">
+          <label>🔎 Buscar</label>
+          <input
+            type="text"
+            placeholder="Pesquisar em número, ano, objeto, portaria, observação..."
+            [ngModel]="globalSearch()"
+            (ngModelChange)="globalSearch.set($event)"
+            class="filter-input"
+          />
+        </div>
+
+        <!-- Filtros -->
+        <div class="filter-group">
+          <label>📅 Ano</label>
+          <select [ngModel]="filterAno()" (ngModelChange)="filterAno.set($event)" class="filter-select">
+            <option value="">Todos</option>
+            @for (ano of anosDisponiveis(); track ano) {
+              <option [value]="ano">{{ ano }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>📝 Tipo</label>
+          <select [ngModel]="filterTipo()" (ngModelChange)="filterTipo.set($event)" class="filter-select">
+            <option value="">Todos</option>
+            <option value="PRODUTO">PRODUTO</option>
+            <option value="SERVICO">SERVIÇO</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>📊 Status</label>
+          <select [ngModel]="filterStatus()" (ngModelChange)="filterStatus.set($event)" class="filter-select">
+            <option value="">Todos</option>
+            <option value="ATIVO">ATIVO</option>
+            <option value="DESATIVADO">DESATIVADO</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>🏛️ Secretaria</label>
+          <select [ngModel]="filterSecretaria()" (ngModelChange)="filterSecretaria.set($event)" class="filter-select">
+            <option value="">Todas</option>
+            @for (sec of secretariats(); track sec.id) {
+              <option [value]="sec.id">{{ sec.sigla }} - {{ sec.nome }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Pessoa Vinculada -->
+        <div class="filter-group full-width">
+          <label>👤 Pessoa Vinculada (Gestor ou Fiscal)</label>
+          <input
+            type="text"
+            placeholder="Digite o nome do gestor ou fiscal..."
+            [ngModel]="filterPessoa()"
+            (ngModelChange)="filterPessoa.set($event)"
+            class="filter-input"
+            list="servidores-list"
+          />
+          <datalist id="servidores-list">
+            @for (serv of servidoresList(); track serv.id) {
+              <option [value]="serv.nome">{{ serv.nome }}</option>
+            }
+          </datalist>
+        </div>
+
+        <!-- Tags de filtros ativos -->
+        @if (activeFiltersCount() > 0) {
+          <div class="filter-tags full-width">
+            @if (globalSearch()) {
+              <span class="filter-tag">🔎 {{ globalSearch() }} <button (click)="globalSearch.set('')">✕</button></span>
+            }
+            @if (filterAno()) {
+              <span class="filter-tag">📅 {{ filterAno() }} <button (click)="filterAno.set('')">✕</button></span>
+            }
+            @if (filterTipo()) {
+              <span class="filter-tag">📝 {{ filterTipo() }} <button (click)="filterTipo.set('')">✕</button></span>
+            }
+            @if (filterStatus()) {
+              <span class="filter-tag">📊 {{ filterStatus() }} <button (click)="filterStatus.set('')">✕</button></span>
+            }
+            @if (filterSecretaria()) {
+              <span class="filter-tag">🏛️ {{ getSecretariaNome(filterSecretaria()) }} <button (click)="filterSecretaria.set('')">✕</button></span>
+            }
+            @if (filterPessoa()) {
+              <span class="filter-tag">👤 {{ filterPessoa() }} <button (click)="filterPessoa.set('')">✕</button></span>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- ===== TABELA ===== -->
+  <div class="table-card">
+    <div class="table-header-toolbar">
+      <span class="result-count">{{ filteredAgreements().length }} atas encontradas</span>
+    </div>
+
+    @if (loading()) {
+      <app-loading-skeleton [rows]="5"></app-loading-skeleton>
+    } @else {
+      <div class="table-responsive">
+  <!-- src/app/features/atas/atas.component.html - Ajuste no <thead> e <td> -->
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th class="text-center col-id">ID</th>
+      <th class="text-center col-numero">Nº / Ano</th>
+      <th class="text-center col-vigencia">Data Vigente</th>
+      <th class="text-center col-status">Status</th>
+      <th class="text-center col-secretarias">Secretarias</th>
+      <th class="text-center col-tipo">Tipo</th>
+      <th class="col-objeto">Objeto da Ata</th>
+      <th class="text-center col-portaria">Portaria</th>
+      <th class="text-center col-data-designacao">Data Designação</th>
+      <th class="col-equipe">Equipe</th>
+      <th class="col-observacao">Observação</th>
+      <th class="text-center col-acoes">Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (ata of filteredAgreements(); track ata.id; let i = $index) {
+      <tr>
+        <td class="text-center col-id">#{{ ata.id }}</td>
+        <td class="text-center col-numero"><strong>{{ ata.numero }}/{{ ata.ano }}</strong></td>
+        <td class="text-center col-vigencia">{{ getDataVigente(ata) }}</td>
+        <td class="text-center col-status">
+          <span class="badge-status" [ngClass]="ata.situacao === 'DESATIVADO' ? 'status-inactive' : 'status-active'">
+            <span class="dot"></span>
+            {{ ata.situacao || 'ATIVO' }}
+          </span>
+        </td>
+        <td class="text-center col-secretarias">
+          <div class="sec-list">
+            @for (sec of ata.secretarias; track sec.id) {
+              <span class="sec-pill" [title]="sec.nome">{{ sec.sigla || sec.nome }}</span>
+            } @empty {
+              <span class="text-muted">-</span>
+            }
+          </div>
+        </td>
+        <td class="text-center col-tipo">
+          <span class="type-badge">{{ ata.tipo || 'PRODUTO' }}</span>
+        </td>
+        <td class="td-objeto-completo col-objeto">
+          <div class="objeto-full">{{ ata.objeto }}</div>
+        </td>
+        <td class="text-center col-portaria">{{ ata.portariaDesignacao || '-' }}</td>
+        <td class="text-center col-data-designacao">{{ ata.dataDesignacao | date:'dd/MM/yyyy' }}</td>
+        <td class="col-equipe">
+          @if (ata.equipe && ata.equipe.length > 0) {
+            <div class="equipe-list">
+              @for (membro of ata.equipe; track membro.id) {
+                <span class="equipe-item">
+                  <span class="equipe-funcao">{{ membro.funcao }}:</span>
+                  <span class="equipe-nome">{{ membro.servidor }}</span>
+                </span>
+              }
+            </div>
+          } @else {
+            <span class="text-muted">-</span>
+          }
+        </td>
+        <td class="td-objeto-completo col-observacao">
+          <div class="objeto-full">{{ ata.observacao || '-' }}</div>
+        </td>
+        <td class="text-center col-acoes">
+          <button class="btn-icon btn-icon-primary" title="Editar Ata" (click)="openEditModal(ata)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+        </td>
+      </tr>
+    } @empty {
+      <tr>
+        <td colspan="12">
+          <div class="empty-state">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            </svg>
+            <h4>Nenhuma ata cadastrada</h4>
+            <p>Clique em "Nova Ata" para registrar o primeiro acordo no sistema.</p>
+          </div>
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- ===== MODAL CRIAR ===== -->
+@if (isModalOpen()) {
+  <div class="modal-backdrop" (click)="closeModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Nova Ata de Registro de Preços</h3>
+        <button class="modal-close" (click)="closeModal()">&times;</button>
+      </div>
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="col-6 form-group">
+              <label>Número <span class="required">*</span></label>
+              <input type="number" formControlName="numero" placeholder="Ex: 105" />
+            </div>
+            <div class="col-6 form-group">
+              <label>Ano <span class="required">*</span></label>
+              <input type="number" formControlName="ano" placeholder="Ex: 2026" />
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="col-6 form-group">
+              <label>Data de Início <span class="required">*</span></label>
+              <input type="date" formControlName="dataInicio" />
+            </div>
+            <div class="col-6 form-group">
+              <label>Data de Fim <span class="required">*</span></label>
+              <input type="date" formControlName="dataFim" />
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="col-6 form-group">
+              <label>Tipo <span class="required">*</span></label>
+              <select formControlName="tipoId">
+                @for (item of tiposList(); track item.id) {
+                  <option [value]="item.id">{{ item.tipoArp }}</option>
+                }
+              </select>
+            </div>
+            <div class="col-6 form-group">
+              <label>Situação <span class="required">*</span></label>
+              <select formControlName="ativoId">
+                @for (item of statusList(); track item.id) {
+                  <option [value]="item.id">{{ item.situacao }}</option>
+                }
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Objeto <span class="required">*</span></label>
+            <textarea formControlName="objeto" rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Observação</label>
+            <textarea formControlName="observacao" rows="2"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Portaria <span class="required">*</span></label>
+            <input type="text" formControlName="portariaDesignacao" placeholder="Ex: PORT-001/2026" />
+          </div>
+          <div class="form-group">
+            <label>Data Designação <span class="required">*</span></label>
+            <input type="date" formControlName="dataDesignacao" />
+          </div>
+          <div class="form-group">
+            <label>Secretarias <span class="required">*</span></label>
+            <div class="checkbox-grid">
+              @for (sec of secretariats(); track sec.id) {
+                <label class="checkbox-label">
+                  <input type="checkbox" [checked]="isSecretariatSelected(sec.id)" (change)="toggleSecretariat(sec.id)" />
+                  {{ sec.nome }} ({{ sec.sigla }})
+                </label>
+              }
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="submitting() || form.invalid">
+            @if (submitting()) { Salvando... } @else { Cadastrar Ata }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ===== MODAL EDITAR ===== -->
+@if (isEditModalOpen()) {
+  <div class="modal-backdrop" (click)="closeEditModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Editar Ata</h3>
+        <button class="modal-close" (click)="closeEditModal()">&times;</button>
+      </div>
+      <form [formGroup]="form" (ngSubmit)="update()">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="col-6 form-group">
+              <label>Número <span class="required">*</span></label>
+              <input type="number" formControlName="numero" />
+            </div>
+            <div class="col-6 form-group">
+              <label>Ano <span class="required">*</span></label>
+              <input type="number" formControlName="ano" />
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="col-6 form-group">
+              <label>Data Início <span class="required">*</span></label>
+              <input type="date" formControlName="dataInicio" />
+            </div>
+            <div class="col-6 form-group">
+              <label>Data Fim <span class="required">*</span></label>
+              <input type="date" formControlName="dataFim" />
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="col-6 form-group">
+              <label>Tipo <span class="required">*</span></label>
+              <select formControlName="tipoId">
+                @for (item of tiposList(); track item.id) {
+                  <option [value]="item.id">{{ item.tipoArp }}</option>
+                }
+              </select>
+            </div>
+            <div class="col-6 form-group">
+              <label>Situação <span class="required">*</span></label>
+              <select formControlName="ativoId">
+                @for (item of statusList(); track item.id) {
+                  <option [value]="item.id">{{ item.situacao }}</option>
+                }
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Objeto <span class="required">*</span></label>
+            <textarea formControlName="objeto" rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Observação</label>
+            <textarea formControlName="observacao" rows="2"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Portaria <span class="required">*</span></label>
+            <input type="text" formControlName="portariaDesignacao" />
+          </div>
+          <div class="form-group">
+            <label>Data Designação <span class="required">*</span></label>
+            <input type="date" formControlName="dataDesignacao" />
+          </div>
+          <div class="form-group">
+            <label>Secretarias <span class="required">*</span></label>
+            <div class="checkbox-grid">
+              @for (sec of secretariats(); track sec.id) {
+                <label class="checkbox-label">
+                  <input type="checkbox" [checked]="isSecretariatSelected(sec.id)" (change)="toggleSecretariat(sec.id)" />
+                  {{ sec.nome }} ({{ sec.sigla }})
+                </label>
+              }
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeEditModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="submitting() || form.invalid">
+            @if (submitting()) { Salvando... } @else { Atualizar Ata }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ===== MODAL CONFIRMAR EXCLUSÃO ===== -->
+<app-confirm-modal
+  [isOpen]="isDeleteModalOpen()"
+  [title]="'Excluir Ata'"
+  [message]="'Tem certeza que deseja excluir a Ata ' + itemToDelete()?.numero + '/' + itemToDelete()?.ano + '?'"
+  [isCascade]="true"
+  [loading]="deleting()"
+  (confirm)="confirmDelete()"
+  (cancel)="closeDeleteModal()"
+></app-confirm-modal>

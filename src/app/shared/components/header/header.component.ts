@@ -30,7 +30,7 @@ import { CommonModule } from '@angular/common';
       height: $header-height;
       background-color: #ffffff;
       border-bottom: 1px solid $color-border;
-      padding: 0 2rem;
+      padding: 0 2rem 0 5rem;
       display: flex;
       align-items: center;
       justify-content: space-between;

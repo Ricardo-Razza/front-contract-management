@@ -1,3 +1,4 @@
+// src/app/core/models/api.models.ts
 
 export interface LookupItem {
   id: number;
@@ -7,7 +8,6 @@ export interface LookupItem {
   descricao?: string;
   funcao?: string; 
 }
-
 
 export interface Secretariat {
   id: number;
@@ -21,7 +21,6 @@ export interface SecretariatDTO {
   sigla: string;
   ativoId: number;
 }
-
 
 export interface Servant {
   id: number;
@@ -44,6 +43,7 @@ export interface ServantDTO {
   ativoId: number;
 }
 
+// src/app/core/models/api.models.ts
 
 export interface Agreement {
   id: number;
@@ -54,12 +54,21 @@ export interface Agreement {
   tipo: string;
   objeto: string;
   observacao: string;
-  portariaDesignacao?:string;
+  portariaDesignacao?: string;
   dataDesignacao?: string;
   situacao?: string;
-  gestores?:string;
-  fiscais?:string;
+  gestores?: string;      // PODE MANTER
+  fiscais?: string;       // PODE MANTER
   secretarias: Secretariat[];
+  equipe?: EquipeMembro[]; // ⬅️ ADICIONAR
+}
+
+export interface EquipeMembro {
+  id: number | null;
+  ata: string | null;
+  servidor: string;
+  funcao: string;
+  situacao: string | null;
 }
 
 export interface AgreementDTO {
@@ -73,8 +82,6 @@ export interface AgreementDTO {
   ativoId: number;
   secretariasIds: number[];
 }
-
-
 
 export interface ContractTeam {
   id: number;
@@ -93,9 +100,20 @@ export interface ContractTeamDTO {
   ativoId: number;
 }
 
-
 export interface LookupResponse {
   ativos: LookupItem[];
   tipos: LookupItem[];
   funcoes: LookupItem[];
+}
+
+// ===== NOVO: DASHBOARD =====
+export interface DashboardData {
+  totalSecretarias: number;
+  totalServidores: number;
+  totalAtas: number;
+  totalEquipes: number;
+  atasPorMes: { [key: string]: number };
+  atasAtivas: number;
+  atasEncerradas: number;
+  atasRecentes: Agreement[];
 }
