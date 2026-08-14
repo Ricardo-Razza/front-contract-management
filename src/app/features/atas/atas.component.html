@@ -248,11 +248,20 @@
                 <td class="col-equipe">
                   @if (ata.equipe && ata.equipe.length > 0) {
                     <div class="equipe-list">
-                      @for (membro of ata.equipe; track membro.id) {
-                        <span class="equipe-item">
-                          <span class="equipe-funcao">{{ membro.funcao }}:</span>
-                          <span class="equipe-nome">{{ membro.servidor }}</span>
-                        </span>
+                      @for (eq of ata.equipe; track eq.id) {
+                        @if (eq.membros && eq.membros.length > 0) {
+                          @for (membro of eq.membros; track membro.id) {
+                            <span class="equipe-item">
+                              <span class="equipe-funcao">{{ membro.funcaoNome }}:</span>
+                              <span class="equipe-nome">{{ membro.servidorNome }}</span>
+                            </span>
+                          }
+                        } @else if (eq.servidor) {
+                          <span class="equipe-item">
+                            <span class="equipe-funcao">{{ eq.funcao }}:</span>
+                            <span class="equipe-nome">{{ eq.servidor }}</span>
+                          </span>
+                        }
                       }
                     </div>
                   } @else {
@@ -507,13 +516,25 @@
         <!-- Equipe de Fiscalização e Gestão -->
         <div class="detail-section">
           <label class="section-label">👥 Equipe de Gestão e Fiscalização</label>
-          @if (selectedAtaForDetails()?.equipe && selectedAtaForDetails()!.equipe.length > 0) {
+          @if (selectedAtaForDetails()?.equipe && selectedAtaForDetails()!.equipe!.length > 0) {
             <div class="team-cards-grid">
-              @for (membro of selectedAtaForDetails()?.equipe; track membro.id) {
-                <div class="team-member-card">
-                  <div class="member-role">{{ membro.funcao }}</div>
-                  <div class="member-name">{{ membro.servidor }}</div>
-                </div>
+              @for (eq of selectedAtaForDetails()?.equipe; track eq.id) {
+                @if (eq.membros && eq.membros.length > 0) {
+                  @for (membro of eq.membros; track membro.id) {
+                    <div class="team-member-card">
+                      <div class="member-role">{{ membro.funcaoNome }}</div>
+                      <div class="member-name">{{ membro.servidorNome }}</div>
+                      @if (membro.servidorCargo) {
+                        <div class="text-muted-sm">{{ membro.servidorCargo }}</div>
+                      }
+                    </div>
+                  }
+                } @else if (eq.servidor) {
+                  <div class="team-member-card">
+                    <div class="member-role">{{ eq.funcao }}</div>
+                    <div class="member-name">{{ eq.servidor }}</div>
+                  </div>
+                }
               }
             </div>
           } @else {

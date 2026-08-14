@@ -71,7 +71,52 @@
   border: 1px solid #ffedd5;
 }
 
-// Modal
+.text-muted-sm {
+  font-size: 0.8rem;
+  color: $color-text-muted;
+  margin-top: 2px;
+}
+
+// Table Chips for Members
+.members-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.member-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  font-size: 0.825rem;
+
+  .member-name {
+    font-weight: 600;
+    color: #1e293b;
+  }
+
+  .member-role-tag {
+    font-size: 0.725rem;
+    padding: 2px 6px;
+    background: #0284c7;
+    color: #ffffff;
+    border-radius: 12px;
+    font-weight: 500;
+  }
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+// Modal Styling
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -90,7 +135,14 @@
   box-shadow: $shadow-lg;
   max-width: 580px;
   width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
+
+  &.modal-lg {
+    max-width: 820px;
+  }
 }
 
 .modal-header {
@@ -119,6 +171,8 @@
 
 .modal-body {
   padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .modal-footer {
@@ -128,4 +182,211 @@
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
+}
+
+// Section & Member Rows inside Modal
+.members-section {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.members-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.form-section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: $color-secondary;
+  margin: 0;
+}
+
+.form-hint {
+  font-size: 0.8rem;
+  color: $color-text-muted;
+  margin: 2px 0 0 0;
+}
+
+.members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.member-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: $border-radius-sm;
+
+  .col-servidor {
+    flex: 1.5;
+    margin-bottom: 0;
+  }
+
+  .col-funcao {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  .col-action {
+    display: flex;
+    align-items: flex-end;
+    padding-top: 26px;
+  }
+}
+
+// ===== CUSTOM SEARCHABLE DROPDOWN (ATA) =====
+.custom-select-wrapper {
+  position: relative;
+  width: 100%;
+
+  &.open .chevron {
+    transform: rotate(180deg);
+  }
+
+  .chevron {
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+    color: $color-text-muted;
+  }
+}
+
+.custom-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid $color-border;
+  border-radius: $border-radius-sm;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: $color-secondary;
+  transition: border-color 0.15s ease;
+  min-height: 40px;
+
+  &:hover {
+    border-color: $color-accent;
+  }
+
+  &.invalid {
+    border-color: #ef4444;
+  }
+
+  .trigger-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &:empty::before,
+    &.placeholder {
+      color: $color-text-muted;
+    }
+  }
+}
+
+.custom-select-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid $color-border;
+  border-radius: $border-radius-sm;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  z-index: 9999;
+  overflow: hidden;
+
+  .dropdown-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid $color-border;
+    background: #f8fafc;
+
+    svg {
+      color: $color-text-muted;
+      flex-shrink: 0;
+    }
+
+    input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 0.875rem;
+      color: $color-secondary;
+      padding: 0;
+
+      &::placeholder {
+        color: $color-text-muted;
+      }
+    }
+  }
+
+  .dropdown-list {
+    list-style: none;
+    margin: 0;
+    padding: 4px 0;
+    max-height: 240px;
+    overflow-y: auto;
+
+    li {
+      display: flex;
+      flex-direction: column;
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: background 0.1s ease;
+      gap: 2px;
+
+      strong {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: $color-secondary;
+      }
+
+      .ata-objeto-hint {
+        font-size: 0.75rem;
+        color: $color-text-muted;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      &:hover {
+        background: #f1f5f9;
+      }
+
+      &.selected {
+        background: #eff6ff;
+
+        strong {
+          color: $color-accent;
+        }
+      }
+
+      &.no-results {
+        cursor: default;
+        font-size: 0.85rem;
+        color: $color-text-muted;
+        font-style: italic;
+        text-align: center;
+        padding: 16px;
+
+        &:hover {
+          background: transparent;
+        }
+      }
+    }
+  }
 }

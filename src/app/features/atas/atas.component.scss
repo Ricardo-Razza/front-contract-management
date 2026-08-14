@@ -1,11 +1,10 @@
-// src/app/features/atas/atas.component.scss
 @use 'variables' as *;
 
-// ===== CONTAINER PRINCIPAL (OCUPA A TELA INTEIRA) =====
+
 .page-content {
   padding: 1.5rem;
-  max-width: 100%; /* Agora ocupa 100% da largura disponível */
-  margin: 0 0.5rem; /* Pequena margem nas bordas esquerda/direita para não colar na tela */
+  max-width: 100%;
+  margin: 0 0.5rem;
 }
 
 // ===== TÍTULO =====
@@ -26,6 +25,7 @@
     color: $color-secondary;
     margin-bottom: 0.25rem;
   }
+
   p {
     color: $color-text-muted;
     font-size: 0.875rem;
@@ -49,16 +49,21 @@
   &-primary {
     background: $color-accent;
     color: #ffffff;
+
     &:hover {
       background: #2563eb;
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
     }
   }
+
   &-secondary {
     background: #f1f5f9;
     color: #475569;
-    &:hover { background: #e2e8f0; }
+
+    &:hover {
+      background: #e2e8f0;
+    }
   }
 }
 
@@ -69,7 +74,7 @@
   border: 1px solid $color-border;
   padding: 1rem 1.5rem;
   margin-bottom: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .filters-header {
@@ -120,7 +125,10 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  &:hover { background: #fecaca; }
+
+  &:hover {
+    background: #fecaca;
+  }
 }
 
 .filters-grid {
@@ -131,7 +139,9 @@
   padding-top: 1rem;
   border-top: 1px solid $color-border;
 
-  .full-width { grid-column: 1 / -1; }
+  .full-width {
+    grid-column: 1 / -1;
+  }
 }
 
 .filter-group {
@@ -255,7 +265,10 @@
     cursor: pointer;
     font-size: 0.7rem;
     padding: 0 4px;
-    &:hover { color: #ef4444; }
+
+    &:hover {
+      color: #ef4444;
+    }
   }
 }
 
@@ -265,8 +278,9 @@
   border-radius: 16px;
   border: 1px solid $color-border;
   padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  width: 100%; /* Garante que o card ocupe toda a largura */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  width: 100%;
+  /* Garante que o card ocupe toda a largura */
 }
 
 .table-header-toolbar {
@@ -308,8 +322,13 @@
     top: 0;
     z-index: 10;
 
-    &:first-child { padding-left: 1rem; }
-    &:last-child { padding-right: 1rem; }
+    &:first-child {
+      padding-left: 1rem;
+    }
+
+    &:last-child {
+      padding-right: 1rem;
+    }
   }
 
   tbody td {
@@ -320,27 +339,78 @@
 
   tbody tr {
     min-height: 60px;
-    &:hover { background: #f8fafc; }
+
+    &:hover {
+      background: #f8fafc;
+    }
   }
 }
 
-.text-center { text-align: center; }
+.text-center {
+  text-align: center;
+}
 
 // ===== COLUNAS COM LARGURAS DEFINIDAS =====
 // As larguras fixas foram mantidas para garantir que o cabeçalho não fique desalinhado, 
 // mas como tiramos o min-width total de 1300px, elas vão se comprimir caso necessário.
-.col-id { width: 50px; min-width: 50px; }
-.col-numero { width: 100px; min-width: 100px; }
-.col-vigencia { width: 170px; min-width: 150px; }
-.col-status { width: 120px; min-width: 110px; }
-.col-secretarias { width: 120px; min-width: 100px; }
-.col-tipo { width: 100px; min-width: 90px; }
-.col-objeto { min-width: 250px; max-width: 400px; }
-.col-portaria { width: 100px; min-width: 90px; }
-.col-data-designacao { width: 120px; min-width: 110px; }
-.col-equipe { min-width: 200px; max-width: 350px; }
-.col-observacao { min-width: 150px; }
-.col-acoes { width: 50px; min-width: 50px; }
+.col-id {
+  width: 50px;
+  min-width: 50px;
+}
+
+.col-numero {
+  width: 100px;
+  min-width: 100px;
+}
+
+.col-vigencia {
+  width: 170px;
+  min-width: 150px;
+}
+
+.col-status {
+  width: 120px;
+  min-width: 110px;
+}
+
+.col-secretarias {
+  width: 120px;
+  min-width: 100px;
+}
+
+.col-tipo {
+  width: 100px;
+  min-width: 90px;
+}
+
+.col-objeto {
+  min-width: 250px;
+  max-width: 400px;
+}
+
+.col-portaria {
+  width: 100px;
+  min-width: 90px;
+}
+
+.col-data-designacao {
+  width: 120px;
+  min-width: 110px;
+}
+
+.col-equipe {
+  min-width: 200px;
+  max-width: 350px;
+}
+
+.col-observacao {
+  min-width: 150px;
+}
+
+.col-acoes {
+  width: 50px;
+  min-width: 50px;
+}
 
 // ===== BADGES =====
 .badge-status {
@@ -363,13 +433,19 @@
   &.status-active {
     background: #dcfce7;
     color: #166534;
-    .dot { background: #22c55e; }
+
+    .dot {
+      background: #22c55e;
+    }
   }
 
   &.status-inactive {
     background: #fee2e2;
     color: #991b1b;
-    .dot { background: #ef4444; }
+
+    .dot {
+      background: #ef4444;
+    }
   }
 }
 
@@ -446,7 +522,10 @@
   white-space: nowrap;
 }
 
-.text-muted { color: #94a3b8; font-size: 0.75rem; }
+.text-muted {
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
 
 // ===== OBJETO E OBSERVAÇÃO =====
 .td-objeto-completo {
@@ -478,10 +557,13 @@
   transition: all 0.2s;
   color: #64748b;
 
-  &:hover { background: #f1f5f9; }
+  &:hover {
+    background: #f1f5f9;
+  }
 
   &-primary {
     color: #3b82f6;
+
     &:hover {
       background: #eff6ff;
       color: #2563eb;
@@ -505,7 +587,7 @@
 .modal-card {
   background: #ffffff;
   border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   max-width: 640px;
   width: 100%;
   overflow: hidden;
@@ -539,6 +621,7 @@
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
+
     &:hover {
       background: #f1f5f9;
       color: $color-secondary;
@@ -546,7 +629,9 @@
   }
 }
 
-.modal-body { padding: 1.5rem; }
+.modal-body {
+  padding: 1.5rem;
+}
 
 .modal-footer {
   padding: 1rem 1.5rem;
@@ -569,9 +654,13 @@
     margin-bottom: 0.25rem;
   }
 
-  .required { color: #ef4444; }
+  .required {
+    color: #ef4444;
+  }
 
-  input, select, textarea {
+  input,
+  select,
+  textarea {
     width: 100%;
     padding: 0.6rem 0.75rem;
     border: 1.5px solid $color-border;
@@ -624,7 +713,9 @@
   background: #f8fafc;
   transition: all 0.2s;
 
-  &:hover { background: #f1f5f9; }
+  &:hover {
+    background: #f1f5f9;
+  }
 
   input[type="checkbox"] {
     width: 18px;
@@ -645,7 +736,11 @@
     color: #475569;
     font-weight: 600;
   }
-  p { font-size: 0.875rem; margin: 0; }
+
+  p {
+    font-size: 0.875rem;
+    margin: 0;
+  }
 }
 
 // ===== RESPONSIVO =====
@@ -659,30 +754,42 @@
   .filters-grid {
     grid-template-columns: 1fr;
   }
+
   .title-with-actions {
     flex-direction: column;
     align-items: stretch;
   }
-  .page-content { padding: 1rem; }
+
+  .page-content {
+    padding: 1rem;
+  }
 }
 
 @media (max-width: 480px) {
-  .form-grid { grid-template-columns: 1fr; }
-  .checkbox-grid { grid-template-columns: 1fr; }
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .checkbox-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ===== REMOVER ESPAÇAMENTO LATERAL ===== */
 .page-content {
   width: 100%;
   max-width: 100% !important;
-  padding: 0 !important;    /* Elimina o espaço interno esquerdo/direito */
-  margin: 0 !important;     /* Elimina qualquer margem externa */
+  padding: 0 !important;
+  /* Elimina o espaço interno esquerdo/direito */
+  margin: 0 !important;
+  /* Elimina qualquer margem externa */
   box-sizing: border-box;
 }
 
 /* Se o título da página estiver dentro do page-content, ele precisa de um padding interno */
 .page-title-group {
-  padding: 1.5rem 1.5rem 0 1.5rem; /* Dá um respiro no título, sem afetar a tabela */
+  padding: 1.5rem 1.5rem 0 1.5rem;
+  /* Dá um respiro no título, sem afetar a tabela */
   background: #f3f4f6;
 }
 
@@ -789,28 +896,40 @@
     background-color: #f0fdf4;
     border: 1px solid #bbf7d0;
     color: #166534;
-    .vigencia-label { color: #15803d; }
+
+    .vigencia-label {
+      color: #15803d;
+    }
   }
 
   &.vigencia-warning {
     background-color: #fefce8;
     border: 1px solid #fef08a;
     color: #854d0e;
-    .vigencia-label { color: #a16207; }
+
+    .vigencia-label {
+      color: #a16207;
+    }
   }
 
   &.vigencia-critical {
     background-color: #fff7ed;
     border: 1px solid #fed7aa;
     color: #9a3412;
-    .vigencia-label { color: #c2410c; }
+
+    .vigencia-label {
+      color: #c2410c;
+    }
   }
 
   &.vigencia-expired {
     background-color: #fef2f2;
     border: 1px solid #fecaca;
     color: #991b1b;
-    .vigencia-label { color: #b91c1c; }
+
+    .vigencia-label {
+      color: #b91c1c;
+    }
   }
 
   &.vigencia-unknown {
@@ -967,7 +1086,10 @@
       cursor: pointer;
       font-weight: 600;
       padding: 0;
-      &:hover { text-decoration: underline; }
+
+      &:hover {
+        text-decoration: underline;
+      }
     }
 
     .divider {
@@ -1011,7 +1133,11 @@
   &.selected {
     background: #eff6ff;
     border-color: #93c5fd;
-    .sec-name { font-weight: 600; color: #1d4ed8; }
+
+    .sec-name {
+      font-weight: 600;
+      color: #1d4ed8;
+    }
   }
 
   .sec-name {
@@ -1028,4 +1154,4 @@
     border-radius: 6px;
     color: #475569;
   }
-}
+}

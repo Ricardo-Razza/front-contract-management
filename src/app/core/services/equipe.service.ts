@@ -23,6 +23,10 @@ export class EquipeService {
     return this.http.post<ContractTeam>(this.apiUrl, dto);
   }
 
+  update(id: number, dto: ContractTeamDTO | any): Observable<ContractTeam> {
+    return this.http.put<ContractTeam>(`${this.apiUrl}/${id}`, dto);
+  }
+
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }

@@ -1,6 +1,6 @@
-import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PaginationComponent } from '@shared';
 import { EquipeService, AtaService, ServidorService, LookupService, ToastService } from '@core/services';
 import { ContractTeam, Agreement, Servant, LookupItem } from '@core/models';
@@ -29,6 +29,15 @@ export class EquipesComponent implements OnInit {
   private lookupService = inject(LookupService);
   private toast = inject(ToastService);
   private fb = inject(FormBuilder);
+  private elRef = inject(ElementRef);
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.elRef.nativeElement.contains(event.target)) {
+      this.ataDropdownOpen.set(false);
+      this.openServidorDropdownIndex.set(null);
+    }
+  }
 
   teams = signal<ContractTeam[]>([]);
   agreements = signal<Agreement[]>([]);
@@ -38,9 +47,46 @@ export class EquipesComponent implements OnInit {
 
   searchTerm = signal<string>('');
 
+  // Ata searchable dropdown
+  ataSearch = signal<string>('');
+  ataDropdownOpen = signal<boolean>(false);
+
+  filteredAgreementsDropdown = computed(() => {
+    const term = this.ataSearch().trim();
+    if (!term) return this.agreements();
+    const termLower = term.toLowerCase();
+    return this.agreements().filter(a => {
+      const numero = String(a.numero ?? '');
+      const ano = String(a.ano ?? '');
+      const numAno = `${numero}/${ano}`;
+      const objeto = (a.objeto ?? '').toLowerCase();
+      return numero.startsWith(term) ||
+        numAno.includes(term) ||
+        ano.startsWith(term) ||
+        objeto.includes(termLower);
+    });
+  });
+
+  selectedAta = signal<Agreement | null>(null);
+
+  // Servant searchable dropdowns (one per FormArray row)
+  openServidorDropdownIndex = signal<number | null>(null);
+  servidorSearch = signal<string>('');
+  selectedServants = signal<(Servant | null)[]>([]);
+
+  filteredServantsForDropdown = computed(() => {
+    const term = this.servidorSearch().trim().toLowerCase();
+    if (!term) return this.servants();
+    return this.servants().filter(s =>
+      (s.nome ?? '').toLowerCase().includes(term) ||
+      (s.cargo ?? '').toLowerCase().includes(term) ||
+      String(s.matricula ?? '').includes(term)
+    );
+  });
+
   // Sort & Pagination
-  sortColumn = signal<string>('servidor');
-  sortDirection = signal<'asc' | 'desc'>('asc');
+  sortColumn = signal<string>('id');
+  sortDirection = signal<'asc' | 'desc'>('desc');
   currentPage = signal<number>(1);
   pageSize = signal<number>(10);
 
@@ -50,14 +96,54 @@ export class EquipesComponent implements OnInit {
 
   isModalOpen = signal<boolean>(false);
   isDeleteModalOpen = signal<boolean>(false);
+  editingId = signal<number | null>(null);
   itemToDelete = signal<ContractTeam | null>(null);
 
   form: FormGroup = this.fb.group({
-    agreementId: ['', Validators.required],
-    servantId: ['', Validators.required],
-    functionId: ['', Validators.required],
-    activeId: [1, Validators.required]
+    ataId: ['', Validators.required],
+    ativoId: [1, Validators.required],
+    membros: this.fb.array([])
   });
+
+  get membrosArray(): FormArray {
+    return this.form.get('membros') as FormArray;
+  }
+
+  toggleAtaDropdown(): void {
+    this.ataDropdownOpen.update(v => !v);
+    if (this.ataDropdownOpen()) {
+      this.ataSearch.set('');
+    }
+  }
+
+  closeAtaDropdown(): void {
+    this.ataDropdownOpen.set(false);
+  }
+
+  selectAta(ata: Agreement): void {
+    this.form.get('ataId')!.setValue(ata.id);
+    this.selectedAta.set(ata);
+    this.ataDropdownOpen.set(false);
+    this.ataSearch.set('');
+  }
+
+  toggleServidorDropdown(index: number): void {
+    if (this.openServidorDropdownIndex() === index) {
+      this.openServidorDropdownIndex.set(null);
+    } else {
+      this.openServidorDropdownIndex.set(index);
+      this.servidorSearch.set('');
+    }
+  }
+
+  selectServant(index: number, serv: Servant): void {
+    this.membrosArray.at(index).get('servidorId')!.setValue(serv.id);
+    const arr = [...this.selectedServants()];
+    arr[index] = serv;
+    this.selectedServants.set(arr);
+    this.openServidorDropdownIndex.set(null);
+    this.servidorSearch.set('');
+  }
 
   ngOnInit(): void {
     this.loadData();
@@ -100,11 +186,18 @@ export class EquipesComponent implements OnInit {
     const term = this.searchTerm();
     if (!term) return this.teams();
 
-    return this.teams().filter(t =>
-      includesNormalized(t.ata, term) ||
-      includesNormalized(t.servidor, term) ||
-      includesNormalized(t.funcao, term)
-    );
+    return this.teams().filter(t => {
+      const ataLabel = t.ataNumero && t.ataAno ? `${t.ataNumero}/${t.ataAno}` : t.ata || '';
+      const objeto = t.ataObjeto || '';
+      const matchAta = includesNormalized(ataLabel, term) || includesNormalized(objeto, term);
+      const matchMembros = t.membros?.some(m =>
+        includesNormalized(m.servidorNome || '', term) ||
+        includesNormalized(m.funcaoNome || '', term)
+      );
+      const matchLegacy = includesNormalized(t.servidor || '', term) || includesNormalized(t.funcao || '', term);
+
+      return matchAta || matchMembros || matchLegacy;
+    });
   });
 
   sortedTeams = computed(() => {
@@ -138,13 +231,61 @@ export class EquipesComponent implements OnInit {
   });
 
   openCreateModal(): void {
-    this.form.reset({
-      agreementId: '',
-      servantId: '',
-      functionId: '',
-      activeId: 1
-    });
+    this.editingId.set(null);
+    this.selectedAta.set(null);
+    this.selectedServants.set([]);
+    this.form.reset({ ataId: '', ativoId: 1 });
+    this.membrosArray.clear();
+    this.addMembro();
     this.isModalOpen.set(true);
+  }
+
+  openEditModal(team: ContractTeam): void {
+    this.editingId.set(team.id);
+    const ataObj = this.agreements().find(a => a.id === team.ataId) ?? null;
+    this.selectedAta.set(ataObj);
+    this.form.patchValue({ ataId: team.ataId || '', ativoId: team.ativoId || 1 });
+
+    this.membrosArray.clear();
+    this.selectedServants.set([]);
+
+    if (team.membros && team.membros.length > 0) {
+      team.membros.forEach(m => {
+        this.addMembro(m.servidorId, m.funcaoId);
+      });
+      // Resolve servant objects for display
+      const servArr = team.membros.map(m =>
+        this.servants().find(s => s.id === m.servidorId) ?? null
+      );
+      this.selectedServants.set(servArr);
+    } else {
+      this.addMembro();
+    }
+
+    this.isModalOpen.set(true);
+  }
+
+  addMembro(servidorId: number | string = '', funcaoId: number | string = ''): void {
+    const group = this.fb.group({
+      servidorId: [servidorId, Validators.required],
+      funcaoId: [funcaoId, Validators.required]
+    });
+    this.membrosArray.push(group);
+    // Append null placeholder for the new row's servant display
+    this.selectedServants.update(arr => [...arr, null]);
+  }
+
+  removeMembro(index: number): void {
+    if (this.membrosArray.length > 1) {
+      this.membrosArray.removeAt(index);
+      this.selectedServants.update(arr => arr.filter((_, i) => i !== index));
+      // Close dropdown if it was open on this or a later row
+      if ((this.openServidorDropdownIndex() ?? -1) >= index) {
+        this.openServidorDropdownIndex.set(null);
+      }
+    } else {
+      this.toast.error('A equipe precisa ter pelo menos um membro.');
+    }
   }
 
   setSort(column: string): void {
@@ -167,7 +308,15 @@ export class EquipesComponent implements OnInit {
 
   closeModal(): void {
     this.isModalOpen.set(false);
+    this.editingId.set(null);
+    this.selectedAta.set(null);
+    this.selectedServants.set([]);
+    this.openServidorDropdownIndex.set(null);
+    this.servidorSearch.set('');
+    this.ataSearch.set('');
+    this.ataDropdownOpen.set(false);
     this.form.reset();
+    this.membrosArray.clear();
   }
 
   save(): void {
@@ -176,32 +325,51 @@ export class EquipesComponent implements OnInit {
       return;
     }
 
+    if (this.membrosArray.length === 0) {
+      this.toast.error('Adicione pelo menos um servidor na equipe.');
+      return;
+    }
+
     this.submitting.set(true);
     const val = this.form.value;
 
     const payload = {
-      ataId: Number(val.agreementId),
-      agreementId: Number(val.agreementId),
-      servidorId: Number(val.servantId),
-      servantId: Number(val.servantId),
-      funcaoId: Number(val.functionId),
-      functionId: Number(val.functionId),
-      ativoId: Number(val.activeId),
-      activeId: Number(val.activeId)
+      ataId: Number(val.ataId),
+      ativoId: Number(val.ativoId),
+      membros: val.membros.map((m: any) => ({
+        servidorId: Number(m.servidorId),
+        funcaoId: Number(m.funcaoId)
+      }))
     };
 
-    this.equipeService.create(payload).subscribe({
-      next: () => {
-        this.toast.success('Designação cadastrada com sucesso!');
-        this.submitting.set(false);
-        this.closeModal();
-        this.loadData();
-      },
-      error: () => {
-        this.toast.error('Erro ao cadastrar equipe de contrato.');
-        this.submitting.set(false);
-      }
-    });
+    const id = this.editingId();
+    if (id) {
+      this.equipeService.update(id, payload).subscribe({
+        next: () => {
+          this.toast.success('Equipe de contrato atualizada com sucesso!');
+          this.submitting.set(false);
+          this.closeModal();
+          this.loadData();
+        },
+        error: () => {
+          this.toast.error('Erro ao atualizar equipe de contrato.');
+          this.submitting.set(false);
+        }
+      });
+    } else {
+      this.equipeService.create(payload).subscribe({
+        next: () => {
+          this.toast.success('Equipe de contrato cadastrada com sucesso!');
+          this.submitting.set(false);
+          this.closeModal();
+          this.loadData();
+        },
+        error: () => {
+          this.toast.error('Erro ao cadastrar equipe de contrato.');
+          this.submitting.set(false);
+        }
+      });
+    }
   }
 
   promptDelete(item: ContractTeam): void {
@@ -221,13 +389,13 @@ export class EquipesComponent implements OnInit {
     this.deleting.set(true);
     this.equipeService.delete(item.id).subscribe({
       next: () => {
-        this.toast.success('Designação excluída com sucesso.');
+        this.toast.success('Equipe excluída com sucesso.');
         this.deleting.set(false);
         this.closeDeleteModal();
         this.loadData();
       },
       error: () => {
-        this.toast.error('Erro ao excluir designação.');
+        this.toast.error('Erro ao excluir equipe.');
         this.deleting.set(false);
       }
     });

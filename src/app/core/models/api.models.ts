@@ -57,18 +57,10 @@ export interface Agreement {
   portariaDesignacao?: string;
   dataDesignacao?: string;
   situacao?: string;
-  gestores?: string;      // PODE MANTER
-  fiscais?: string;       // PODE MANTER
+  gestores?: string;
+  fiscais?: string;
   secretarias: Secretariat[];
-  equipe?: EquipeMembro[]; // ⬅️ ADICIONAR
-}
-
-export interface EquipeMembro {
-  id: number | null;
-  ata: string | null;
-  servidor: string;
-  funcao: string;
-  situacao: string | null;
+  equipe?: ContractTeam[];
 }
 
 export interface AgreementDTO {
@@ -83,19 +75,39 @@ export interface AgreementDTO {
   secretariasIds: number[];
 }
 
+export interface ContractTeamMember {
+  id?: number;
+  servidorId: number;
+  servidorNome?: string;
+  servidorCargo?: string;
+  servidorMatricula?: string;
+  funcaoId: number;
+  funcaoNome?: string;
+}
+
 export interface ContractTeam {
   id: number;
-  ata: string;
-  servidor: string;
-  funcao: string;
-  situacao: string;
+  ataId?: number;
+  ataNumero?: number;
+  ataAno?: number;
+  ataObjeto?: string;
+  ata?: string;
+  servidor?: string;
+  funcao?: string;
+  ativoId?: number;
+  situacao?: string;
+  membros?: ContractTeamMember[];
+}
+
+export interface ContractTeamMemberDTO {
+  servidorId: number;
+  funcaoId: number;
 }
 
 export interface ContractTeamDTO {
   ataId: number;
-  servidorId: number;
-  funcaoId: number;
   ativoId: number;
+  membros: ContractTeamMemberDTO[];
 }
 
 export interface LookupResponse {

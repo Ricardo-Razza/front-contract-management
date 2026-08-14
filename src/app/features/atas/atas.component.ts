@@ -159,12 +159,15 @@ export class AtasComponent implements OnInit {
         if (!hasSecretaria) return false;
       }
 
-      // 6. Pessoa vinculada
+
       if (pessoa) {
-        const equipe = ata.equipe || [];
-        const hasPessoa = equipe.some(m => 
-          includesNormalized(m.servidor, pessoa)
-        );
+        const equipes = ata.equipe || [];
+        const hasPessoa = equipes.some((eq: any) => {
+          if (eq.membros && eq.membros.length > 0) {
+            return eq.membros.some((m: any) => includesNormalized(m.servidorNome || '', pessoa));
+          }
+          return includesNormalized(eq.servidor || '', pessoa);
+        });
         if (!hasPessoa) return false;
       }
 
