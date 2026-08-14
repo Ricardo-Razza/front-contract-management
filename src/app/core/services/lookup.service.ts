@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, of } from 'rxjs';
-import { environment } from '../../../environments/environment';
-import { LookupItem } from '../models/api.models';
+import { environment } from '@env/environment';
+import { LookupItem } from '@core/models';
 
 @Injectable({
   providedIn: 'root'
@@ -15,7 +15,7 @@ export class LookupService {
     return this.http.get<LookupItem[]>(`${this.apiUrl}/ativos`).pipe(
       catchError(() => of([
         { id: 1, nome: 'Ativo', situacao: 'Ativo', descricao: 'Ativo' },
-        { id: 2, nome: 'Inativo', situacao: 'Inativo', descricao: 'Inativo' }
+        { id: 2, nome: 'Desativado', situacao: 'Desativado', descricao: 'Desativado' }
       ]))
     );
   }

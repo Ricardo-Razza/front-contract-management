@@ -1,0 +1,161 @@
+<app-header title="Dashboard"></app-header>
+
+<div class="page-content">
+  <div class="page-title-group">
+    <h1>Painel de Controle</h1>
+    <p>Visão geral do sistema de acordos de registro de preços (ARP)</p>
+  </div>
+
+  <!-- KPI Metrics Cards -->
+  <div class="metrics-grid">
+    <div class="metric-card card-secretariats">
+      <div class="metric-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg>
+      </div>
+      <div class="metric-data">
+        <span class="metric-label">Secretarias</span>
+        <span class="metric-value">{{ totalSecretariats() }}</span>
+      </div>
+    </div>
+
+    <div class="metric-card card-servants">
+      <div class="metric-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      </div>
+      <div class="metric-data">
+        <span class="metric-label">Servidores</span>
+        <span class="metric-value">{{ totalServants() }}</span>
+      </div>
+    </div>
+
+    <div class="metric-card card-agreements">
+      <div class="metric-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="m9 15 2 2 4-4"/></svg>
+      </div>
+      <div class="metric-data">
+        <span class="metric-label">Atas Registradas</span>
+        <span class="metric-value">{{ totalAgreements() }}</span>
+      </div>
+    </div>
+
+    <div class="metric-card card-teams">
+      <div class="metric-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/></svg>
+      </div>
+      <div class="metric-data">
+        <span class="metric-label">Equipes de Contrato</span>
+        <span class="metric-value">{{ totalTeams() }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-grid">
+    <!-- Monthly Agreements Chart Card -->
+    <div class="chart-card">
+      <div class="card-header">
+        <h3>Acordos e Atas por Mês</h3>
+        <span class="card-subtitle">Evolução do registro de atas ao longo do ano</span>
+      </div>
+      <div class="chart-container">
+        <div class="bar-chart">
+          @for (item of monthlyData; track item.month) {
+            <div class="bar-column">
+              <div class="bar-wrapper">
+                <div class="bar-fill" [style.height.%]="(item.count / maxMonthlyCount) * 100">
+                  <span class="bar-tooltip">{{ item.count }} Atas</span>
+                </div>
+              </div>
+              <span class="bar-label">{{ item.month }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Info / Status Summary -->
+    <div class="info-card">
+      <div class="card-header">
+        <h3>Status das Atas</h3>
+      </div>
+      <div class="status-summary-list">
+        <div class="status-item">
+          <span class="status-label">Atas Ativas</span>
+          <span class="badge-status status-active">{{ activeAgreementsCount() }} Registradas</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Atas Encerradas</span>
+          <span class="badge-status status-inactive">{{ inactiveAgreementsCount() }} Finalizadas</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Total Secretarias Participantes</span>
+          <span class="status-num">{{ totalSecretariats() }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Agreements Table Card -->
+  <div class="table-card">
+    <div class="table-header-toolbar">
+      <div>
+        <h3>Atas Recentes</h3>
+        <span class="card-subtitle">Últimas atas cadastradas no sistema</span>
+      </div>
+      <a routerLink="/atas" class="btn btn-secondary btn-sm">Ver Todas</a>
+    </div>
+
+    @if (loading()) {
+      <app-loading-skeleton [rows]="4"></app-loading-skeleton>
+    } @else {
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nº / Ano</th>
+              <th>Tipo</th>
+              <th>Objeto</th>
+              <th>Vigência</th>
+              <th>Secretarias</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (ata of recentAgreements(); track ata.id) {
+              <tr>
+                <td><strong>{{ ata.numero }}/{{ ata.ano }}</strong></td>
+                <td>{{ ata.tipo || 'ARP' }}</td>
+                <td class="td-truncate" [title]="ata.objeto">{{ ata.objeto }}</td>
+                <td>{{ ata.dataInicio | date:'dd/MM/yyyy' }} à {{ ata.dataFim | date:'dd/MM/yyyy' }}</td>
+                <td>
+                  <div class="sec-tags">
+                    @for (sec of ata.secretarias; track sec.id) {
+                      <span class="sec-tag">{{ sec.sigla || sec.nome }}</span>
+                    } @empty {
+                      <span class="text-muted">-</span>
+                    }
+                  </div>
+                </td>
+                <td>
+                  <span class="badge-status" [ngClass]="ata.situacao === 'DESATIVADO' ? 'status-inactive' : 'status-active'">
+                    <span class="dot"></span>
+                    {{ ata.situacao || 'Ativo' }}
+                  </span>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6">
+                  <div class="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+                    <h4>Nenhuma ata cadastrada</h4>
+                    <p>Acesse a seção de Atas para registrar um novo acordo.</p>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

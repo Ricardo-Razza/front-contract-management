@@ -138,7 +138,7 @@ export const environment = {
 | `#0f172a` | Elementos de destaque |
 | `#3b82f6` | Botões principais |
 | `#22c55e` | Status "Ativo" |
-| `#ef4444` | Status "Inativo" e exclusão |
+| `#ef4444` | Status "Desativado" e exclusão |
 | `#f59e0b` | Status "Pendente" |
 | `#f1f5f9` | Fundo da página |
 | `#ffffff` | Cards e containers |

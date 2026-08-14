@@ -1,0 +1,173 @@
+@use 'variables' as *;
+
+.title-with-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.col-sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background-color: #f1f5f9;
+    color: $color-accent;
+  }
+
+  .sort-icon {
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 0.75rem;
+    color: $color-accent;
+  }
+
+  .sort-icon-idle {
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 0.75rem;
+    opacity: 0.3;
+  }
+}
+
+.filters-group {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.search-input-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 240px;
+
+  svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: $color-text-muted;
+  }
+
+  input {
+    width: 100%;
+    padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+    border: 1px solid $color-border;
+    border-radius: $border-radius-sm;
+    font-size: 0.875rem;
+
+    &:focus {
+      outline: none;
+      border-color: $color-accent;
+    }
+  }
+}
+
+.filter-select {
+  select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid $color-border;
+    border-radius: $border-radius-sm;
+    font-size: 0.875rem;
+    background-color: #ffffff;
+
+    &:focus {
+      outline: none;
+      border-color: $color-accent;
+    }
+  }
+}
+
+.mat-tag {
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  background-color: #f1f5f9;
+  color: $color-secondary;
+  border-radius: 4px;
+}
+
+.sec-badge {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: $color-secondary;
+}
+
+.contact-info {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.75rem;
+
+  .email { color: $color-text; font-weight: 500; }
+  .phone { color: $color-text-muted; }
+}
+
+.action-buttons {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+// Modal
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-card {
+  background: #ffffff;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-lg;
+  max-width: 600px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid $color-border;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  h3 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: $color-secondary;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: $color-text-muted;
+    cursor: pointer;
+
+    &:hover { color: $color-secondary; }
+  }
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-footer {
+  padding: 1rem 1.5rem;
+  background-color: #f8fafc;
+  border-top: 1px solid $color-border;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}

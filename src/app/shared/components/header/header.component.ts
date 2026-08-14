@@ -1,10 +1,11 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-header',
   standalone: true,
   imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="app-header">
       <div class="header-left">
@@ -12,13 +13,6 @@ import { CommonModule } from '@angular/common';
           <span class="breadcrumb-item">Sistema ARP</span>
           <span class="separator">/</span>
           <span class="breadcrumb-item active">{{ title }}</span>
-        </div>
-      </div>
-
-      <div class="header-right">
-        <div class="api-badge" title="API Backend URL: http://192.168.12.52:8081/api">
-          <span class="status-dot"></span>
-          <span class="api-label">API: localhost:8081</span>
         </div>
       </div>
     </header>
@@ -53,27 +47,6 @@ import { CommonModule } from '@angular/common';
       .active {
         color: $color-secondary;
         font-weight: 600;
-      }
-    }
-
-    .api-badge {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.375rem 0.75rem;
-      background-color: #f8fafc;
-      border: 1px solid $color-border;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: $color-text-muted;
-
-      .status-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background-color: $color-success;
-        box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
       }
     }
   `]

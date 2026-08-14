@@ -94,21 +94,30 @@
         </div>
 
         <!-- Pessoa Vinculada -->
-        <div class="filter-group full-width">
+        <div class="filter-group full-width autocomplete-group">
           <label>👤 Pessoa Vinculada (Gestor ou Fiscal)</label>
-          <input
-            type="text"
-            placeholder="Digite o nome do gestor ou fiscal..."
-            [ngModel]="filterPessoa()"
-            (ngModelChange)="filterPessoa.set($event)"
-            class="filter-input"
-            list="servidores-list"
-          />
-          <datalist id="servidores-list">
-            @for (serv of servidoresList(); track serv.id) {
-              <option [value]="serv.nome">{{ serv.nome }}</option>
+          <div class="autocomplete-wrapper">
+            <input
+              type="text"
+              placeholder="Digite o nome do gestor ou fiscal..."
+              [ngModel]="filterPessoa()"
+              (ngModelChange)="filterPessoa.set($event); showPessoaSuggestions.set(true)"
+              (focus)="showPessoaSuggestions.set(true)"
+              (blur)="hidePessoaSuggestionsWithDelay()"
+              class="filter-input"
+              autocomplete="off"
+            />
+            @if (showPessoaSuggestions() && filteredServidoresSuggestions().length > 0) {
+              <ul class="autocomplete-dropdown">
+                @for (serv of filteredServidoresSuggestions(); track serv.id) {
+                  <li (mousedown)="selectPessoaSuggestion(serv.nome)">
+                    <span class="suggestion-icon">👤</span>
+                    <span class="suggestion-name">{{ serv.nome }}</span>
+                  </li>
+                }
+              </ul>
             }
-          </datalist>
+          </div>
         </div>
 
         <!-- Tags de filtros ativos -->
@@ -148,96 +157,153 @@
       <app-loading-skeleton [rows]="5"></app-loading-skeleton>
     } @else {
       <div class="table-responsive">
-  <!-- src/app/features/atas/atas.component.html - Ajuste no <thead> e <td> -->
-
-<table class="data-table">
-  <thead>
-    <tr>
-      <th class="text-center col-id">ID</th>
-      <th class="text-center col-numero">Nº / Ano</th>
-      <th class="text-center col-vigencia">Data Vigente</th>
-      <th class="text-center col-status">Status</th>
-      <th class="text-center col-secretarias">Secretarias</th>
-      <th class="text-center col-tipo">Tipo</th>
-      <th class="col-objeto">Objeto da Ata</th>
-      <th class="text-center col-portaria">Portaria</th>
-      <th class="text-center col-data-designacao">Data Designação</th>
-      <th class="col-equipe">Equipe</th>
-      <th class="col-observacao">Observação</th>
-      <th class="text-center col-acoes">Ações</th>
-    </tr>
-  </thead>
-  <tbody>
-    @for (ata of filteredAgreements(); track ata.id; let i = $index) {
-      <tr>
-        <td class="text-center col-id">#{{ ata.id }}</td>
-        <td class="text-center col-numero"><strong>{{ ata.numero }}/{{ ata.ano }}</strong></td>
-        <td class="text-center col-vigencia">{{ getDataVigente(ata) }}</td>
-        <td class="text-center col-status">
-          <span class="badge-status" [ngClass]="ata.situacao === 'DESATIVADO' ? 'status-inactive' : 'status-active'">
-            <span class="dot"></span>
-            {{ ata.situacao || 'ATIVO' }}
-          </span>
-        </td>
-        <td class="text-center col-secretarias">
-          <div class="sec-list">
-            @for (sec of ata.secretarias; track sec.id) {
-              <span class="sec-pill" [title]="sec.nome">{{ sec.sigla || sec.nome }}</span>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="text-center col-id col-sortable" (click)="setSort('id')">
+                ID
+                @if (sortColumn() === 'id') {
+                  <span class="sort-icon">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+                } @else {
+                  <span class="sort-icon-idle">↕</span>
+                }
+              </th>
+              <th class="text-center col-numero col-sortable" (click)="setSort('numero')">
+                Nº / Ano
+                @if (sortColumn() === 'numero') {
+                  <span class="sort-icon">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+                } @else {
+                  <span class="sort-icon-idle">↕</span>
+                }
+              </th>
+              <th class="text-center col-vigencia col-sortable" (click)="setSort('vigencia')">
+                Data Vigente
+                @if (sortColumn() === 'vigencia') {
+                  <span class="sort-icon">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+                } @else {
+                  <span class="sort-icon-idle">↕</span>
+                }
+              </th>
+              <th class="text-center col-status col-sortable" (click)="setSort('situacao')">
+                Status
+                @if (sortColumn() === 'situacao') {
+                  <span class="sort-icon">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+                } @else {
+                  <span class="sort-icon-idle">↕</span>
+                }
+              </th>
+              <th class="text-center col-secretarias">Secretarias</th>
+              <th class="text-center col-tipo col-sortable" (click)="setSort('tipo')">
+                Tipo
+                @if (sortColumn() === 'tipo') {
+                  <span class="sort-icon">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+                } @else {
+                  <span class="sort-icon-idle">↕</span>
+                }
+              </th>
+              <th class="col-objeto col-sortable" (click)="setSort('objeto')">
+                Objeto da Ata
+                @if (sortColumn() === 'objeto') {
+                  <span class="sort-icon">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+                } @else {
+                  <span class="sort-icon-idle">↕</span>
+                }
+              </th>
+              <th class="text-center col-portaria">Portaria</th>
+              <th class="text-center col-data-designacao">Data Designação</th>
+              <th class="col-equipe">Equipe</th>
+              <th class="col-observacao">Observação</th>
+              <th class="text-center col-acoes">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (ata of paginatedAgreements(); track ata.id; let i = $index) {
+              <tr>
+                <td class="text-center col-id">#{{ ata.id }}</td>
+                <td class="text-center col-numero"><strong>{{ ata.numero }}/{{ ata.ano }}</strong></td>
+                <td class="text-center col-vigencia">{{ getDataVigente(ata) }}</td>
+                <td class="text-center col-status">
+                  <span class="badge-status" [ngClass]="ata.situacao === 'DESATIVADO' ? 'status-inactive' : 'status-active'">
+                    <span class="dot"></span>
+                    {{ ata.situacao || 'ATIVO' }}
+                  </span>
+                </td>
+                <td class="text-center col-secretarias">
+                  <div class="sec-list">
+                    @for (sec of ata.secretarias; track sec.id) {
+                      <span class="sec-pill" [title]="sec.nome">{{ sec.sigla || sec.nome }}</span>
+                    } @empty {
+                      <span class="text-muted">-</span>
+                    }
+                  </div>
+                </td>
+                <td class="text-center col-tipo">
+                  <span class="type-badge">{{ ata.tipo || 'PRODUTO' }}</span>
+                </td>
+                <td class="td-objeto-completo col-objeto">
+                  <div class="objeto-full">{{ ata.objeto }}</div>
+                </td>
+                <td class="text-center col-portaria">{{ ata.portariaDesignacao || '-' }}</td>
+                <td class="text-center col-data-designacao">{{ ata.dataDesignacao | date:'dd/MM/yyyy' }}</td>
+                <td class="col-equipe">
+                  @if (ata.equipe && ata.equipe.length > 0) {
+                    <div class="equipe-list">
+                      @for (membro of ata.equipe; track membro.id) {
+                        <span class="equipe-item">
+                          <span class="equipe-funcao">{{ membro.funcao }}:</span>
+                          <span class="equipe-nome">{{ membro.servidor }}</span>
+                        </span>
+                      }
+                    </div>
+                  } @else {
+                    <span class="text-muted">-</span>
+                  }
+                </td>
+                <td class="td-objeto-completo col-observacao">
+                  <div class="objeto-full">{{ ata.observacao || '-' }}</div>
+                </td>
+                <td class="text-center col-acoes">
+                  <div class="action-buttons">
+                    <button class="btn-icon btn-icon-info" title="Visualizar Detalhes" (click)="openDetailsModal(ata)">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                      </svg>
+                    </button>
+                    <button class="btn-icon btn-icon-primary" title="Editar Ata" (click)="openEditModal(ata)">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
             } @empty {
-              <span class="text-muted">-</span>
+              <tr>
+                <td colspan="12">
+                  <div class="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    </svg>
+                    <h4>Nenhuma ata encontrada</h4>
+                    <p>Nenhuma ata corresponde aos filtros aplicados.</p>
+                  </div>
+                </td>
+              </tr>
             }
-          </div>
-        </td>
-        <td class="text-center col-tipo">
-          <span class="type-badge">{{ ata.tipo || 'PRODUTO' }}</span>
-        </td>
-        <td class="td-objeto-completo col-objeto">
-          <div class="objeto-full">{{ ata.objeto }}</div>
-        </td>
-        <td class="text-center col-portaria">{{ ata.portariaDesignacao || '-' }}</td>
-        <td class="text-center col-data-designacao">{{ ata.dataDesignacao | date:'dd/MM/yyyy' }}</td>
-        <td class="col-equipe">
-          @if (ata.equipe && ata.equipe.length > 0) {
-            <div class="equipe-list">
-              @for (membro of ata.equipe; track membro.id) {
-                <span class="equipe-item">
-                  <span class="equipe-funcao">{{ membro.funcao }}:</span>
-                  <span class="equipe-nome">{{ membro.servidor }}</span>
-                </span>
-              }
-            </div>
-          } @else {
-            <span class="text-muted">-</span>
-          }
-        </td>
-        <td class="td-objeto-completo col-observacao">
-          <div class="objeto-full">{{ ata.observacao || '-' }}</div>
-        </td>
-        <td class="text-center col-acoes">
-          <button class="btn-icon btn-icon-primary" title="Editar Ata" (click)="openEditModal(ata)">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-          </button>
-        </td>
-      </tr>
-    } @empty {
-      <tr>
-        <td colspan="12">
-          <div class="empty-state">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            </svg>
-            <h4>Nenhuma ata cadastrada</h4>
-            <p>Clique em "Nova Ata" para registrar o primeiro acordo no sistema.</p>
-          </div>
-        </td>
-      </tr>
-    }
-  </tbody>
-</table>
+          </tbody>
+        </table>
       </div>
+
+      <!-- Paginação -->
+      <app-pagination
+        [totalItems]="filteredAgreements().length"
+        [currentPage]="currentPage()"
+        [pageSize]="pageSize()"
+        (pageChange)="onPageChange($event)"
+        (pageSizeChange)="onPageSizeChange($event)"
+      ></app-pagination>
     }
   </div>
 </div>
@@ -406,12 +472,117 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="closeEditModal()">Cancelar</button>
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
           <button type="submit" class="btn btn-primary" [disabled]="submitting() || form.invalid">
             @if (submitting()) { Salvando... } @else { Atualizar Ata }
           </button>
         </div>
       </form>
+    </div>
+  </div>
+}
+
+<!-- ===== MODAL DETALHES ===== -->
+@if (isDetailsModalOpen() && selectedAtaForDetails()) {
+  <div class="modal-backdrop" (click)="closeDetailsModal()">
+    <div class="modal-card modal-lg" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="header-title-with-badge">
+          <h3>Detalhes da Ata Nº {{ selectedAtaForDetails()?.numero }}/{{ selectedAtaForDetails()?.ano }}</h3>
+          <span class="badge-status" [ngClass]="selectedAtaForDetails()?.situacao === 'DESATIVADO' ? 'status-inactive' : 'status-active'">
+            <span class="dot"></span>
+            {{ selectedAtaForDetails()?.situacao || 'ATIVO' }}
+          </span>
+          <span class="type-badge">{{ selectedAtaForDetails()?.tipo || 'PRODUTO' }}</span>
+        </div>
+        <button class="modal-close" (click)="closeDetailsModal()">&times;</button>
+      </div>
+
+      <div class="modal-body details-body">
+        <!-- Card de Vigência Inteligente -->
+        <div class="vigencia-card" [ngClass]="getVigenciaStatus(selectedAtaForDetails()?.dataFim).badgeClass">
+          <div class="vigencia-header">
+            <span class="vigencia-icon">⏱️</span>
+            <div>
+              <span class="vigencia-label">Status da Vigência</span>
+              <h4>{{ getVigenciaStatus(selectedAtaForDetails()?.dataFim).text }}</h4>
+            </div>
+          </div>
+          <div class="vigencia-dates">
+            <span>Início: <strong>{{ selectedAtaForDetails()?.dataInicio | date:'dd/MM/yyyy' }}</strong></span>
+            <span>Término: <strong>{{ selectedAtaForDetails()?.dataFim | date:'dd/MM/yyyy' }}</strong></span>
+          </div>
+        </div>
+
+        <!-- Objeto -->
+        <div class="detail-section">
+          <label class="section-label">📋 Objeto da Ata</label>
+          <p class="section-text highlight-box">{{ selectedAtaForDetails()?.objeto }}</p>
+        </div>
+
+        <!-- Secretarias Participantes -->
+        <div class="detail-section">
+          <label class="section-label">🏛️ Secretarias Participantes / Aderentes</label>
+          <div class="sec-tags-container">
+            @for (sec of selectedAtaForDetails()?.secretarias; track sec.id) {
+              <div class="sec-chip">
+                <span class="sec-chip-sigla">{{ sec.sigla }}</span>
+                <span class="sec-chip-nome">{{ sec.nome }}</span>
+              </div>
+            } @empty {
+              <span class="text-muted">Nenhuma secretaria vinculada.</span>
+            }
+          </div>
+        </div>
+
+        <!-- Equipe de Fiscalização e Gestão -->
+        <div class="detail-section">
+          <label class="section-label">👥 Equipe de Gestão e Fiscalização</label>
+          @if (selectedAtaForDetails()?.equipe && selectedAtaForDetails()!.equipe.length > 0) {
+            <div class="team-cards-grid">
+              @for (membro of selectedAtaForDetails()?.equipe; track membro.id) {
+                <div class="team-member-card">
+                  <div class="member-role">{{ membro.funcao }}</div>
+                  <div class="member-name">{{ membro.servidor }}</div>
+                </div>
+              }
+            </div>
+          } @else {
+            <span class="text-muted">Nenhum membro ou fiscal vinculado a esta ata.</span>
+          }
+        </div>
+
+        <!-- Portaria e Designação -->
+        <div class="detail-grid">
+          <div class="detail-item">
+            <label>📜 Portaria de Designação</label>
+            <span>{{ selectedAtaForDetails()?.portariaDesignacao || '-' }}</span>
+          </div>
+          <div class="detail-item">
+            <label>📅 Data da Designação</label>
+            <span>{{ selectedAtaForDetails()?.dataDesignacao | date:'dd/MM/yyyy' || '-' }}</span>
+          </div>
+        </div>
+
+        <!-- Observações -->
+        @if (selectedAtaForDetails()?.observacao) {
+          <div class="detail-section">
+            <label class="section-label">📝 Observações Gerais</label>
+            <p class="section-text note-box">{{ selectedAtaForDetails()?.observacao }}</p>
+          </div>
+        }
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeDetailsModal()">Fechar</button>
+        <button type="button" class="btn btn-primary" (click)="closeDetailsModal(); openEditModal(selectedAtaForDetails()!)">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          Editar Ata
+        </button>
+      </div>
     </div>
   </div>
 }

@@ -1,4 +1,7 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://192.168.12.52:8081/api'
+  get apiUrl(): string {
+    const host = typeof window !== 'undefined' && window.location ? window.location.hostname : 'localhost';
+    return `http://${host}:8081/api`;
+  }
 };
