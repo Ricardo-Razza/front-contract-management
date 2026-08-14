@@ -66,8 +66,6 @@
                   <span class="sort-icon-idle">↕</span>
                 }
               </th>
-              <th>Data Designação</th>
-              <th>Término Designação</th>
               <th>Status</th>
               <th style="width: 80px; text-align: right;">Ações</th>
             </tr>
@@ -79,8 +77,6 @@
                 <td><strong>{{ team.ata }}</strong></td>
                 <td>{{ team.servidor }}</td>
                 <td><span class="role-badge">{{ team.funcao }}</span></td>
-                <td>{{ team.dataDesignacao | date:'dd/MM/yyyy' }}</td>
-                <td>{{ team.dataFim | date:'dd/MM/yyyy' }}</td>
                 <td>
                   <span class="badge-status" [ngClass]="team.situacao === 'DESATIVADO' ? 'status-inactive' : 'status-active'">
                     <span class="dot"></span>
@@ -95,7 +91,7 @@
               </tr>
             } @empty {
               <tr>
-                <td colspan="8">
+                <td colspan="6">
                   <div class="empty-state">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/></svg>
                     <h4>Nenhuma equipe designada</h4>
@@ -149,7 +145,7 @@
               <select formControlName="servantId">
                 <option value="">Selecione o servidor</option>
                 @for (serv of servants(); track serv.id) {
-                  <option [value]="serv.id">{{ serv.nome }} ({{ serv.cargo }})</option>
+                  <option [value]="serv.id">{{ serv.nome }} ({{ serv.cargo }}{{ serv.secretaria ? ' - ' + serv.secretaria : '' }})</option>
                 }
               </select>
               @if (form.get('servantId')?.touched && form.get('servantId')?.hasError('required')) {
@@ -167,24 +163,6 @@
               </select>
               @if (form.get('functionId')?.touched && form.get('functionId')?.hasError('required')) {
                 <span class="form-error">Selecione a função</span>
-              }
-            </div>
-          </div>
-
-          <div class="form-grid">
-            <div class="col-6 form-group">
-              <label>Data da Designação <span class="required">*</span></label>
-              <input type="date" formControlName="designationDate" />
-              @if (form.get('designationDate')?.touched && form.get('designationDate')?.hasError('required')) {
-                <span class="form-error">Informe a data de designação</span>
-              }
-            </div>
-
-            <div class="col-6 form-group">
-              <label>Data Término <span class="required">*</span></label>
-              <input type="date" formControlName="endDate" />
-              @if (form.get('endDate')?.touched && form.get('endDate')?.hasError('required')) {
-                <span class="form-error">Informe a data de término</span>
               }
             </div>
           </div>

@@ -58,7 +58,7 @@ export class ServidoresComponent implements OnInit {
     nome: ['', Validators.required],
     cargo: ['', Validators.required],
     matricula: ['', Validators.required],
-    email: [''],
+    email: ['', [Validators.email]],
     telefone: [''],
     secretariaId: ['', Validators.required],
     ativoId: [1, Validators.required]
@@ -204,7 +204,10 @@ export class ServidoresComponent implements OnInit {
   }
 
   save(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
 
     this.submitting.set(true);
     const val = { ...this.form.value };

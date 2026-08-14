@@ -409,6 +409,7 @@ export class AtasComponent implements OnInit {
     });
 
     this.isEditModalOpen.set(true);
+    this.isModalOpen.set(true);
   }
 
   closeModal(): void {
@@ -432,9 +433,34 @@ export class AtasComponent implements OnInit {
     }
   }
 
+  selectAllSecretariats(): void {
+    const allIds = this.secretariats().map(s => s.id);
+    this.selectedSecretariatIds.set(allIds);
+  }
+
+  clearSecretariatsSelection(): void {
+    this.selectedSecretariatIds.set([]);
+  }
+
+  save(): void {
+    this.saveAta();
+  }
+
+  update(): void {
+    this.saveAta();
+  }
+
   // ===== SAVE / UPDATE =====
   saveAta(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    if (this.selectedSecretariatIds().length === 0) {
+      this.toast.error('Selecione pelo menos uma secretaria para a ata.');
+      return;
+    }
 
     this.submitting.set(true);
     const val = this.form.value;
@@ -453,7 +479,7 @@ export class AtasComponent implements OnInit {
       secretariasIds: this.selectedSecretariatIds()
     };
 
-    if (this.isEditModalOpen() && this.editingAta()) {
+    if (this.editingAta()) {
       const id = this.editingAta()!.id;
       this.ataService.update(id, payload).subscribe({
         next: () => {

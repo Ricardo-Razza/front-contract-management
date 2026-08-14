@@ -159,11 +159,15 @@ export class SecretariasComponent implements OnInit {
   }
 
   save(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
 
     this.submitting.set(true);
-    const val = this.form.value;
-    val.sigla = val.sigla.toUpperCase();
+    const val = { ...this.form.value };
+    val.sigla = val.sigla ? val.sigla.toUpperCase().trim() : '';
+    val.nome = val.nome ? val.nome.trim() : '';
 
     const id = this.editingId();
     if (id) {

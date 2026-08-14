@@ -935,4 +935,97 @@
       color: $color-secondary;
     }
   }
+}
+
+// ===== NOVOS ESTILOS DO FORMULÁRIO DE ATAS =====
+.form-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: $color-secondary;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-bottom: 0.4rem;
+  margin-top: 1rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1.5px solid #e2e8f0;
+
+  .sec-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: none;
+
+    .btn-link {
+      background: none;
+      border: none;
+      color: $color-accent;
+      cursor: pointer;
+      font-weight: 600;
+      padding: 0;
+      &:hover { text-decoration: underline; }
+    }
+
+    .divider {
+      color: #cbd5e1;
+    }
+  }
+}
+
+.form-error {
+  display: block;
+  font-size: 0.75rem;
+  color: #ef4444;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.form-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+  }
+
+  &.selected {
+    background: #eff6ff;
+    border-color: #93c5fd;
+    .sec-name { font-weight: 600; color: #1d4ed8; }
+  }
+
+  .sec-name {
+    flex: 1;
+    font-size: 0.8125rem;
+    color: #334155;
+  }
+
+  .sec-tag {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    background: #e2e8f0;
+    border-radius: 6px;
+    color: #475569;
+  }
 }

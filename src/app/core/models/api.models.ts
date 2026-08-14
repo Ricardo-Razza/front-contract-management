@@ -88,7 +88,6 @@ export interface ContractTeam {
   ata: string;
   servidor: string;
   funcao: string;
-  dataFim: string;
   situacao: string;
 }
 
@@ -96,7 +95,6 @@ export interface ContractTeamDTO {
   ataId: number;
   servidorId: number;
   funcaoId: number;
-  dataFim: string;
   ativoId: number;
 }
 

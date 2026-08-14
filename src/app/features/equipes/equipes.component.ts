@@ -56,8 +56,6 @@ export class EquipesComponent implements OnInit {
     agreementId: ['', Validators.required],
     servantId: ['', Validators.required],
     functionId: ['', Validators.required],
-    designationDate: ['', Validators.required],
-    endDate: ['', Validators.required],
     activeId: [1, Validators.required]
   });
 
@@ -144,8 +142,6 @@ export class EquipesComponent implements OnInit {
       agreementId: '',
       servantId: '',
       functionId: '',
-      designationDate: '',
-      endDate: '',
       activeId: 1
     });
     this.isModalOpen.set(true);
@@ -175,7 +171,10 @@ export class EquipesComponent implements OnInit {
   }
 
   save(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
 
     this.submitting.set(true);
     const val = this.form.value;
@@ -187,10 +186,6 @@ export class EquipesComponent implements OnInit {
       servantId: Number(val.servantId),
       funcaoId: Number(val.functionId),
       functionId: Number(val.functionId),
-      dataDesignacao: val.designationDate,
-      designationDate: val.designationDate,
-      dataFim: val.endDate,
-      endDate: val.endDate,
       ativoId: Number(val.activeId),
       activeId: Number(val.activeId)
     };
