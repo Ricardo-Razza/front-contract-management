@@ -8,7 +8,10 @@
         <p>Designação de equipes completas (gestores e fiscais) por Ata de Registro de Preços</p>
       </div>
       <button class="btn btn-primary" (click)="openCreateModal()">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
         Cadastrar Nova Equipe
       </button>
     </div>
@@ -17,310 +20,320 @@
   <div class="table-card">
     <div class="table-header-toolbar">
       <div class="search-input-wrapper">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input
-          type="text"
-          placeholder="Buscar por ata, servidor ou função..."
-          [ngModel]="searchTerm()"
-          (ngModelChange)="searchTerm.set($event)"
-        />
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input type="text" placeholder="Buscar por ata, servidor ou função..." [ngModel]="searchTerm()"
+          (ngModelChange)="searchTerm.set($event)" />
       </div>
     </div>
 
     @if (loading()) {
-      <app-loading-skeleton [rows]="5"></app-loading-skeleton>
+    <app-loading-skeleton [rows]="5"></app-loading-skeleton>
     } @else {
-      <div class="table-responsive">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th style="width: 70px;" class="col-sortable" (click)="setSort('id')">
-                ID
-                @if (sortColumn() === 'id') {
-                  <span class="sort-icon">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 70px;" class="col-sortable" (click)="setSort('id')">
+              ID
+              @if (sortColumn() === 'id') {
+              <span class="sort-icon">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+              } @else {
+              <span class="sort-icon-idle">↕</span>
+              }
+            </th>
+            <th style="width: 300px;">Ata de Origem</th>
+            <th>Integrantes da Equipe (Servidor e Função)</th>
+            <th style="width: 120px;">Status</th>
+            <th style="width: 100px; text-align: right;">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (team of paginatedTeams(); track team.id) {
+          <tr>
+            <td>#{{ team.id }}</td>
+            <td>
+              <strong>
+                @if (team.ataNumero && team.ataAno) {
+                Ata Nº {{ team.ataNumero }}/{{ team.ataAno }}
                 } @else {
-                  <span class="sort-icon-idle">↕</span>
+                {{ team.ata || 'Ata #' + team.ataId }}
                 }
-              </th>
-              <th style="width: 300px;">Ata de Origem</th>
-              <th>Integrantes da Equipe (Servidor e Função)</th>
-              <th style="width: 120px;">Status</th>
-              <th style="width: 100px; text-align: right;">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (team of paginatedTeams(); track team.id) {
-              <tr>
-                <td>#{{ team.id }}</td>
-                <td>
-                  <strong>
-                    @if (team.ataNumero && team.ataAno) {
-                      Ata Nº {{ team.ataNumero }}/{{ team.ataAno }}
-                    } @else {
-                      {{ team.ata || 'Ata #' + team.ataId }}
-                    }
-                  </strong>
-                  @if (team.ataObjeto) {
-                    <div class="text-muted-sm">{{ team.ataObjeto }}</div>
-                  }
-                </td>
-                <td>
-                  @if (team.membros && team.membros.length > 0) {
-                    <div class="members-chips">
-                      @for (m of team.membros; track $index) {
-                        <div class="member-chip">
-                          <span class="member-name">{{ m.servidorNome }}</span>
-                          <span class="member-role-tag">{{ m.funcaoNome }}</span>
-                        </div>
-                      }
-                    </div>
-                  } @else {
-                    <span class="legacy-info">
-                      <strong>{{ team.servidor }}</strong> ({{ team.funcao }})
-                    </span>
-                  }
-                </td>
-                <td>
-                  <span class="badge-status" [ngClass]="team.situacao === 'DESATIVADO' ? 'status-inactive' : 'status-active'">
-                    <span class="dot"></span>
-                    {{ team.situacao || 'Ativo' }}
-                  </span>
-                </td>
-                <td style="text-align: right;">
-                  <div class="action-buttons">
-                    <button class="btn btn-icon" title="Editar Equipe" (click)="openEditModal(team)">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </button>
-                    <button class="btn btn-icon btn-icon-danger" title="Excluir Equipe" (click)="promptDelete(team)">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="5">
-                  <div class="empty-state">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/></svg>
-                    <h4>Nenhuma equipe cadastrada</h4>
-                    <p>Clique em "Cadastrar Nova Equipe" para atribuir uma equipe completa a uma ata.</p>
-                  </div>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+              </strong>
+              @if (team.ataObjeto) {
+              <div class="text-muted-sm">{{ team.ataObjeto }}</div>
+              }
+            </td>
+            <td>
+              @if (team.membros && team.membros.length > 0) {
+              <div class="members-chips">
+                @for (m of team.membros; track $index) {
+                <div class="member-chip">
+                  <span class="member-name">{{ m.servidorNome }}</span>
+                  <span class="member-role-tag">{{ m.funcaoNome }}</span>
+                </div>
+                }
+              </div>
+              } @else {
+              <span class="legacy-info">
+                <strong>{{ team.servidor }}</strong> ({{ team.funcao }})
+              </span>
+              }
+            </td>
+            <td>
+              <span class="badge-status"
+                [ngClass]="team.situacao === 'DESATIVADO' ? 'status-inactive' : 'status-active'">
+                <span class="dot"></span>
+                {{ team.situacao || 'Ativo' }}
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <div class="action-buttons">
+                <button class="btn btn-icon" title="Editar Equipe" (click)="openEditModal(team)">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
+                <button class="btn btn-icon btn-icon-danger" title="Excluir Equipe" (click)="promptDelete(team)">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    <line x1="10" y1="11" x2="10" y2="17" />
+                    <line x1="14" y1="11" x2="14" y2="17" />
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+          } @empty {
+          <tr>
+            <td colspan="5">
+              <div class="empty-state">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <line x1="19" y1="8" x2="19" y2="14" />
+                </svg>
+                <h4>Nenhuma equipe cadastrada</h4>
+                <p>Clique em "Cadastrar Nova Equipe" para atribuir uma equipe completa a uma ata.</p>
+              </div>
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
 
-      <app-pagination
-        [totalItems]="filteredTeams().length"
-        [currentPage]="currentPage()"
-        [pageSize]="pageSize()"
-        (pageChange)="onPageChange($event)"
-        (pageSizeChange)="onPageSizeChange($event)"
-      ></app-pagination>
+    <app-pagination [totalItems]="filteredTeams().length" [currentPage]="currentPage()" [pageSize]="pageSize()"
+      (pageChange)="onPageChange($event)" (pageSizeChange)="onPageSizeChange($event)"></app-pagination>
     }
   </div>
 </div>
 
 <!-- Create / Edit Modal -->
 @if (isModalOpen()) {
-  <div class="modal-backdrop" (click)="closeModal()">
-    <div class="modal-card modal-lg" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h3>{{ editingId() ? 'Editar Equipe de Contrato' : 'Cadastrar Equipe de Contrato' }}</h3>
-        <button class="modal-close" (click)="closeModal()">&times;</button>
-      </div>
+<div class="modal-backdrop" (click)="closeModal()">
+  <div class="modal-card modal-lg" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>{{ editingId() ? 'Editar Equipe de Contrato' : 'Cadastrar Equipe de Contrato' }}</h3>
+      <button class="modal-close" (click)="closeModal()">&times;</button>
+    </div>
 
-      <form [formGroup]="form" (ngSubmit)="save()">
-        <div class="modal-body">
-          <div class="form-grid">
-            <div class="col-8 form-group" style="position: relative;">
-              <label>Ata de Registro de Preços <span class="required">*</span></label>
-              <!-- Searchable ATA dropdown -->
-              <div class="custom-select-wrapper" [class.open]="ataDropdownOpen()" (clickOutside)="closeAtaDropdown()">
-                <div class="custom-select-trigger" (click)="toggleAtaDropdown()" [class.invalid]="form.get('ataId')?.touched && form.get('ataId')?.hasError('required')">
-                  <span class="trigger-text">
-                    @if (selectedAta()) {
-                      Ata Nº {{ selectedAta()!.numero }}/{{ selectedAta()!.ano }}
-                    } @else {
-                      Selecione a ata
-                    }
-                  </span>
-                  <svg class="chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9"/></svg>
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="col-8 form-group" style="position: relative;">
+            <label>Ata de Registro de Preços <span class="required">*</span></label>
+            <!-- Searchable ATA dropdown -->
+            <div class="custom-select-wrapper" [class.open]="ataDropdownOpen()" (clickOutside)="closeAtaDropdown()">
+              <div class="custom-select-trigger" (click)="toggleAtaDropdown()"
+                [class.invalid]="form.get('ataId')?.touched && form.get('ataId')?.hasError('required')">
+                <span class="trigger-text">
+                  @if (selectedAta()) {
+                  Ata Nº {{ selectedAta()!.numero }}/{{ selectedAta()!.ano }}
+                  } @else {
+                  Selecione a ata
+                  }
+                </span>
+                <svg class="chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </div>
+              @if (ataDropdownOpen()) {
+              <div class="custom-select-dropdown">
+                <div class="dropdown-search">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" width="14" height="14">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <input #ataInput type="text" placeholder="Buscar ata..." [value]="ataSearch()"
+                    (input)="ataSearch.set(ataInput.value)" (click)="$event.stopPropagation()" autofocus />
                 </div>
-                @if (ataDropdownOpen()) {
+                <ul class="dropdown-list">
+                  @for (ata of filteredAgreementsDropdown(); track ata.id) {
+                  <li (click)="selectAta(ata)" [class.selected]="form.get('ataId')?.value == ata.id">
+                    <strong>Ata Nº {{ ata.numero }}/{{ ata.ano }}</strong>
+                    <span class="ata-objeto-hint">{{ ata.objeto | slice:0:60 }}{{ (ata.objeto?.length ?? 0) > 60 ? '...'
+                      : '' }}</span>
+                  </li>
+                  } @empty {
+                  <li class="no-results">Nenhuma ata encontrada</li>
+                  }
+                </ul>
+              </div>
+              }
+            </div>
+            <!-- Hidden native select for form binding -->
+            <select formControlName="ataId" style="display:none">
+              <option value=""></option>
+              @for (ata of agreements(); track ata.id) {
+              <option [value]="ata.id">{{ ata.id }}</option>
+              }
+            </select>
+            @if (form.get('ataId')?.touched && form.get('ataId')?.hasError('required')) {
+            <span class="form-error">Selecione uma ata</span>
+            }
+          </div>
+
+          <div class="col-4 form-group">
+            <label>Situação / Status <span class="required">*</span></label>
+            <select formControlName="ativoId">
+              @for (item of statusList(); track item.id) {
+              <option [value]="item.id">{{ item.nome || item.situacao || item.descricao }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <!-- Seção de Servidores e Funções da Equipe -->
+        <div class="members-section">
+          <div class="members-section-header">
+            <div>
+              <h4 class="form-section-title">Integrantes da Equipe</h4>
+              <p class="form-hint">Designação dos servidores participantes e suas respectivas responsabilidades nesta
+                ata.</p>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" (click)="addMembro()">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Adicionar Servidor
+            </button>
+          </div>
+
+          <div formArrayName="membros" class="members-list">
+            @for (ctrl of membrosArray.controls; track $index; let i = $index) {
+            <div [formGroupName]="i" class="member-row">
+              <div class="col-servidor form-group" style="position: relative;">
+                <label>Servidor <span class="required">*</span></label>
+                <div class="custom-select-wrapper" [class.open]="openServidorDropdownIndex() === i">
+                  <div class="custom-select-trigger" (click)="toggleServidorDropdown(i)"
+                    [class.invalid]="ctrl.get('servidorId')?.touched && ctrl.get('servidorId')?.hasError('required')">
+                    <span class="trigger-text">
+                      @if (selectedServants()[i]) {
+                      {{ selectedServants()[i]!.nome }}
+                      } @else {
+                      Selecione o servidor
+                      }
+                    </span>
+                    <svg class="chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" width="16" height="16">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </div>
+                  @if (openServidorDropdownIndex() === i) {
                   <div class="custom-select-dropdown">
                     <div class="dropdown-search">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                      <input
-                        #ataInput
-                        type="text"
-                        placeholder="Buscar ata..."
-                        [value]="ataSearch()"
-                        (input)="ataSearch.set(ataInput.value)"
-                        (click)="$event.stopPropagation()"
-                        autofocus
-                      />
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" width="14" height="14">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                      </svg>
+                      <input #servInput type="text" placeholder="Buscar servidor..." [value]="servidorSearch()"
+                        (input)="servidorSearch.set(servInput.value)" (click)="$event.stopPropagation()" autofocus />
                     </div>
                     <ul class="dropdown-list">
-                      @for (ata of filteredAgreementsDropdown(); track ata.id) {
-                        <li (click)="selectAta(ata)" [class.selected]="form.get('ataId')?.value == ata.id">
-                          <strong>Ata Nº {{ ata.numero }}/{{ ata.ano }}</strong>
-                          <span class="ata-objeto-hint">{{ ata.objeto | slice:0:60 }}{{ (ata.objeto?.length ?? 0) > 60 ? '...' : '' }}</span>
-                        </li>
+                      @for (serv of filteredServantsForDropdown(); track serv.id) {
+                      <li (click)="selectServant(i, serv)" [class.selected]="ctrl.get('servidorId')?.value == serv.id">
+                        <strong>{{ serv.nome }}</strong>
+                        @if (serv.cargo) {
+                        <span class="ata-objeto-hint">{{ serv.cargo }}</span>
+                        }
+                      </li>
                       } @empty {
-                        <li class="no-results">Nenhuma ata encontrada</li>
+                      <li class="no-results">Nenhum servidor encontrado</li>
                       }
                     </ul>
                   </div>
-                }
-              </div>
-              <!-- Hidden native select for form binding -->
-              <select formControlName="ataId" style="display:none">
-                <option value=""></option>
-                @for (ata of agreements(); track ata.id) {
-                  <option [value]="ata.id">{{ ata.id }}</option>
-                }
-              </select>
-              @if (form.get('ataId')?.touched && form.get('ataId')?.hasError('required')) {
-                <span class="form-error">Selecione uma ata</span>
-              }
-            </div>
-
-            <div class="col-4 form-group">
-              <label>Situação / Status <span class="required">*</span></label>
-              <select formControlName="ativoId">
-                @for (item of statusList(); track item.id) {
-                  <option [value]="item.id">{{ item.nome || item.situacao || item.descricao }}</option>
-                }
-              </select>
-            </div>
-          </div>
-
-          <!-- Seção de Servidores e Funções da Equipe -->
-          <div class="members-section">
-            <div class="members-section-header">
-              <div>
-                <h4 class="form-section-title">Integrantes da Equipe</h4>
-                <p class="form-hint">Designação dos servidores participantes e suas respectivas responsabilidades nesta ata.</p>
-              </div>
-              <button type="button" class="btn btn-secondary btn-sm" (click)="addMembro()">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Adicionar Servidor
-              </button>
-            </div>
-
-            <div formArrayName="membros" class="members-list">
-              @for (ctrl of membrosArray.controls; track $index; let i = $index) {
-                <div [formGroupName]="i" class="member-row">
-                  <div class="col-servidor form-group" style="position: relative;">
-                    <label>Servidor <span class="required">*</span></label>
-                    <div class="custom-select-wrapper" [class.open]="openServidorDropdownIndex() === i">
-                      <div class="custom-select-trigger"
-                           (click)="toggleServidorDropdown(i)"
-                           [class.invalid]="ctrl.get('servidorId')?.touched && ctrl.get('servidorId')?.hasError('required')">
-                        <span class="trigger-text">
-                          @if (selectedServants()[i]) {
-                            {{ selectedServants()[i]!.nome }}
-                          } @else {
-                            Selecione o servidor
-                          }
-                        </span>
-                        <svg class="chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9"/></svg>
-                      </div>
-                      @if (openServidorDropdownIndex() === i) {
-                        <div class="custom-select-dropdown">
-                          <div class="dropdown-search">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                            <input
-                              #servInput
-                              type="text"
-                              placeholder="Buscar servidor..."
-                              [value]="servidorSearch()"
-                              (input)="servidorSearch.set(servInput.value)"
-                              (click)="$event.stopPropagation()"
-                              autofocus
-                            />
-                          </div>
-                          <ul class="dropdown-list">
-                            @for (serv of filteredServantsForDropdown(); track serv.id) {
-                              <li (click)="selectServant(i, serv)" [class.selected]="ctrl.get('servidorId')?.value == serv.id">
-                                <strong>{{ serv.nome }}</strong>
-                                @if (serv.cargo) {
-                                  <span class="ata-objeto-hint">{{ serv.cargo }}</span>
-                                }
-                              </li>
-                            } @empty {
-                              <li class="no-results">Nenhum servidor encontrado</li>
-                            }
-                          </ul>
-                        </div>
-                      }
-                    </div>
-                    <!-- Hidden native select for form binding -->
-                    <select formControlName="servidorId" style="display:none">
-                      <option value=""></option>
-                      @for (serv of servants(); track serv.id) {
-                        <option [value]="serv.id">{{ serv.id }}</option>
-                      }
-                    </select>
-                    @if (ctrl.get('servidorId')?.touched && ctrl.get('servidorId')?.hasError('required')) {
-                      <span class="form-error">Selecione o servidor</span>
-                    }
-                  </div>
-
-                  <div class="col-funcao form-group">
-                    <label>Função na Equipe <span class="required">*</span></label>
-                    <select formControlName="funcaoId">
-                      <option value="">Selecione a função</option>
-                      @for (item of funcoesList(); track item.id) {
-                        <option [value]="item.id">{{ item.nome || item.funcao || item.descricao }}</option>
-                      }
-                    </select>
-                    @if (ctrl.get('funcaoId')?.touched && ctrl.get('funcaoId')?.hasError('required')) {
-                      <span class="form-error">Selecione a função</span>
-                    }
-                  </div>
-
-                  <div class="col-action">
-                    <button 
-                      type="button" 
-                      class="btn btn-icon btn-icon-danger" 
-                      title="Remover Servidor da Equipe"
-                      [disabled]="membrosArray.length <= 1"
-                      (click)="removeMembro(i)"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                    </button>
-                  </div>
+                  }
                 </div>
-              }
+                <!-- Hidden native select for form binding -->
+                <select formControlName="servidorId" style="display:none">
+                  <option value=""></option>
+                  @for (serv of servants(); track serv.id) {
+                  <option [value]="serv.id">{{ serv.id }}</option>
+                  }
+                </select>
+                @if (ctrl.get('servidorId')?.touched && ctrl.get('servidorId')?.hasError('required')) {
+                <span class="form-error">Selecione o servidor</span>
+                }
+              </div>
+
+              <div class="col-funcao form-group">
+                <label>Função na Equipe <span class="required">*</span></label>
+                <select formControlName="funcaoId">
+                  <option value="">Selecione a função</option>
+                  @for (item of funcoesList(); track item.id) {
+                  <option [value]="item.id">{{ item.nome || item.funcao || item.descricao }}</option>
+                  }
+                </select>
+                @if (ctrl.get('funcaoId')?.touched && ctrl.get('funcaoId')?.hasError('required')) {
+                <span class="form-error">Selecione a função</span>
+                }
+              </div>
+
+              <div class="col-action">
+                <button type="button" class="btn btn-icon btn-icon-danger" title="Remover Servidor da Equipe"
+                  [disabled]="membrosArray.length <= 1" (click)="removeMembro(i)">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </button>
+              </div>
             </div>
+            }
           </div>
         </div>
+      </div>
 
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary" [disabled]="submitting() || form.invalid">
-            @if (submitting()) {
-              <span>Salvando...</span>
-            } @else {
-              <span>{{ editingId() ? 'Salvar Alterações' : 'Cadastrar Equipe' }}</span>
-            }
-          </button>
-        </div>
-      </form>
-    </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" [disabled]="submitting() || form.invalid">
+          @if (submitting()) {
+          <span>Salvando...</span>
+          } @else {
+          <span>{{ editingId() ? 'Salvar Alterações' : 'Cadastrar Equipe' }}</span>
+          }
+        </button>
+      </div>
+    </form>
   </div>
+</div>
 }
 
 <!-- Delete Confirmation Modal -->
-<app-confirm-modal
-  [isOpen]="isDeleteModalOpen()"
-  [title]="'Excluir Equipe de Contrato'"
-  [message]="'Tem certeza que deseja excluir toda a equipe designada para esta ata?'"
-  [loading]="deleting()"
-  (confirm)="confirmDelete()"
-  (cancel)="closeDeleteModal()"
-></app-confirm-modal>
+<app-confirm-modal [isOpen]="isDeleteModalOpen()" [title]="'Excluir Equipe de Contrato'"
+  [message]="'Tem certeza que deseja excluir toda a equipe designada para esta ata?'" [loading]="deleting()"
+  (confirm)="confirmDelete()" (cancel)="closeDeleteModal()"></app-confirm-modal>

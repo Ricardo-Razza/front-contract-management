@@ -27,8 +27,8 @@ export class AtaService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
-update(id: number, dto: any): Observable<Agreement> {
-  return this.http.put<Agreement>(`${this.apiUrl}/${id}`, dto);
-  //                                       
-}
+  update(id: number, dto: any): Observable<Agreement> {
+    return this.http.put<Agreement>(`${this.apiUrl}/${id}`, dto);
+    //                                       
+  }
 }

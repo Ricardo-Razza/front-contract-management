@@ -6,7 +6,7 @@ export interface LookupItem {
   situacao?: string;
   nome?: string;
   descricao?: string;
-  funcao?: string; 
+  funcao?: string;
 }
 
 export interface Secretariat {

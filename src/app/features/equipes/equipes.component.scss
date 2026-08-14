@@ -165,7 +165,9 @@
     color: $color-text-muted;
     cursor: pointer;
 
-    &:hover { color: $color-secondary; }
+    &:hover {
+      color: $color-secondary;
+    }
   }
 }
 

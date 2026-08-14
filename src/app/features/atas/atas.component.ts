@@ -541,4 +541,24 @@ export class AtasComponent implements OnInit {
       }
     });
   }
+
+  ordenarMembros(membros: any[]): any[] {
+    if (!membros || membros.length === 0) return membros;
+
+    const ordem: { [key: string]: number } = {
+      'GT': 1,
+      'GS': 2,
+      'F': 3,
+    };
+
+    return [...membros].sort((a, b) => {
+      const funcaoA = a.funcaoNome?.toUpperCase() || '';
+      const funcaoB = b.funcaoNome?.toUpperCase() || '';
+
+      const ordemA = Object.keys(ordem).find(key => funcaoA === key || funcaoA.includes(key));
+      const ordemB = Object.keys(ordem).find(key => funcaoB === key || funcaoB.includes(key));
+
+      return (ordem[ordemA || ''] || 99) - (ordem[ordemB || ''] || 99);
+    });
+  }
 }
