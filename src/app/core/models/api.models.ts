@@ -85,13 +85,48 @@ export interface ContractTeamMember {
   funcaoNome?: string;
 }
 
+export interface Contract {
+  id: number;
+  numero: number;
+  ano: number;
+  dataInicio: string;
+  dataFim: string;
+  tipo: string;
+  objeto: string;
+  nomeContratado: string;
+  portariaDesignacao?: string;
+  dataDesignacao?: string;
+  situacao?: string;
+  secretaria?: Secretariat;
+  equipe?: ContractTeam[];
+}
+
+export interface ContractDTO {
+  numero: number;
+  ano: number;
+  dataInicio: string;
+  dataFim: string;
+  tipoId: number;
+  objeto: string;
+  nomeContratado: string;
+  portariaDesignacao: string;
+  dataDesignacao: string;
+  ativoId: number;
+  secretariaId: number;
+}
+
 export interface ContractTeam {
   id: number;
   ataId?: number;
+  contratoId?: number;
   ataNumero?: number;
   ataAno?: number;
+  contratoNumero?: number;
+  contratoAno?: number;
   ataObjeto?: string;
+  contratoObjeto?: string;
   ata?: string;
+  contrato?: string;
   servidor?: string;
   funcao?: string;
   ativoId?: number;

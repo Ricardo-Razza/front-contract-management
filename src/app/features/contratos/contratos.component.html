@@ -1,0 +1,553 @@
+<app-header title="Contratos"></app-header>
+
+<div class="page-content">
+  <div class="page-title-group">
+    <div class="title-with-actions">
+      <div>
+        <h1>Gerenciamento de Contratos</h1>
+        <p>Gerencie contratos municipais, vigências, contratados e equipes de gestão</p>
+      </div>
+      <button class="btn btn-primary" (click)="openCreateModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        Novo Contrato
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== FILTROS AVANÇADOS ===== -->
+  <div class="filters-section">
+    <div class="filters-header">
+      <button class="btn-filters-toggle" (click)="toggleFilters()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          width="18" height="18">
+          <line x1="4" y1="21" x2="4" y2="14" />
+          <line x1="4" y1="10" x2="4" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12" y2="3" />
+          <line x1="20" y1="21" x2="20" y2="16" />
+          <line x1="20" y1="12" x2="20" y2="3" />
+          <line x1="1" y1="14" x2="7" y2="14" />
+          <line x1="9" y1="8" x2="15" y2="8" />
+          <line x1="17" y1="16" x2="23" y2="16" />
+        </svg>
+        Filtros Avançados
+        @if (activeFiltersCount() > 0) {
+        <span class="badge-filters">{{ activeFiltersCount() }}</span>
+        }
+      </button>
+      @if (activeFiltersCount() > 0) {
+      <button class="btn-clear-filters" (click)="clearFilters()">Limpar Filtros</button>
+      }
+    </div>
+
+    @if (showFilters()) {
+    <div class="filters-grid">
+      <div class="filter-group full-width">
+        <label>Buscar</label>
+        <input type="text" placeholder="Pesquisar em número, ano, objeto, contratado, portaria..."
+          [ngModel]="globalSearch()" (ngModelChange)="globalSearch.set($event)" class="filter-input" />
+      </div>
+
+      <div class="filter-group">
+        <label>Ano</label>
+        <select [ngModel]="filterAno()" (ngModelChange)="filterAno.set($event)" class="filter-select">
+          <option value="">Todos</option>
+          @for (ano of anosDisponiveis(); track ano) {
+          <option [value]="ano">{{ ano }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Tipo</label>
+        <select [ngModel]="filterTipo()" (ngModelChange)="filterTipo.set($event)" class="filter-select">
+          <option value="">Todos</option>
+          @for (tipo of tiposDisponiveis(); track tipo) {
+          <option [value]="tipo">{{ tipo }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Status</label>
+        <select [ngModel]="filterStatus()" (ngModelChange)="filterStatus.set($event)" class="filter-select">
+          <option value="">Todos</option>
+          <option value="ATIVO">ATIVO</option>
+          <option value="DESATIVADO">DESATIVADO</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Secretaria</label>
+        <select [ngModel]="filterSecretaria()" (ngModelChange)="filterSecretaria.set($event)" class="filter-select">
+          <option value="">Todas</option>
+          @for (sec of secretariats(); track sec.id) {
+          <option [value]="sec.id">{{ sec.sigla }} - {{ sec.nome }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="filter-group full-width autocomplete-group">
+        <label>Pessoa Vinculada (Gestor ou Fiscal)</label>
+        <div class="autocomplete-wrapper">
+          <input type="text" placeholder="Digite o nome do gestor ou fiscal..." [ngModel]="filterPessoa()"
+            (ngModelChange)="filterPessoa.set($event); showPessoaSuggestions.set(true)"
+            (focus)="showPessoaSuggestions.set(true)" (blur)="hidePessoaSuggestionsWithDelay()" class="filter-input"
+            autocomplete="off" />
+          @if (showPessoaSuggestions() && filteredServidoresSuggestions().length > 0) {
+          <ul class="autocomplete-dropdown">
+            @for (serv of filteredServidoresSuggestions(); track serv.id) {
+            <li (mousedown)="selectPessoaSuggestion(serv.nome)">
+              <span class="suggestion-icon">👤</span>
+              <span class="suggestion-name">{{ serv.nome }}</span>
+            </li>
+            }
+          </ul>
+          }
+        </div>
+      </div>
+
+      @if (activeFiltersCount() > 0) {
+      <div class="filter-tags full-width">
+        @if (globalSearch()) {
+        <span class="filter-tag">{{ globalSearch() }} <button (click)="globalSearch.set('')">✕</button></span>
+        }
+        @if (filterAno()) {
+        <span class="filter-tag">{{ filterAno() }} <button (click)="filterAno.set('')">✕</button></span>
+        }
+        @if (filterTipo()) {
+        <span class="filter-tag">{{ filterTipo() }} <button (click)="filterTipo.set('')">✕</button></span>
+        }
+        @if (filterStatus()) {
+        <span class="filter-tag">{{ filterStatus() }} <button (click)="filterStatus.set('')">✕</button></span>
+        }
+        @if (filterSecretaria()) {
+        <span class="filter-tag">{{ getSecretariaNome(filterSecretaria()) }} <button
+            (click)="filterSecretaria.set('')">✕</button></span>
+        }
+        @if (filterPessoa()) {
+        <span class="filter-tag">{{ filterPessoa() }} <button (click)="filterPessoa.set('')">✕</button></span>
+        }
+      </div>
+      }
+    </div>
+    }
+  </div>
+
+  <!-- ===== TABELA ===== -->
+  <div class="table-card">
+    <div class="table-header-toolbar">
+      <span class="result-count">{{ filteredContracts().length }} contratos encontrados</span>
+    </div>
+
+    @if (loading()) {
+    <app-loading-skeleton [rows]="5"></app-loading-skeleton>
+    } @else {
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="text-center col-id col-sortable" (click)="setSort('id')">
+              ID
+              @if (sortColumn() === 'id') {
+              <span class="sort-icon">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+              } @else {
+              <span class="sort-icon-idle">↕</span>
+              }
+            </th>
+            <th class="text-center col-numero col-sortable" (click)="setSort('numero')">
+              Nº / Ano
+              @if (sortColumn() === 'numero') {
+              <span class="sort-icon">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+              } @else {
+              <span class="sort-icon-idle">↕</span>
+              }
+            </th>
+            <th class="text-center col-vigencia col-sortable" (click)="setSort('vigencia')">
+              Vigência
+              @if (sortColumn() === 'vigencia') {
+              <span class="sort-icon">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+              } @else {
+              <span class="sort-icon-idle">↕</span>
+              }
+            </th>
+            <th class="text-center col-status col-sortable" (click)="setSort('situacao')">
+              Situação
+              @if (sortColumn() === 'situacao') {
+              <span class="sort-icon">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+              } @else {
+              <span class="sort-icon-idle">↕</span>
+              }
+            </th>
+            <th class="text-center col-secretarias">Secretaria</th>
+            <th class="text-center col-tipo col-sortable" (click)="setSort('tipo')">
+              Tipo
+              @if (sortColumn() === 'tipo') {
+              <span class="sort-icon">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+              } @else {
+              <span class="sort-icon-idle">↕</span>
+              }
+            </th>
+            <th class="col-objeto col-sortable" (click)="setSort('objeto')">
+              Objeto
+              @if (sortColumn() === 'objeto') {
+              <span class="sort-icon">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+              } @else {
+              <span class="sort-icon-idle">↕</span>
+              }
+            </th>
+            <th class="col-contratado col-sortable" (click)="setSort('nomeContratado')">
+              Nome Contratado
+              @if (sortColumn() === 'nomeContratado') {
+              <span class="sort-icon">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+              } @else {
+              <span class="sort-icon-idle">↕</span>
+              }
+            </th>
+            <th class="text-center col-portaria">Portaria</th>
+            <th class="text-center col-data-designacao">Data Designação</th>
+            <th class="col-equipe">Gestor / Fiscal</th>
+            <th class="text-center col-acoes">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (contrato of paginatedContracts(); track contrato.id) {
+          <tr>
+            <td class="text-center col-id">#{{ contrato.id }}</td>
+            <td class="text-center col-numero"><strong>{{ contrato.numero }}/{{ contrato.ano }}</strong></td>
+            <td class="text-center col-vigencia">{{ getDataVigente(contrato) }}</td>
+            <td class="text-center col-status">
+              <span class="badge-status"
+                [ngClass]="contrato.situacao === 'DESATIVADO' ? 'status-inactive' : 'status-active'">
+                <span class="dot"></span>
+                {{ contrato.situacao || 'ATIVO' }}
+              </span>
+            </td>
+            <td class="text-center col-secretarias">
+              @if (contrato.secretaria) {
+              <span class="sec-pill" [title]="contrato.secretaria.nome">{{ contrato.secretaria.sigla || contrato.secretaria.nome }}</span>
+              } @else {
+              <span class="text-muted">-</span>
+              }
+            </td>
+            <td class="text-center col-tipo">
+              <span class="type-badge">{{ contrato.tipo || '-' }}</span>
+            </td>
+            <td class="td-objeto-completo col-objeto">
+              <div class="objeto-full">{{ contrato.objeto }}</div>
+            </td>
+            <td class="col-contratado">
+              <div class="contratado-name">{{ contrato.nomeContratado || '-' }}</div>
+            </td>
+            <td class="text-center col-portaria">{{ contrato.portariaDesignacao || '-' }}</td>
+            <td class="text-center col-data-designacao">{{ contrato.dataDesignacao | date:'dd/MM/yyyy' }}</td>
+            <td class="col-equipe">
+              @if (contrato.equipe && contrato.equipe.length > 0) {
+              <div class="equipe-list">
+                @for (eq of contrato.equipe; track eq.id) {
+                @if (eq.membros && eq.membros.length > 0) {
+                @for (membro of ordenarMembros(eq.membros); track membro.id) {
+                <span class="equipe-item">
+                  <span class="equipe-funcao">{{ membro.funcaoNome }}:</span>
+                  <span class="equipe-nome">{{ membro.servidorNome }}</span>
+                </span>
+                }
+                }
+                }
+              </div>
+              } @else {
+              <span class="text-muted">-</span>
+              }
+            </td>
+            <td class="text-center col-acoes">
+              <div class="action-buttons">
+                <button class="btn-icon btn-icon-info" title="Visualizar Detalhes" (click)="openDetailsModal(contrato)">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" width="18" height="18">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </button>
+                <button class="btn-icon btn-icon-primary" title="Editar Contrato" (click)="openEditModal(contrato)">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" width="18" height="18">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+          } @empty {
+          <tr>
+            <td colspan="12">
+              <div class="empty-state">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2" width="48" height="48">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                </svg>
+                <h4>Nenhum contrato encontrado</h4>
+                <p>Nenhum contrato corresponde aos filtros aplicados.</p>
+              </div>
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination [totalItems]="filteredContracts().length" [currentPage]="currentPage()" [pageSize]="pageSize()"
+      (pageChange)="onPageChange($event)" (pageSizeChange)="onPageSizeChange($event)"></app-pagination>
+    }
+  </div>
+</div>
+
+<!-- ===== MODAL DE CADASTRO / EDIÇÃO ===== -->
+@if (isModalOpen()) {
+<div class="modal-backdrop" (click)="closeModal()">
+  <div class="modal-card modal-lg" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>{{ editingContrato() ? 'Editar Contrato' : 'Novo Contrato' }}</h3>
+      <button class="modal-close" (click)="closeModal()">&times;</button>
+    </div>
+    <form [formGroup]="form" (ngSubmit)="saveContrato()">
+      <div class="modal-body">
+        <div class="form-section-title">Dados Gerais do Contrato</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Número <span class="required">*</span></label>
+            <input type="number" formControlName="numero" placeholder="Ex: 011" />
+            @if (form.get('numero')?.touched && form.get('numero')?.hasError('required')) {
+            <span class="form-error">O número é obrigatório</span>
+            }
+          </div>
+          <div class="form-group">
+            <label>Ano <span class="required">*</span></label>
+            <input type="number" formControlName="ano" placeholder="Ex: 2020" />
+            @if (form.get('ano')?.touched && form.get('ano')?.hasError('required')) {
+            <span class="form-error">O ano é obrigatório</span>
+            }
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Tipo <span class="required">*</span></label>
+            <select formControlName="tipoId">
+              @for (item of tiposList(); track item.id) {
+              <option [value]="item.id">{{ item.tipoArp || item.nome || item.descricao }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Situação <span class="required">*</span></label>
+            <select formControlName="ativoId">
+              @for (item of statusList(); track item.id) {
+              <option [value]="item.id">{{ item.situacao || item.nome }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Secretaria <span class="required">*</span></label>
+          <select formControlName="secretariaId">
+            <option value="">Selecione a secretaria</option>
+            @for (sec of secretariats(); track sec.id) {
+            <option [value]="sec.id">{{ sec.sigla }} - {{ sec.nome }}</option>
+            }
+          </select>
+          @if (form.get('secretariaId')?.touched && form.get('secretariaId')?.hasError('required')) {
+          <span class="form-error">Selecione a secretaria responsável</span>
+          }
+        </div>
+
+        <div class="form-section-title">Vigência e Portaria de Designação</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Data Início <span class="required">*</span></label>
+            <input type="date" formControlName="dataInicio" />
+            @if (form.get('dataInicio')?.touched && form.get('dataInicio')?.hasError('required')) {
+            <span class="form-error">Data de início é obrigatória</span>
+            }
+          </div>
+          <div class="form-group">
+            <label>Data Fim <span class="required">*</span></label>
+            <input type="date" formControlName="dataFim" />
+            @if (form.get('dataFim')?.touched && form.get('dataFim')?.hasError('required')) {
+            <span class="form-error">Data de término é obrigatória</span>
+            }
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Portaria de Designação <span class="required">*</span></label>
+            <input type="text" formControlName="portariaDesignacao" placeholder="Ex: 602/2023" />
+            @if (form.get('portariaDesignacao')?.touched && form.get('portariaDesignacao')?.hasError('required')) {
+            <span class="form-error">Informação da portaria é obrigatória</span>
+            }
+          </div>
+          <div class="form-group">
+            <label>Data da Designação <span class="required">*</span></label>
+            <input type="date" formControlName="dataDesignacao" />
+            @if (form.get('dataDesignacao')?.touched && form.get('dataDesignacao')?.hasError('required')) {
+            <span class="form-error">Data de designação é obrigatória</span>
+            }
+          </div>
+        </div>
+
+        <div class="form-section-title">Objeto e Contratado</div>
+        <div class="form-group">
+          <label>Objeto do Contrato <span class="required">*</span></label>
+          <textarea formControlName="objeto" rows="3"
+            placeholder="Descreva o objeto do contrato..."></textarea>
+          @if (form.get('objeto')?.touched && form.get('objeto')?.hasError('required')) {
+          <span class="form-error">O objeto é obrigatório</span>
+          }
+        </div>
+        <div class="form-group">
+          <label>Nome Contratado <span class="required">*</span></label>
+          <input type="text" formControlName="nomeContratado" placeholder="Nome da pessoa ou empresa contratada" />
+          @if (form.get('nomeContratado')?.touched && form.get('nomeContratado')?.hasError('required')) {
+          <span class="form-error">O nome do contratado é obrigatório</span>
+          }
+        </div>
+
+        <p class="form-hint">Gestores e fiscais podem ser vinculados na seção Equipes de Contrato.</p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" [disabled]="submitting() || form.invalid">
+          @if (submitting()) {
+          <span>Salvando...</span>
+          } @else {
+          <span>{{ editingContrato() ? 'Atualizar Contrato' : 'Cadastrar Contrato' }}</span>
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+}
+
+<!-- ===== MODAL DETALHES ===== -->
+@if (isDetailsModalOpen() && selectedContratoForDetails()) {
+<div class="modal-backdrop" (click)="closeDetailsModal()">
+  <div class="modal-card modal-lg" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="header-title-with-badge">
+        <h3>Contrato Nº {{ selectedContratoForDetails()?.numero }}/{{ selectedContratoForDetails()?.ano }}</h3>
+        <span class="badge-status"
+          [ngClass]="selectedContratoForDetails()?.situacao === 'DESATIVADO' ? 'status-inactive' : 'status-active'">
+          <span class="dot"></span>
+          {{ selectedContratoForDetails()?.situacao || 'ATIVO' }}
+        </span>
+        <span class="type-badge">{{ selectedContratoForDetails()?.tipo || '-' }}</span>
+      </div>
+      <button class="modal-close" (click)="closeDetailsModal()">&times;</button>
+    </div>
+
+    <div class="modal-body details-body">
+      <div class="vigencia-card" [ngClass]="getVigenciaStatus(selectedContratoForDetails()?.dataFim).badgeClass">
+        <div class="vigencia-header">
+          <span class="vigencia-icon">⏱️</span>
+          <div>
+            <span class="vigencia-label">Status da Vigência</span>
+            <h4>{{ getVigenciaStatus(selectedContratoForDetails()?.dataFim).text }}</h4>
+          </div>
+        </div>
+        <div class="vigencia-dates">
+          <span>Início: <strong>{{ selectedContratoForDetails()?.dataInicio | date:'dd/MM/yyyy' }}</strong></span>
+          <span>Término: <strong>{{ selectedContratoForDetails()?.dataFim | date:'dd/MM/yyyy' }}</strong></span>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <label class="section-label">Objeto do Contrato</label>
+        <p class="section-text highlight-box">{{ selectedContratoForDetails()?.objeto }}</p>
+      </div>
+
+      <div class="detail-section">
+        <label class="section-label">Nome Contratado</label>
+        <p class="section-text highlight-box">{{ selectedContratoForDetails()?.nomeContratado || '-' }}</p>
+      </div>
+
+      <div class="detail-section">
+        <label class="section-label">Secretaria Responsável</label>
+        <div class="sec-tags-container">
+          @if (selectedContratoForDetails()?.secretaria) {
+          <div class="sec-chip">
+            <span class="sec-chip-sigla">{{ selectedContratoForDetails()?.secretaria?.sigla }}</span>
+            <span class="sec-chip-nome">{{ selectedContratoForDetails()?.secretaria?.nome }}</span>
+          </div>
+          } @else {
+          <span class="text-muted">Nenhuma secretaria vinculada.</span>
+          }
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <label class="section-label">Equipe de Gestão e Fiscalização</label>
+        @if (selectedContratoForDetails()?.equipe && selectedContratoForDetails()!.equipe!.length > 0) {
+        <div class="team-cards-grid">
+          @for (eq of selectedContratoForDetails()?.equipe; track eq.id) {
+          @if (eq.membros && eq.membros.length > 0) {
+          @for (membro of ordenarMembros(eq.membros); track membro.id) {
+          <div class="team-member-card">
+            <div class="member-role">{{ membro.funcaoNome }}</div>
+            <div class="member-name">{{ membro.servidorNome }}</div>
+            @if (membro.servidorCargo) {
+            <div class="text-muted">{{ membro.servidorCargo }}</div>
+            }
+          </div>
+          }
+          } @else if (eq.servidor) {
+          <div class="team-member-card">
+            <div class="member-role">{{ eq.funcao }}</div>
+            <div class="member-name">{{ eq.servidor }}</div>
+          </div>
+          }
+          }
+        </div>
+        } @else {
+        <span class="text-muted">Nenhum gestor ou fiscal vinculado a este contrato.</span>
+        }
+      </div>
+
+      <div class="detail-grid">
+        <div class="detail-item">
+          <label>Portaria de Designação</label>
+          <span>{{ selectedContratoForDetails()?.portariaDesignacao || '-' }}</span>
+        </div>
+        <div class="detail-item">
+          <label>Data da Designação</label>
+          <span>{{ selectedContratoForDetails()?.dataDesignacao | date:'dd/MM/yyyy' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeDetailsModal()">Fechar</button>
+      <button type="button" class="btn btn-primary"
+        (click)="closeDetailsModal(); openEditModal(selectedContratoForDetails()!)">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          width="16" height="16">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </svg>
+        Editar Contrato
+      </button>
+    </div>
+  </div>
+</div>
+}
+
+<app-confirm-modal [isOpen]="isDeleteModalOpen()" [title]="'Excluir Contrato'"
+  [message]="'Tem certeza que deseja excluir o Contrato ' + itemToDelete()?.numero + '/' + itemToDelete()?.ano + '?'"
+  [isCascade]="true" [loading]="deleting()" (confirm)="confirmDelete()"
+  (cancel)="closeDeleteModal()"></app-confirm-modal>

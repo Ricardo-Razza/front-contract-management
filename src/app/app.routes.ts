@@ -24,6 +24,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/atas/atas.component').then(m => m.AtasComponent)
       },
       {
+        path: 'contratos',
+        loadComponent: () => import('./features/contratos/contratos.component').then(m => m.ContratosComponent)
+      },
+      {
         path: 'equipes',
         loadComponent: () => import('./features/equipes/equipes.component').then(m => m.EquipesComponent)
       }
