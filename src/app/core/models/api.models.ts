@@ -93,6 +93,7 @@ export interface Contract {
   dataFim: string;
   tipo: string;
   objeto: string;
+  observacao?: string;
   nomeContratado: string;
   portariaDesignacao?: string;
   dataDesignacao?: string;
@@ -108,6 +109,7 @@ export interface ContractDTO {
   dataFim: string;
   tipoId: number;
   objeto: string;
+  observacao?: string;
   nomeContratado: string;
   portariaDesignacao: string;
   dataDesignacao: string;

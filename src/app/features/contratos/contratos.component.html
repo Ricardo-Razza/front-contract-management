@@ -210,6 +210,7 @@
             <th class="text-center col-portaria">Portaria</th>
             <th class="text-center col-data-designacao">Data Designação</th>
             <th class="col-equipe">Gestor / Fiscal</th>
+            <th class="col-observacao">Observação</th>
             <th class="text-center col-acoes">Ações</th>
           </tr>
         </thead>
@@ -261,6 +262,9 @@
               } @else {
               <span class="text-muted">-</span>
               }
+            </td>
+            <td class="td-objeto-completo col-observacao">
+              <div class="objeto-full">{{ contrato.observacao || '-' }}</div>
             </td>
             <td class="text-center col-acoes">
               <div class="action-buttons">
@@ -410,6 +414,11 @@
           }
         </div>
         <div class="form-group">
+          <label>Observações Gerais</label>
+          <textarea formControlName="observacao" rows="2"
+            placeholder="Observações adicionais ou notas administrativas..."></textarea>
+        </div>
+        <div class="form-group">
           <label>Nome Contratado <span class="required">*</span></label>
           <input type="text" formControlName="nomeContratado" placeholder="Nome da pessoa ou empresa contratada" />
           @if (form.get('nomeContratado')?.touched && form.get('nomeContratado')?.hasError('required')) {
@@ -529,6 +538,13 @@
           <span>{{ selectedContratoForDetails()?.dataDesignacao | date:'dd/MM/yyyy' }}</span>
         </div>
       </div>
+
+      @if (selectedContratoForDetails()?.observacao) {
+      <div class="detail-section">
+        <label class="section-label">📝 Observações Gerais</label>
+        <p class="section-text note-box">{{ selectedContratoForDetails()?.observacao }}</p>
+      </div>
+      }
     </div>
 
     <div class="modal-footer">

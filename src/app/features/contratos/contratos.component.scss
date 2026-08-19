@@ -356,6 +356,7 @@
 .col-portaria { width: 100px; min-width: 90px; }
 .col-data-designacao { width: 120px; min-width: 110px; }
 .col-equipe { min-width: 200px; max-width: 350px; }
+.col-observacao { min-width: 150px; }
 .col-acoes { width: 50px; min-width: 50px; }
 
 .badge-status {
@@ -807,6 +808,15 @@
     background-color: #f8fafc;
     border: 1px solid $color-border;
     border-radius: 8px;
+  }
+
+  .note-box {
+    padding: 0.75rem 1rem;
+    background-color: #fefce8;
+    border: 1px solid #fef08a;
+    border-radius: 8px;
+    color: #713f12;
+    font-style: italic;
   }
 }
 
