@@ -98,7 +98,7 @@ export interface Contract {
   portariaDesignacao?: string;
   dataDesignacao?: string;
   situacao?: string;
-  secretaria?: Secretariat;
+  secretarias?: Secretariat[];
   equipe?: ContractTeam[];
 }
 
@@ -114,7 +114,7 @@ export interface ContractDTO {
   portariaDesignacao: string;
   dataDesignacao: string;
   ativoId: number;
-  secretariaId: number;
+  secretariasId: number[];
 }
 
 export interface ContractTeam {

@@ -228,8 +228,12 @@
               </span>
             </td>
             <td class="text-center col-secretarias">
-              @if (contrato.secretaria) {
-              <span class="sec-pill" [title]="contrato.secretaria.nome">{{ contrato.secretaria.sigla || contrato.secretaria.nome }}</span>
+              @if (contrato.secretarias && contrato.secretarias.length > 0) {
+              <div class="sec-pills-wrapper">
+                @for (sec of contrato.secretarias; track sec.id) {
+                <span class="sec-pill" [title]="sec.nome">{{ sec.sigla || sec.nome }}</span>
+                }
+              </div>
               } @else {
               <span class="text-muted">-</span>
               }
@@ -263,9 +267,17 @@
               <span class="text-muted">-</span>
               }
             </td>
-            <td class="td-objeto-completo col-observacao">
-              <div class="objeto-full">{{ contrato.observacao || '-' }}</div>
+            <!-- ===== OBSERVAÇÃO CORRIGIDA NA TABELA ===== -->
+            <td class="col-observacao">
+              @if (contrato.observacao && contrato.observacao.trim().length > 0) {
+              <div class="observacao-text" [title]="contrato.observacao">
+                {{ contrato.observacao }}
+              </div>
+              } @else {
+              <span class="text-muted" style="font-size: 0.7rem;">-</span>
+              }
             </td>
+            <!-- ===== FIM OBSERVAÇÃO ===== -->
             <td class="text-center col-acoes">
               <div class="action-buttons">
                 <button class="btn-icon btn-icon-info" title="Visualizar Detalhes" (click)="openDetailsModal(contrato)">
@@ -287,7 +299,7 @@
           </tr>
           } @empty {
           <tr>
-            <td colspan="12">
+            <td colspan="13">
               <div class="empty-state">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   stroke-width="2" width="48" height="48">
@@ -356,18 +368,26 @@
           </div>
         </div>
 
+        <!-- ===== BLOCO DE SECRETARIAS AJUSTADO ===== -->
         <div class="form-group">
-          <label>Secretaria <span class="required">*</span></label>
-          <select formControlName="secretariaId">
-            <option value="">Selecione a secretaria</option>
+          <label>Secretarias <span class="required">*</span></label>
+          <div class="checkbox-group">
             @for (sec of secretariats(); track sec.id) {
-            <option [value]="sec.id">{{ sec.sigla }} - {{ sec.nome }}</option>
+            <label class="checkbox-item" [class.checked]="isSecretariaSelected(sec.id)">
+              <input type="checkbox" [checked]="isSecretariaSelected(sec.id)" (change)="toggleSecretaria(sec.id)"
+                [id]="'sec-' + sec.id" />
+              <span class="checkbox-label">
+                <span class="sec-sigla">{{ sec.sigla }}</span>
+                <span class="sec-nome">{{ sec.nome }}</span>
+              </span>
+            </label>
             }
-          </select>
-          @if (form.get('secretariaId')?.touched && form.get('secretariaId')?.hasError('required')) {
-          <span class="form-error">Selecione a secretaria responsável</span>
+          </div>
+          @if (form.get('secretariasIds')?.touched && form.get('secretariasIds')?.hasError('required')) {
+          <span class="form-error">Selecione ao menos uma secretaria</span>
           }
         </div>
+        <!-- ===== FIM DO BLOCO DE SECRETARIAS ===== -->
 
         <div class="form-section-title">Vigência e Portaria de Designação</div>
         <div class="form-grid">
@@ -407,17 +427,22 @@
         <div class="form-section-title">Objeto e Contratado</div>
         <div class="form-group">
           <label>Objeto do Contrato <span class="required">*</span></label>
-          <textarea formControlName="objeto" rows="3"
-            placeholder="Descreva o objeto do contrato..."></textarea>
+          <textarea formControlName="objeto" rows="3" placeholder="Descreva o objeto do contrato..."></textarea>
           @if (form.get('objeto')?.touched && form.get('objeto')?.hasError('required')) {
           <span class="form-error">O objeto é obrigatório</span>
           }
         </div>
+        
+        <!-- ===== OBSERVAÇÃO CORRIGIDA NO MODAL DE EDIÇÃO ===== -->
         <div class="form-group">
           <label>Observações Gerais</label>
-          <textarea formControlName="observacao" rows="2"
-            placeholder="Observações adicionais ou notas administrativas..."></textarea>
+          <textarea formControlName="observacao" rows="4" 
+            placeholder="Observações adicionais ou notas administrativas..."
+            class="observacao-textarea"></textarea>
+          <span class="form-hint">Campo opcional para anotações administrativas.</span>
         </div>
+        <!-- ===== FIM OBSERVAÇÃO ===== -->
+        
         <div class="form-group">
           <label>Nome Contratado <span class="required">*</span></label>
           <input type="text" formControlName="nomeContratado" placeholder="Nome da pessoa ou empresa contratada" />
@@ -487,13 +512,15 @@
       </div>
 
       <div class="detail-section">
-        <label class="section-label">Secretaria Responsável</label>
+        <label class="section-label">Secretaria(s) Responsável(is)</label>
         <div class="sec-tags-container">
-          @if (selectedContratoForDetails()?.secretaria) {
+          @if (selectedContratoForDetails()?.secretarias && selectedContratoForDetails()!.secretarias!.length > 0) {
+          @for (sec of selectedContratoForDetails()?.secretarias; track sec.id) {
           <div class="sec-chip">
-            <span class="sec-chip-sigla">{{ selectedContratoForDetails()?.secretaria?.sigla }}</span>
-            <span class="sec-chip-nome">{{ selectedContratoForDetails()?.secretaria?.nome }}</span>
+            <span class="sec-chip-sigla">{{ sec.sigla }}</span>
+            <span class="sec-chip-nome">{{ sec.nome }}</span>
           </div>
+          }
           } @else {
           <span class="text-muted">Nenhuma secretaria vinculada.</span>
           }
@@ -539,12 +566,18 @@
         </div>
       </div>
 
-      @if (selectedContratoForDetails()?.observacao) {
+      <!-- ===== OBSERVAÇÃO CORRIGIDA NO MODAL DE DETALHES ===== -->
       <div class="detail-section">
         <label class="section-label">📝 Observações Gerais</label>
-        <p class="section-text note-box">{{ selectedContratoForDetails()?.observacao }}</p>
+        @if (selectedContratoForDetails()?.observacao) {
+        <div class="observacao-detail-box">
+          <p class="section-text">{{ selectedContratoForDetails()?.observacao }}</p>
+        </div>
+        } @else {
+        <span class="text-muted">Nenhuma observação registrada.</span>
+        }
       </div>
-      }
+      <!-- ===== FIM OBSERVAÇÃO ===== -->
     </div>
 
     <div class="modal-footer">

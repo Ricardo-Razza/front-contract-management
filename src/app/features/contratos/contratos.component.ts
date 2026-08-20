@@ -74,7 +74,7 @@ export class ContratosComponent implements OnInit {
     portariaDesignacao: ['', Validators.required],
     dataDesignacao: ['', Validators.required],
     ativoId: [1, Validators.required],
-    secretariaId: ['', Validators.required]
+    secretariasIds: [[], Validators.required] // <-- ALTERADO: array vazio ao invés de [[] as number[]]
   });
 
   activeFiltersCount = computed(() => {
@@ -145,7 +145,7 @@ export class ContratosComponent implements OnInit {
 
       if (secId) {
         const secIdNumber = Number(secId);
-        if (contrato.secretaria?.id !== secIdNumber) return false;
+        if (!contrato.secretarias?.some(s => s.id === secIdNumber)) return false;
       }
 
       if (pessoa) {
@@ -251,6 +251,32 @@ export class ContratosComponent implements OnInit {
       }
     });
   }
+
+  // ============ MÉTODOS DE SELEÇÃO DE SECRETARIAS (NOVOS) ============
+  
+  isSecretariaSelected(secretariaId: number): boolean {
+    const ids = this.form.get('secretariasIds')?.value || [];
+    return ids.includes(secretariaId);
+  }
+
+  toggleSecretaria(secretariaId: number): void {
+    const control = this.form.get('secretariasIds');
+    if (!control) return;
+    
+    const currentValue = control.value || [];
+    const index = currentValue.indexOf(secretariaId);
+    
+    if (index === -1) {
+      control.setValue([...currentValue, secretariaId]);
+    } else {
+      control.setValue(currentValue.filter((id: number) => id !== secretariaId));
+    }
+    
+    control.markAsTouched();
+    control.updateValueAndValidity();
+  }
+
+  // ============ FIM DOS MÉTODOS DE SELEÇÃO ============
 
   setSort(column: string): void {
     if (this.sortColumn() === column) {
@@ -363,6 +389,8 @@ export class ContratosComponent implements OnInit {
   }
 
   openCreateModal(): void {
+    this.editingContrato.set(null);
+    this.isEditModalOpen.set(false);
     this.form.reset({
       numero: '',
       ano: new Date().getFullYear(),
@@ -375,13 +403,14 @@ export class ContratosComponent implements OnInit {
       portariaDesignacao: '',
       dataDesignacao: '',
       ativoId: 1,
-      secretariaId: ''
+      secretariasIds: [] // <-- ALTERADO: array vazio
     });
     this.isModalOpen.set(true);
   }
 
   openEditModal(contrato: Contract): void {
     this.editingContrato.set(contrato);
+    this.isEditModalOpen.set(true);
 
     const tipoObj = this.tiposList().find(t => t.tipoArp === contrato.tipo || t.nome === contrato.tipo);
     const activeObj = this.statusList().find(s => s.situacao === contrato.situacao || s.nome === contrato.situacao);
@@ -398,10 +427,9 @@ export class ContratosComponent implements OnInit {
       portariaDesignacao: contrato.portariaDesignacao || '',
       dataDesignacao: contrato.dataDesignacao ? contrato.dataDesignacao.substring(0, 10) : '',
       ativoId: activeObj ? activeObj.id : 1,
-      secretariaId: contrato.secretaria?.id || ''
+      secretariasIds: contrato.secretarias?.map(s => s.id) || [] // <-- ALTERADO: preenche com os IDs
     });
 
-    this.isEditModalOpen.set(true);
     this.isModalOpen.set(true);
   }
 
@@ -433,7 +461,7 @@ export class ContratosComponent implements OnInit {
       portariaDesignacao: val.portariaDesignacao,
       dataDesignacao: val.dataDesignacao,
       ativoId: Number(val.ativoId),
-      secretariaId: Number(val.secretariaId)
+      secretariasIds: val.secretariasIds || [] // <-- CORRIGIDO: antes era secretariaIds (singular)
     };
 
     if (this.editingContrato()) {
