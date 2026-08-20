@@ -2,9 +2,11 @@ import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, H
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PaginationComponent } from '@shared';
-import { EquipeService, AtaService, ServidorService, LookupService, ToastService } from '@core/services';
-import { ContractTeam, Agreement, Servant, LookupItem } from '@core/models';
+import { EquipeService, AtaService, ServidorService, LookupService, ToastService, ContratoService } from '@core/services';
+import { ContractTeam, Agreement, Contract, Servant, LookupItem } from '@core/models';
 import { includesNormalized } from '@core/utils';
+
+type TipoVinculo = 'ATA' | 'CONTRATO';
 
 @Component({
   selector: 'app-equipes',
@@ -27,6 +29,7 @@ export class EquipesComponent implements OnInit {
   private ataService = inject(AtaService);
   private servService = inject(ServidorService);
   private lookupService = inject(LookupService);
+  private contratoService = inject(ContratoService);
   private toast = inject(ToastService);
   private fb = inject(FormBuilder);
   private elRef = inject(ElementRef);
@@ -35,17 +38,22 @@ export class EquipesComponent implements OnInit {
   onDocumentClick(event: MouseEvent): void {
     if (!this.elRef.nativeElement.contains(event.target)) {
       this.ataDropdownOpen.set(false);
+      this.contratoDropdownOpen.set(false);
       this.openServidorDropdownIndex.set(null);
     }
   }
 
   teams = signal<ContractTeam[]>([]);
   agreements = signal<Agreement[]>([]);
+  contracts = signal<Contract[]>([]);
   servants = signal<Servant[]>([]);
   funcoesList = signal<LookupItem[]>([]);
   statusList = signal<LookupItem[]>([]);
 
   searchTerm = signal<string>('');
+
+  // Tipo de vínculo da equipe (Ata ou Contrato)
+  tipoVinculo = signal<TipoVinculo>('ATA');
 
   // Ata searchable dropdown
   ataSearch = signal<string>('');
@@ -68,6 +76,30 @@ export class EquipesComponent implements OnInit {
   });
 
   selectedAta = signal<Agreement | null>(null);
+
+  // Contrato searchable dropdown
+  contratoSearch = signal<string>('');
+  contratoDropdownOpen = signal<boolean>(false);
+
+  filteredContractsDropdown = computed(() => {
+    const term = this.contratoSearch().trim();
+    if (!term) return this.contracts();
+    const termLower = term.toLowerCase();
+    return this.contracts().filter(c => {
+      const numero = String(c.numero ?? '');
+      const ano = String(c.ano ?? '');
+      const numAno = `${numero}/${ano}`;
+      const objeto = (c.objeto ?? '').toLowerCase();
+      const contratado = (c.nomeContratado ?? '').toLowerCase();
+      return numero.startsWith(term) ||
+        numAno.includes(term) ||
+        ano.startsWith(term) ||
+        objeto.includes(termLower) ||
+        contratado.includes(termLower);
+    });
+  });
+
+  selectedContrato = signal<Contract | null>(null);
 
   // Servant searchable dropdowns (one per FormArray row)
   openServidorDropdownIndex = signal<number | null>(null);
@@ -100,7 +132,9 @@ export class EquipesComponent implements OnInit {
   itemToDelete = signal<ContractTeam | null>(null);
 
   form: FormGroup = this.fb.group({
-    ataId: ['', Validators.required],
+    tipo: ['ATA', Validators.required],
+    ataId: [''],
+    contratoId: [''],
     ativoId: [1, Validators.required],
     membros: this.fb.array([])
   });
@@ -125,6 +159,37 @@ export class EquipesComponent implements OnInit {
     this.selectedAta.set(ata);
     this.ataDropdownOpen.set(false);
     this.ataSearch.set('');
+  }
+
+  toggleContratoDropdown(): void {
+    this.contratoDropdownOpen.update(v => !v);
+    if (this.contratoDropdownOpen()) {
+      this.contratoSearch.set('');
+    }
+  }
+
+  closeContratoDropdown(): void {
+    this.contratoDropdownOpen.set(false);
+  }
+
+  selectContrato(contrato: Contract): void {
+    this.form.get('contratoId')!.setValue(contrato.id);
+    this.selectedContrato.set(contrato);
+    this.contratoDropdownOpen.set(false);
+    this.contratoSearch.set('');
+  }
+
+  setTipoVinculo(tipo: TipoVinculo): void {
+    this.tipoVinculo.set(tipo);
+    this.form.get('tipo')!.setValue(tipo);
+    // Limpa o vínculo anterior ao trocar de tipo
+    if (tipo === 'ATA') {
+      this.form.get('contratoId')!.setValue('');
+      this.selectedContrato.set(null);
+    } else {
+      this.form.get('ataId')!.setValue('');
+      this.selectedAta.set(null);
+    }
   }
 
   toggleServidorDropdown(index: number): void {
@@ -169,6 +234,10 @@ export class EquipesComponent implements OnInit {
       next: (items) => this.agreements.set(items || [])
     });
 
+    this.contratoService.getAll().subscribe({
+      next: (items) => this.contracts.set(items || [])
+    });
+
     this.servService.getAll().subscribe({
       next: (items) => this.servants.set(items || [])
     });
@@ -188,15 +257,18 @@ export class EquipesComponent implements OnInit {
 
     return this.teams().filter(t => {
       const ataLabel = t.ataNumero && t.ataAno ? `${t.ataNumero}/${t.ataAno}` : t.ata || '';
-      const objeto = t.ataObjeto || '';
-      const matchAta = includesNormalized(ataLabel, term) || includesNormalized(objeto, term);
+      const contratoLabel = t.contratoNumero && t.contratoAno ? `${t.contratoNumero}/${t.contratoAno}` : t.contrato || '';
+      const objetoAta = t.ataObjeto || '';
+      const objetoContrato = t.contratoObjeto || '';
+      const matchAta = includesNormalized(ataLabel, term) || includesNormalized(objetoAta, term);
+      const matchContrato = includesNormalized(contratoLabel, term) || includesNormalized(objetoContrato, term);
       const matchMembros = t.membros?.some(m =>
         includesNormalized(m.servidorNome || '', term) ||
         includesNormalized(m.funcaoNome || '', term)
       );
       const matchLegacy = includesNormalized(t.servidor || '', term) || includesNormalized(t.funcao || '', term);
 
-      return matchAta || matchMembros || matchLegacy;
+      return matchAta || matchContrato || matchMembros || matchLegacy;
     });
   });
 
@@ -233,8 +305,10 @@ export class EquipesComponent implements OnInit {
   openCreateModal(): void {
     this.editingId.set(null);
     this.selectedAta.set(null);
+    this.selectedContrato.set(null);
     this.selectedServants.set([]);
-    this.form.reset({ ataId: '', ativoId: 1 });
+    this.tipoVinculo.set('ATA');
+    this.form.reset({ tipo: 'ATA', ataId: '', contratoId: '', ativoId: 1 });
     this.membrosArray.clear();
     this.addMembro();
     this.isModalOpen.set(true);
@@ -242,9 +316,21 @@ export class EquipesComponent implements OnInit {
 
   openEditModal(team: ContractTeam): void {
     this.editingId.set(team.id);
+    // Detecta o tipo de vínculo: se tem contratoId preenchido, é contrato; senão, ata
+    const tipo: TipoVinculo = team.contratoId ? 'CONTRATO' : 'ATA';
+    this.tipoVinculo.set(tipo);
+
     const ataObj = this.agreements().find(a => a.id === team.ataId) ?? null;
+    const contratoObj = this.contracts().find(c => c.id === team.contratoId) ?? null;
     this.selectedAta.set(ataObj);
-    this.form.patchValue({ ataId: team.ataId || '', ativoId: team.ativoId || 1 });
+    this.selectedContrato.set(contratoObj);
+
+    this.form.patchValue({
+      tipo,
+      ataId: team.ataId || '',
+      contratoId: team.contratoId || '',
+      ativoId: team.ativoId || 1
+    });
 
     this.membrosArray.clear();
     this.selectedServants.set([]);
@@ -310,11 +396,15 @@ export class EquipesComponent implements OnInit {
     this.isModalOpen.set(false);
     this.editingId.set(null);
     this.selectedAta.set(null);
+    this.selectedContrato.set(null);
     this.selectedServants.set([]);
     this.openServidorDropdownIndex.set(null);
     this.servidorSearch.set('');
     this.ataSearch.set('');
+    this.contratoSearch.set('');
     this.ataDropdownOpen.set(false);
+    this.contratoDropdownOpen.set(false);
+    this.tipoVinculo.set('ATA');
     this.form.reset();
     this.membrosArray.clear();
   }
@@ -330,17 +420,35 @@ export class EquipesComponent implements OnInit {
       return;
     }
 
+    const tipo: TipoVinculo = this.form.get('tipo')!.value;
+    if (tipo === 'ATA' && !this.form.get('ataId')!.value) {
+      this.toast.error('Selecione uma ata.');
+      this.form.get('ataId')!.markAsTouched();
+      return;
+    }
+    if (tipo === 'CONTRATO' && !this.form.get('contratoId')!.value) {
+      this.toast.error('Selecione um contrato.');
+      this.form.get('contratoId')!.markAsTouched();
+      return;
+    }
+
     this.submitting.set(true);
     const val = this.form.value;
 
-    const payload = {
-      ataId: Number(val.ataId),
+    const payload: any = {
+      tipo,
       ativoId: Number(val.ativoId),
       membros: val.membros.map((m: any) => ({
         servidorId: Number(m.servidorId),
         funcaoId: Number(m.funcaoId)
       }))
     };
+
+    if (tipo === 'ATA') {
+      payload.ataId = Number(val.ataId);
+    } else {
+      payload.contratoId = Number(val.contratoId);
+    }
 
     const id = this.editingId();
     if (id) {

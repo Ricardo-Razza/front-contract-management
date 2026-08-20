@@ -142,7 +142,9 @@ export interface ContractTeamMemberDTO {
 }
 
 export interface ContractTeamDTO {
-  ataId: number;
+  tipo: 'ATA' | 'CONTRATO';
+  ataId?: number;
+  contratoId?: number;
   ativoId: number;
   membros: ContractTeamMemberDTO[];
 }

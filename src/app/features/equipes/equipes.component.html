@@ -44,7 +44,7 @@
               <span class="sort-icon-idle">↕</span>
               }
             </th>
-            <th style="width: 300px;">Ata de Origem</th>
+            <th style="width: 300px;">Vínculo (Ata ou Contrato)</th>
             <th>Integrantes da Equipe (Servidor e Função)</th>
             <th style="width: 120px;">Status</th>
             <th style="width: 100px; text-align: right;">Ações</th>
@@ -55,6 +55,18 @@
           <tr>
             <td>#{{ team.id }}</td>
             <td>
+              @if (team.contratoId || team.contrato) {
+              <strong>
+                @if (team.contratoNumero && team.contratoAno) {
+                Contrato Nº {{ team.contratoNumero }}/{{ team.contratoAno }}
+                } @else {
+                {{ team.contrato || 'Contrato #' + team.contratoId }}
+                }
+              </strong>
+              @if (team.contratoObjeto) {
+              <div class="text-muted-sm">{{ team.contratoObjeto }}</div>
+              }
+              } @else {
               <strong>
                 @if (team.ataNumero && team.ataAno) {
                 Ata Nº {{ team.ataNumero }}/{{ team.ataAno }}
@@ -64,6 +76,7 @@
               </strong>
               @if (team.ataObjeto) {
               <div class="text-muted-sm">{{ team.ataObjeto }}</div>
+              }
               }
             </td>
             <td>
@@ -121,7 +134,7 @@
                   <line x1="19" y1="8" x2="19" y2="14" />
                 </svg>
                 <h4>Nenhuma equipe cadastrada</h4>
-                <p>Clique em "Cadastrar Nova Equipe" para atribuir uma equipe completa a uma ata.</p>
+                <p>Clique em "Cadastrar Nova Equipe" para atribuir uma equipe completa a uma ata ou contrato.</p>
               </div>
             </td>
           </tr>
@@ -148,12 +161,52 @@
     <form [formGroup]="form" (ngSubmit)="save()">
       <div class="modal-body">
         <div class="form-grid">
+          <!-- Seletor de tipo de vínculo -->
+          <div class="col-12 form-group">
+            <label>Tipo de Vínculo da Equipe <span class="required">*</span></label>
+            <div class="tipo-vinculo-toggle">
+              <button type="button" class="tipo-btn"
+                [class.active]="tipoVinculo() === 'ATA'"
+                (click)="setTipoVinculo('ATA')">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2" width="16" height="16">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+                Ata de Registro de Preços
+              </button>
+              <button type="button" class="tipo-btn"
+                [class.active]="tipoVinculo() === 'CONTRATO'"
+                (click)="setTipoVinculo('CONTRATO')">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2" width="16" height="16">
+                  <path d="M16 3h5v5" />
+                  <path d="M8 3H3v5" />
+                  <path d="M21 3l-7 7" />
+                  <path d="M3 3l7 7" />
+                  <path d="M21 16v5h-5" />
+                  <path d="M15 21l6-6" />
+                  <path d="M3 16v5h5" />
+                  <path d="M9 21l-6-6" />
+                </svg>
+                Contrato
+              </button>
+            </div>
+            <!-- Hidden native select for form binding -->
+            <select formControlName="tipo" style="display:none">
+              <option value="ATA">ATA</option>
+              <option value="CONTRATO">CONTRATO</option>
+            </select>
+          </div>
+
+          <!-- Seletor de Ata -->
+          @if (tipoVinculo() === 'ATA') {
           <div class="col-8 form-group" style="position: relative;">
             <label>Ata de Registro de Preços <span class="required">*</span></label>
             <!-- Searchable ATA dropdown -->
             <div class="custom-select-wrapper" [class.open]="ataDropdownOpen()" (clickOutside)="closeAtaDropdown()">
               <div class="custom-select-trigger" (click)="toggleAtaDropdown()"
-                [class.invalid]="form.get('ataId')?.touched && form.get('ataId')?.hasError('required')">
+                [class.invalid]="form.get('ataId')?.touched && !form.get('ataId')?.value">
                 <span class="trigger-text">
                   @if (selectedAta()) {
                   Ata Nº {{ selectedAta()!.numero }}/{{ selectedAta()!.ano }}
@@ -174,8 +227,9 @@
                     <circle cx="11" cy="11" r="8" />
                     <line x1="21" y1="21" x2="16.65" y2="16.65" />
                   </svg>
-                  <input #ataInput type="text" placeholder="Buscar ata..." [value]="ataSearch()"
-                    (input)="ataSearch.set(ataInput.value)" (click)="$event.stopPropagation()" autofocus />
+                  <input #ataInput type="text" placeholder="Buscar ata por número, ano ou objeto..."
+                    [value]="ataSearch()" (input)="ataSearch.set(ataInput.value)"
+                    (click)="$event.stopPropagation()" autofocus />
                 </div>
                 <ul class="dropdown-list">
                   @for (ata of filteredAgreementsDropdown(); track ata.id) {
@@ -198,10 +252,77 @@
               <option [value]="ata.id">{{ ata.id }}</option>
               }
             </select>
-            @if (form.get('ataId')?.touched && form.get('ataId')?.hasError('required')) {
+            @if (form.get('ataId')?.touched && !form.get('ataId')?.value) {
             <span class="form-error">Selecione uma ata</span>
             }
           </div>
+          }
+
+          <!-- Seletor de Contrato -->
+          @if (tipoVinculo() === 'CONTRATO') {
+          <div class="col-8 form-group" style="position: relative;">
+            <label>Contrato <span class="required">*</span></label>
+            <!-- Searchable Contrato dropdown -->
+            <div class="custom-select-wrapper" [class.open]="contratoDropdownOpen()"
+              (clickOutside)="closeContratoDropdown()">
+              <div class="custom-select-trigger" (click)="toggleContratoDropdown()"
+                [class.invalid]="form.get('contratoId')?.touched && !form.get('contratoId')?.value">
+                <span class="trigger-text">
+                  @if (selectedContrato()) {
+                  Contrato Nº {{ selectedContrato()!.numero }}/{{ selectedContrato()!.ano }}
+                  } @else {
+                  Selecione o contrato
+                  }
+                </span>
+                <svg class="chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </div>
+              @if (contratoDropdownOpen()) {
+              <div class="custom-select-dropdown">
+                <div class="dropdown-search">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" width="14" height="14">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <input #contratoInput type="text"
+                    placeholder="Buscar contrato por número, ano, objeto ou contratado..."
+                    [value]="contratoSearch()" (input)="contratoSearch.set(contratoInput.value)"
+                    (click)="$event.stopPropagation()" autofocus />
+                </div>
+                <ul class="dropdown-list">
+                  @for (contrato of filteredContractsDropdown(); track contrato.id) {
+                  <li (click)="selectContrato(contrato)"
+                    [class.selected]="form.get('contratoId')?.value == contrato.id">
+                    <strong>Contrato Nº {{ contrato.numero }}/{{ contrato.ano }}</strong>
+                    <span class="ata-objeto-hint">
+                      {{ contrato.objeto | slice:0:50 }}{{ (contrato.objeto?.length ?? 0) > 50 ? '...' : '' }}
+                      @if (contrato.nomeContratado) {
+                      • {{ contrato.nomeContratado }}
+                      }
+                    </span>
+                  </li>
+                  } @empty {
+                  <li class="no-results">Nenhum contrato encontrado</li>
+                  }
+                </ul>
+              </div>
+              }
+            </div>
+            <!-- Hidden native select for form binding -->
+            <select formControlName="contratoId" style="display:none">
+              <option value=""></option>
+              @for (contrato of contracts(); track contrato.id) {
+              <option [value]="contrato.id">{{ contrato.id }}</option>
+              }
+            </select>
+            @if (form.get('contratoId')?.touched && !form.get('contratoId')?.value) {
+            <span class="form-error">Selecione um contrato</span>
+            }
+          </div>
+          }
 
           <div class="col-4 form-group">
             <label>Situação / Status <span class="required">*</span></label>
@@ -218,8 +339,8 @@
           <div class="members-section-header">
             <div>
               <h4 class="form-section-title">Integrantes da Equipe</h4>
-              <p class="form-hint">Designação dos servidores participantes e suas respectivas responsabilidades nesta
-                ata.</p>
+              <p class="form-hint">Designação dos servidores participantes e suas respectivas responsabilidades neste
+                vínculo.</p>
             </div>
             <button type="button" class="btn btn-secondary btn-sm" (click)="addMembro()">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
