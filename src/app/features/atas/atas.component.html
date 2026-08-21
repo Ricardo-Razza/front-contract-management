@@ -310,23 +310,22 @@
 <div class="modal-backdrop" (click)="closeModal()">
   <div class="modal-card modal-lg" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h3>{{ editingAta() ? 'Editar Ata de Registro de Preços' : 'Nova Ata de Registro de Preços' }}</h3>
+      <h3>{{ editingAta() ? 'Editar Ata' : 'Nova Ata' }}</h3>
       <button class="modal-close" (click)="closeModal()">&times;</button>
     </div>
     <form [formGroup]="form" (ngSubmit)="saveAta()">
       <div class="modal-body">
-        <!-- Seção 1: Dados do Acordo -->
-        <div class="form-section-title">📌 Dados Gerais da Ata</div>
+        <div class="form-section-title">Dados Gerais da Ata</div>
         <div class="form-grid">
-          <div class="col-6 form-group">
-            <label>Número da Ata <span class="required">*</span></label>
-            <input type="number" formControlName="numero" placeholder="Ex: 105" />
+          <div class="form-group">
+            <label>Número <span class="required">*</span></label>
+            <input type="number" formControlName="numero" placeholder="Ex: 011" />
             @if (form.get('numero')?.touched && form.get('numero')?.hasError('required')) {
             <span class="form-error">O número é obrigatório</span>
             }
           </div>
-          <div class="col-6 form-group">
-            <label>Ano do Processo <span class="required">*</span></label>
+          <div class="form-group">
+            <label>Ano <span class="required">*</span></label>
             <input type="number" formControlName="ano" placeholder="Ex: 2026" />
             @if (form.get('ano')?.touched && form.get('ano')?.hasError('required')) {
             <span class="form-error">O ano é obrigatório</span>
@@ -335,19 +334,16 @@
         </div>
 
         <div class="form-grid">
-          <div class="col-6 form-group">
-            <label>Tipo de Objeto <span class="required">*</span></label>
+          <div class="form-group">
+            <label>Tipo <span class="required">*</span></label>
             <select formControlName="tipoId">
               @for (item of tiposList(); track item.id) {
               <option [value]="item.id">{{ item.tipoArp || item.nome || item.descricao }}</option>
               }
             </select>
-            @if (form.get('tipoId')?.touched && form.get('tipoId')?.hasError('required')) {
-            <span class="form-error">Selecione o tipo</span>
-            }
           </div>
-          <div class="col-6 form-group">
-            <label>Situação / Status <span class="required">*</span></label>
+          <div class="form-group">
+            <label>Situação <span class="required">*</span></label>
             <select formControlName="ativoId">
               @for (item of statusList(); track item.id) {
               <option [value]="item.id">{{ item.situacao || item.nome }}</option>
@@ -356,18 +352,38 @@
           </div>
         </div>
 
-        <!-- Seção 2: Vigência e Portaria -->
-        <div class="form-section-title">⏱️ Vigência e Portaria de Designação</div>
+        <!-- ===== BLOCO DE SECRETARIAS PADRONIZADO ===== -->
+        <div class="form-group">
+          <label>Secretarias <span class="required">*</span></label>
+          <div class="checkbox-group">
+            @for (sec of secretariats(); track sec.id) {
+            <label class="checkbox-item" [class.checked]="isSecretariaSelected(sec.id)">
+              <input type="checkbox" [checked]="isSecretariaSelected(sec.id)" (change)="toggleSecretaria(sec.id)"
+                [id]="'sec-' + sec.id" />
+              <span class="checkbox-label">
+                <span class="sec-sigla">{{ sec.sigla }}</span>
+                <span class="sec-nome">{{ sec.nome }}</span>
+              </span>
+            </label>
+            }
+          </div>
+          @if (form.get('secretariasIds')?.touched && form.get('secretariasIds')?.hasError('required')) {
+          <span class="form-error">Selecione ao menos uma secretaria</span>
+          }
+        </div>
+        <!-- ===== FIM DO BLOCO DE SECRETARIAS ===== -->
+
+        <div class="form-section-title">Vigência e Portaria de Designação</div>
         <div class="form-grid">
-          <div class="col-6 form-group">
-            <label>Data de Início da Vigência <span class="required">*</span></label>
+          <div class="form-group">
+            <label>Data Início <span class="required">*</span></label>
             <input type="date" formControlName="dataInicio" />
             @if (form.get('dataInicio')?.touched && form.get('dataInicio')?.hasError('required')) {
             <span class="form-error">Data de início é obrigatória</span>
             }
           </div>
-          <div class="col-6 form-group">
-            <label>Data de Fim da Vigência <span class="required">*</span></label>
+          <div class="form-group">
+            <label>Data Fim <span class="required">*</span></label>
             <input type="date" formControlName="dataFim" />
             @if (form.get('dataFim')?.touched && form.get('dataFim')?.hasError('required')) {
             <span class="form-error">Data de término é obrigatória</span>
@@ -376,14 +392,14 @@
         </div>
 
         <div class="form-grid">
-          <div class="col-6 form-group">
+          <div class="form-group">
             <label>Portaria de Designação <span class="required">*</span></label>
-            <input type="text" formControlName="portariaDesignacao" placeholder="Ex: PORT-001/2026-SEAD" />
+            <input type="text" formControlName="portariaDesignacao" placeholder="Ex: 602/2023" />
             @if (form.get('portariaDesignacao')?.touched && form.get('portariaDesignacao')?.hasError('required')) {
             <span class="form-error">Informação da portaria é obrigatória</span>
             }
           </div>
-          <div class="col-6 form-group">
+          <div class="form-group">
             <label>Data da Designação <span class="required">*</span></label>
             <input type="date" formControlName="dataDesignacao" />
             @if (form.get('dataDesignacao')?.touched && form.get('dataDesignacao')?.hasError('required')) {
@@ -392,53 +408,29 @@
           </div>
         </div>
 
-        <!-- Seção 3: Objeto & Observações -->
-        <div class="form-section-title">📝 Objeto e Observações</div>
+        <div class="form-section-title">Objeto da Ata</div>
         <div class="form-group">
-          <label>Objeto Detalhado da Ata <span class="required">*</span></label>
-          <textarea formControlName="objeto" rows="3"
-            placeholder="Descreva o objeto da Ata de Registro de Preços..."></textarea>
+          <label>Objeto da Ata <span class="required">*</span></label>
+          <textarea formControlName="objeto" rows="3" placeholder="Descreva o objeto da ata..."></textarea>
           @if (form.get('objeto')?.touched && form.get('objeto')?.hasError('required')) {
           <span class="form-error">O objeto é obrigatório</span>
           }
         </div>
+        
         <div class="form-group">
           <label>Observações Gerais</label>
-          <textarea formControlName="observacao" rows="2"
-            placeholder="Observações adicionais ou notas administrativas..."></textarea>
+          <textarea formControlName="observacao" rows="4" 
+            placeholder="Observações adicionais ou notas administrativas..."
+            class="observacao-textarea"></textarea>
+          <span class="form-hint">Campo opcional para anotações administrativas.</span>
         </div>
 
-        <!-- Seção 4: Secretarias Participantes -->
-        <div class="form-section-title">
-          <span>🏛️ Secretarias Participantes / Aderentes <span class="required">*</span></span>
-          <div class="sec-actions">
-            <button type="button" class="btn-link" (click)="selectAllSecretariats()">Selecionar Todas</button>
-            <span class="divider">|</span>
-            <button type="button" class="btn-link" (click)="clearSecretariatsSelection()">Desmarcar Todas</button>
-          </div>
-        </div>
-        <div class="form-group">
-          <div class="checkbox-grid">
-            @for (sec of secretariats(); track sec.id) {
-            <label class="checkbox-label" [class.selected]="isSecretariatSelected(sec.id)">
-              <input type="checkbox" [checked]="isSecretariatSelected(sec.id)" (change)="toggleSecretariat(sec.id)" />
-              <span class="sec-name">{{ sec.nome }}</span>
-              <span class="sec-tag">{{ sec.sigla }}</span>
-            </label>
-            }
-          </div>
-          @if (selectedSecretariatIds().length === 0) {
-          <span class="form-error">Selecione pelo menos uma secretaria aderente.</span>
-          } @else {
-          <span class="form-hint">{{ selectedSecretariatIds().length }} secretaria(s) selecionada(s)</span>
-          }
-        </div>
+        <p class="form-hint">Gestores e fiscais podem ser vinculados na seção Equipes de Atas/Contratos.</p>
       </div>
 
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
-        <button type="submit" class="btn btn-primary"
-          [disabled]="submitting() || form.invalid || selectedSecretariatIds().length === 0">
+        <button type="submit" class="btn btn-primary" [disabled]="submitting() || form.invalid">
           @if (submitting()) {
           <span>Salvando...</span>
           } @else {

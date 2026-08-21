@@ -64,7 +64,6 @@ export class AtasComponent implements OnInit {
   loading = signal<boolean>(true);
   submitting = signal<boolean>(false);
   deleting = signal<boolean>(false);
-  selectedSecretariatIds = signal<number[]>([]);
 
   // ===== MODALS =====
   isModalOpen = signal<boolean>(false);
@@ -86,7 +85,8 @@ export class AtasComponent implements OnInit {
     observacao: [''],
     portariaDesignacao: ['', Validators.required],
     dataDesignacao: ['', Validators.required],
-    ativoId: [1, Validators.required]
+    ativoId: [1, Validators.required],
+    secretariasIds: [[], Validators.required]
   });
 
   // ===== COMPUTED =====
@@ -373,9 +373,34 @@ export class AtasComponent implements OnInit {
     this.selectedAtaForDetails.set(null);
   }
 
+  // ============ MÉTODOS DE SELEÇÃO DE SECRETARIAS ============
+  isSecretariaSelected(secretariaId: number): boolean {
+    const ids = this.form.get('secretariasIds')?.value || [];
+    return ids.includes(secretariaId);
+  }
+
+  toggleSecretaria(secretariaId: number): void {
+    const control = this.form.get('secretariasIds');
+    if (!control) return;
+
+    const currentValue = control.value || [];
+    const index = currentValue.indexOf(secretariaId);
+
+    if (index === -1) {
+      control.setValue([...currentValue, secretariaId]);
+    } else {
+      control.setValue(currentValue.filter((id: number) => id !== secretariaId));
+    }
+
+    control.markAsTouched();
+    control.updateValueAndValidity();
+  }
+  // ============ FIM DOS MÉTODOS DE SELEÇÃO ============
+
   // ===== CREATE & EDIT MODALS =====
   openCreateModal(): void {
-    this.selectedSecretariatIds.set([]);
+    this.editingAta.set(null);
+    this.isEditModalOpen.set(false);
     this.form.reset({
       numero: '',
       ano: new Date().getFullYear(),
@@ -386,14 +411,15 @@ export class AtasComponent implements OnInit {
       observacao: '',
       portariaDesignacao: '',
       dataDesignacao: '',
-      ativoId: 1
+      ativoId: 1,
+      secretariasIds: []
     });
     this.isModalOpen.set(true);
   }
 
   openEditModal(ata: Agreement): void {
     this.editingAta.set(ata);
-    this.selectedSecretariatIds.set((ata.secretarias || []).map(s => s.id));
+    this.isEditModalOpen.set(true);
 
     const tipoObj = this.tiposList().find(t => t.tipoArp === ata.tipo || t.nome === ata.tipo);
     const activeObj = this.statusList().find(s => s.situacao === ata.situacao || s.nome === ata.situacao);
@@ -408,10 +434,10 @@ export class AtasComponent implements OnInit {
       observacao: ata.observacao || '',
       portariaDesignacao: ata.portariaDesignacao || '',
       dataDesignacao: ata.dataDesignacao ? ata.dataDesignacao.substring(0, 10) : '',
-      ativoId: activeObj ? activeObj.id : 1
+      ativoId: activeObj ? activeObj.id : 1,
+      secretariasIds: ata.secretarias?.map(s => s.id) || []
     });
 
-    this.isEditModalOpen.set(true);
     this.isModalOpen.set(true);
   }
 
@@ -419,49 +445,13 @@ export class AtasComponent implements OnInit {
     this.isModalOpen.set(false);
     this.isEditModalOpen.set(false);
     this.editingAta.set(null);
-    this.selectedSecretariatIds.set([]);
     this.form.reset();
-  }
-
-  isSecretariatSelected(secId: number): boolean {
-    return this.selectedSecretariatIds().includes(secId);
-  }
-
-  toggleSecretariat(secId: number): void {
-    const current = this.selectedSecretariatIds();
-    if (current.includes(secId)) {
-      this.selectedSecretariatIds.set(current.filter(id => id !== secId));
-    } else {
-      this.selectedSecretariatIds.set([...current, secId]);
-    }
-  }
-
-  selectAllSecretariats(): void {
-    const allIds = this.secretariats().map(s => s.id);
-    this.selectedSecretariatIds.set(allIds);
-  }
-
-  clearSecretariatsSelection(): void {
-    this.selectedSecretariatIds.set([]);
-  }
-
-  save(): void {
-    this.saveAta();
-  }
-
-  update(): void {
-    this.saveAta();
   }
 
   // ===== SAVE / UPDATE =====
   saveAta(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      return;
-    }
-
-    if (this.selectedSecretariatIds().length === 0) {
-      this.toast.error('Selecione pelo menos uma secretaria para a ata.');
       return;
     }
 
@@ -475,11 +465,11 @@ export class AtasComponent implements OnInit {
       dataFim: val.dataFim,
       tipoId: Number(val.tipoId),
       objeto: val.objeto,
-      observacao: val.observacao,
+      observacao: val.observacao || '',
       portariaDesignacao: val.portariaDesignacao,
       dataDesignacao: val.dataDesignacao,
       ativoId: Number(val.ativoId),
-      secretariasIds: this.selectedSecretariatIds()
+      secretariasIds: val.secretariasIds || []
     };
 
     if (this.editingAta()) {
@@ -499,7 +489,7 @@ export class AtasComponent implements OnInit {
     } else {
       this.ataService.create(payload).subscribe({
         next: () => {
-          this.toast.success('Ata criada com sucesso!');
+          this.toast.success('Ata cadastrada com sucesso!');
           this.submitting.set(false);
           this.closeModal();
           this.loadData();
