@@ -1,0 +1,9 @@
+services:
+  front-contract-management:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: front-contract-management
+    ports:
+      - "80:80"
+    restart: unless-stopped
