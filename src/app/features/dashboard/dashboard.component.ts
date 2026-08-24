@@ -62,6 +62,7 @@ export class DashboardComponent implements OnInit {
   // Lista dos 5 contratos mais recentes
   recentContracts = computed(() => {
     return [...this.contracts()]
+      .filter(c => c.situacao !== 'DESATIVADO')
       .sort((a, b) => b.id - a.id)
       .slice(0, 5);
   });
@@ -69,6 +70,7 @@ export class DashboardComponent implements OnInit {
   // Lista das 5 atas mais recentes
   recentAgreements = computed(() => {
     return [...this.agreements()]
+      .filter(a => a.situacao !== 'DESATIVADO')
       .sort((a, b) => b.id - a.id)
       .slice(0, 5);
   });
@@ -88,37 +90,35 @@ export class DashboardComponent implements OnInit {
       const diffTime = end.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
+      // Exibe apenas itens que vencem nos próximos 90 dias (não vencidos)
+      if (diffDays < 0 || diffDays > 90) return;
+
       let statusLabel = '';
       let statusClass = '';
 
-      if (diffDays < 0) {
-        statusLabel = `Vencido há ${Math.abs(diffDays)}d`;
-        statusClass = 'badge-expired';
-      } else if (diffDays <= 30) {
+      if (diffDays <= 30) {
         statusLabel = `Vence em ${diffDays}d`;
         statusClass = 'badge-critical';
       } else if (diffDays <= 60) {
         statusLabel = `Vence em ${diffDays}d`;
         statusClass = 'badge-warning';
-      } else if (diffDays <= 90) {
+      } else {
         statusLabel = `Vence em ${diffDays}d`;
         statusClass = 'badge-attention';
       }
 
-      if (diffDays <= 90) {
-        items.push({
-          id: c.id,
-          tipoItem: 'CONTRATO',
-          numero: c.numero,
-          ano: c.ano,
-          objeto: c.objeto,
-          dataFim: c.dataFim,
-          diasRestantes: diffDays,
-          statusLabel,
-          statusClass,
-          secretarias: (c.secretarias || []).map(s => s.sigla || s.nome)
-        });
-      }
+      items.push({
+        id: c.id,
+        tipoItem: 'CONTRATO',
+        numero: c.numero,
+        ano: c.ano,
+        objeto: c.objeto,
+        dataFim: c.dataFim,
+        diasRestantes: diffDays,
+        statusLabel,
+        statusClass,
+        secretarias: (c.secretarias || []).map(s => s.sigla || s.nome)
+      });
     });
 
     // Processa Atas
@@ -129,37 +129,35 @@ export class DashboardComponent implements OnInit {
       const diffTime = end.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
+      // Exibe apenas itens que vencem nos próximos 90 dias (não vencidos)
+      if (diffDays < 0 || diffDays > 90) return;
+
       let statusLabel = '';
       let statusClass = '';
 
-      if (diffDays < 0) {
-        statusLabel = `Vencida há ${Math.abs(diffDays)}d`;
-        statusClass = 'badge-expired';
-      } else if (diffDays <= 30) {
+      if (diffDays <= 30) {
         statusLabel = `Vence em ${diffDays}d`;
         statusClass = 'badge-critical';
       } else if (diffDays <= 60) {
         statusLabel = `Vence em ${diffDays}d`;
         statusClass = 'badge-warning';
-      } else if (diffDays <= 90) {
+      } else {
         statusLabel = `Vence em ${diffDays}d`;
         statusClass = 'badge-attention';
       }
 
-      if (diffDays <= 90) {
-        items.push({
-          id: a.id,
-          tipoItem: 'ATA',
-          numero: a.numero,
-          ano: a.ano,
-          objeto: a.objeto,
-          dataFim: a.dataFim,
-          diasRestantes: diffDays,
-          statusLabel,
-          statusClass,
-          secretarias: (a.secretarias || []).map(s => s.sigla || s.nome)
-        });
-      }
+      items.push({
+        id: a.id,
+        tipoItem: 'ATA',
+        numero: a.numero,
+        ano: a.ano,
+        objeto: a.objeto,
+        dataFim: a.dataFim,
+        diasRestantes: diffDays,
+        statusLabel,
+        statusClass,
+        secretarias: (a.secretarias || []).map(s => s.sigla || s.nome)
+      });
     });
 
     // Ordena pelo que está mais próximo de vencer ou vencido
