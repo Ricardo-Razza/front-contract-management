@@ -1,6 +1,7 @@
-import { Component, EventEmitter, HostBinding, Input, Output, ChangeDetectionStrategy } from '@angular/core';
+import { Component, EventEmitter, HostBinding, Input, Output, inject, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from '@core/services/auth.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -107,10 +108,10 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 
         <div class="sidebar-footer">
           <div class="user-info">
-            <div class="avatar">ADM</div>
+            <div class="avatar">{{ userInitials() }}</div>
             <div class="user-details">
-              <span class="user-name">Administrador</span>
-              <span class="user-role">Sistema ARP</span>
+              <span class="user-name">{{ userName() }}</span>
+              <span class="user-role">{{ userRole() }}</span>
             </div>
           </div>
         </div>
@@ -305,6 +306,28 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 export class SidebarComponent {
   @Input() isOpen = false;
   @Output() closeSidebar = new EventEmitter<void>();
+
+  private authService = inject(AuthService);
+
+  userName = computed(() => {
+    const user = this.authService.currentUser();
+    return user?.nome || user?.name || user?.email?.split('@')[0] || 'Administrador';
+  });
+
+  userRole = computed(() => {
+    const user = this.authService.currentUser();
+    return user?.role || 'Sistema ARP';
+  });
+
+  userInitials = computed(() => {
+    const name = this.userName();
+    if (!name) return 'ADM';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.slice(0, 3).toUpperCase();
+  });
 
   @HostBinding('class.open')
   get openClass(): boolean {
