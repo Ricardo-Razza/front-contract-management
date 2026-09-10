@@ -1,4 +1,5 @@
 export * from './ata.service';
+export * from './auth.service';
 export * from './contrato.service';
 export * from './equipe.service';
 export * from './lookup.service';
