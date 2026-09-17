@@ -18,132 +18,160 @@
     </div>
   </div>
 
-  <!-- ===== FILTROS AVANÇADOS ===== -->
-  <div class="filters-section">
-    <div class="filters-header">
-      <button class="btn-filters-toggle" (click)="toggleFilters()">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          width="18" height="18">
-          <line x1="4" y1="21" x2="4" y2="14" />
-          <line x1="4" y1="10" x2="4" y2="3" />
-          <line x1="12" y1="21" x2="12" y2="12" />
-          <line x1="12" y1="8" x2="12" y2="3" />
-          <line x1="20" y1="21" x2="20" y2="16" />
-          <line x1="20" y1="12" x2="20" y2="3" />
-          <line x1="1" y1="14" x2="7" y2="14" />
-          <line x1="9" y1="8" x2="15" y2="8" />
-          <line x1="17" y1="16" x2="23" y2="16" />
+
+  <!-- ===== FILTROS ===== -->
+  <div class="filter-bar">
+    <!-- Linha 1: Busca Geral -->
+    <div class="filter-search-box">
+      <span class="filter-search-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
-        Filtros Avançados
-        @if (activeFiltersCount() > 0) {
-        <span class="badge-filters">{{ activeFiltersCount() }}</span>
-        }
-      </button>
-      @if (activeFiltersCount() > 0) {
-      <button class="btn-clear-filters" (click)="clearFilters()">Limpar Filtros</button>
+      </span>
+      <input type="text" placeholder="Pesquisar por número, objeto, portaria, observação..."
+        [ngModel]="globalSearch()" (ngModelChange)="globalSearch.set($event); currentPage.set(1)" />
+      @if (globalSearch()) {
+        <button type="button" class="filter-clear-btn" (click)="globalSearch.set(''); currentPage.set(1)">&#x2715;</button>
       }
     </div>
 
-    @if (showFilters()) {
-    <div class="filters-grid">
-      <div class="filter-group full-width">
-        <label>🔎 Buscar</label>
-        <div class="search-input-wrapper">
-          <input type="text" placeholder="Pesquisar em número, ano, objeto, portaria, observação, secretaria, equipe..."
-            [ngModel]="globalSearch()" (ngModelChange)="globalSearch.set($event)" class="filter-input" />
-          @if (globalSearch()) {
-          <button type="button" class="search-clear-btn" (click)="globalSearch.set('')" title="Limpar busca">✕</button>
-          }
-        </div>
-      </div>
-
-      <!-- Filtros -->
-      <div class="filter-group">
-        <label>📅 Ano</label>
-        <select [ngModel]="filterAno()" (ngModelChange)="filterAno.set($event)" class="filter-select">
+    <!-- Linha 2: Grid Alinhado de Filtros -->
+    <div class="filter-grid">
+      <!-- Ano -->
+      <div class="filter-field">
+        <span class="filter-label">Ano</span>
+        <select [ngModel]="filterAno()" (ngModelChange)="filterAno.set($event); currentPage.set(1)">
           <option value="">Todos</option>
           @for (ano of anosDisponiveis(); track ano) {
-          <option [value]="ano">{{ ano }}</option>
+            <option [value]="ano">{{ ano }}</option>
           }
         </select>
       </div>
 
-      <div class="filter-group">
-        <label>📝 Tipo</label>
-        <select [ngModel]="filterTipo()" (ngModelChange)="filterTipo.set($event)" class="filter-select">
+      <!-- Tipo -->
+      <div class="filter-field">
+        <span class="filter-label">Tipo</span>
+        <select [ngModel]="filterTipo()" (ngModelChange)="filterTipo.set($event); currentPage.set(1)">
           <option value="">Todos</option>
-          <option value="PRODUTO">PRODUTO</option>
-          <option value="SERVICO">SERVIÇO</option>
+          <option value="PRODUTO">Produto</option>
+          <option value="SERVICO">Serviço</option>
         </select>
       </div>
 
-      <div class="filter-group">
-        <label>📊 Status</label>
-        <select [ngModel]="filterStatus()" (ngModelChange)="filterStatus.set($event)" class="filter-select">
+      <!-- Status -->
+      <div class="filter-field">
+        <span class="filter-label">Status</span>
+        <select [ngModel]="filterStatus()" (ngModelChange)="filterStatus.set($event); currentPage.set(1)">
           <option value="">Todos</option>
-          <option value="ATIVO">ATIVO</option>
-          <option value="DESATIVADO">DESATIVADO</option>
+          <option value="ATIVO">Ativo</option>
+          <option value="DESATIVADO">Inativo</option>
         </select>
       </div>
 
-      <div class="filter-group">
-        <label>🏛️ Secretaria</label>
-        <select [ngModel]="filterSecretaria()" (ngModelChange)="filterSecretaria.set($event)" class="filter-select">
-          <option value="">Todas</option>
-          @for (sec of secretariats(); track sec.id) {
-          <option [value]="sec.id">{{ sec.sigla }} - {{ sec.nome }}</option>
-          }
-        </select>
-      </div>
+      <!-- Secretarias (Multi-select) -->
+      <div class="filter-field">
+        <span class="filter-label">Secretarias</span>
+        <div class="custom-multiselect">
+          <button type="button" class="multiselect-trigger" [class.open]="showSecretariaDropdown()"
+                  (click)="toggleSecretariaDropdown(); $event.stopPropagation()">
+            <span class="trigger-text" [class.placeholder]="filterSecretarias().length === 0">
+              @if (filterSecretarias().length === 0) {
+                Todas as Secretarias
+              } @else if (filterSecretarias().length === 1) {
+                {{ getSecretariaNome(filterSecretarias()[0]) }}
+              } @else {
+                {{ filterSecretarias().length }} secretarias
+              }
+            </span>
+            <svg class="trigger-arrow" [class.open]="showSecretariaDropdown()" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
 
-      <!-- Pessoa Vinculada -->
-      <div class="filter-group full-width autocomplete-group">
-        <label>👤 Pessoa Vinculada (Gestor ou Fiscal)</label>
-        <div class="autocomplete-wrapper">
-          <input type="text" placeholder="Digite o nome do gestor ou fiscal..." [ngModel]="filterPessoa()"
-            (ngModelChange)="filterPessoa.set($event); showPessoaSuggestions.set(true)"
-            (focus)="showPessoaSuggestions.set(true)" (blur)="hidePessoaSuggestionsWithDelay()" class="filter-input"
-            autocomplete="off" />
-          @if (showPessoaSuggestions() && filteredServidoresSuggestions().length > 0) {
-          <ul class="autocomplete-dropdown">
-            @for (serv of filteredServidoresSuggestions(); track serv.id) {
-            <li (mousedown)="selectPessoaSuggestion(serv.nome)">
-              <span class="suggestion-icon">👤</span>
-              <span class="suggestion-name">{{ serv.nome }}</span>
-            </li>
-            }
-          </ul>
+          @if (showSecretariaDropdown()) {
+            <div class="multiselect-popover" (click)="$event.stopPropagation()">
+              <div class="multiselect-header">
+                <span class="multiselect-count">{{ filterSecretarias().length }} selecionada(s)</span>
+                <div class="multiselect-actions">
+                  <button type="button" class="action-link" (click)="selectAllSecretariasFilter()">Todas</button>
+                  <button type="button" class="action-link" (click)="clearSecretariaFilter()">Limpar</button>
+                </div>
+              </div>
+              <input type="text" class="multiselect-search" placeholder="Filtrar secretarias..."
+                     [ngModel]="secretariaFilterSearch()" (ngModelChange)="secretariaFilterSearch.set($event)" />
+              <div class="multiselect-list">
+                @for (sec of filteredSecretariasForFilter(); track sec.id) {
+                  <label class="multiselect-item" [class.selected]="isSecretariaFilterSelected(sec.id)">
+                    <input type="checkbox" [checked]="isSecretariaFilterSelected(sec.id)"
+                           (change)="toggleSecretariaFilter(sec.id)" />
+                    <span class="item-sigla">{{ sec.sigla }}</span>
+                    <span class="item-nome">{{ sec.nome }}</span>
+                  </label>
+                }
+              </div>
+            </div>
           }
         </div>
       </div>
 
-      <!-- Tags de filtros ativos -->
-      @if (activeFiltersCount() > 0) {
-      <div class="filter-tags full-width">
+      <!-- Gestor / Fiscal (Multi-select com Autocomplete) -->
+      <div class="filter-field">
+        <span class="filter-label">Gestor / Fiscal</span>
+        <div class="filter-bar-autocomplete" (click)="$event.stopPropagation()">
+          <div class="autocomplete-input-wrap">
+            <input type="text" placeholder="Adicionar servidor..."
+                   [ngModel]="pessoaInput()"
+                   (ngModelChange)="pessoaInput.set($event); showPessoaSuggestions.set(true)"
+                   (focus)="showPessoaSuggestions.set(true)"
+                   (keydown.enter)="$event.preventDefault(); addPessoaFilter(pessoaInput())"
+                   autocomplete="off" />
+            @if (filterPessoas().length > 0) {
+              <span class="autocomplete-badge">{{ filterPessoas().length }}</span>
+            }
+          </div>
+          @if (showPessoaSuggestions() && filteredServidoresSuggestions().length > 0) {
+            <ul class="autocomplete-dropdown">
+              @for (serv of filteredServidoresSuggestions(); track serv.id) {
+                <li (mousedown)="addPessoaFilter(serv.nome)">
+                  <span class="suggestion-avatar">{{ serv.nome.charAt(0) }}</span>
+                  <span class="suggestion-name">{{ serv.nome }}</span>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Tags Ativas -->
+    @if (activeFiltersCount() > 0) {
+      <div class="filter-divider"></div>
+      <div class="filter-active-tags">
+        <span class="filter-tags-label">Filtros ativos:</span>
         @if (globalSearch()) {
-        <span class="filter-tag">🔎 {{ globalSearch() }} <button (click)="globalSearch.set('')">✕</button></span>
+          <span class="filter-tag">Busca: "{{ globalSearch() }}" <button class="tag-remove" (click)="globalSearch.set(''); currentPage.set(1)">&#x2715;</button></span>
         }
         @if (filterAno()) {
-        <span class="filter-tag">📅 {{ filterAno() }} <button (click)="filterAno.set('')">✕</button></span>
+          <span class="filter-tag">Ano: {{ filterAno() }} <button class="tag-remove" (click)="filterAno.set(''); currentPage.set(1)">&#x2715;</button></span>
         }
         @if (filterTipo()) {
-        <span class="filter-tag">📝 {{ filterTipo() }} <button (click)="filterTipo.set('')">✕</button></span>
+          <span class="filter-tag">Tipo: {{ filterTipo() }} <button class="tag-remove" (click)="filterTipo.set(''); currentPage.set(1)">&#x2715;</button></span>
         }
         @if (filterStatus()) {
-        <span class="filter-tag">📊 {{ filterStatus() }} <button (click)="filterStatus.set('')">✕</button></span>
+          <span class="filter-tag">Status: {{ filterStatus() }} <button class="tag-remove" (click)="filterStatus.set(''); currentPage.set(1)">&#x2715;</button></span>
         }
-        @if (filterSecretaria()) {
-        <span class="filter-tag">🏛️ {{ getSecretariaNome(filterSecretaria()) }} <button
-            (click)="filterSecretaria.set('')">✕</button></span>
+        @for (secId of filterSecretarias(); track secId) {
+          <span class="filter-tag">Secretaria: {{ getSecretariaNome(secId) }} <button class="tag-remove" (click)="removeSecretariaFilter(secId)">&#x2715;</button></span>
         }
-        @if (filterPessoa()) {
-        <span class="filter-tag">👤 {{ filterPessoa() }} <button (click)="filterPessoa.set('')">✕</button></span>
+        @for (pessoa of filterPessoas(); track pessoa) {
+          <span class="filter-tag">Fiscal: {{ pessoa }} <button class="tag-remove" (click)="removePessoaFilter(pessoa)">&#x2715;</button></span>
         }
+        <button class="filter-clear-all" (click)="clearFilters()">Limpar tudo</button>
       </div>
-      }
-    </div>
     }
   </div>
+
 
   <!-- ===== TABELA ===== -->
   <div class="table-card">

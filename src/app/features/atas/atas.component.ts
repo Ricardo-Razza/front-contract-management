@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, HostListener } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PaginationComponent } from '@shared';
@@ -30,6 +30,7 @@ export class AtasComponent implements OnInit {
   private lookupService = inject(LookupService);
   private toast = inject(ToastService);
   private fb = inject(FormBuilder);
+  private elementRef = inject(ElementRef);
 
   isMenuOpen = signal(true);
 
@@ -50,8 +51,11 @@ export class AtasComponent implements OnInit {
   filterAno = signal<string>('');
   filterTipo = signal<string>('');
   filterStatus = signal<string>('');
-  filterSecretaria = signal<number | ''>('');
-  filterPessoa = signal<string>('');
+  filterSecretarias = signal<number[]>([]);
+  showSecretariaDropdown = signal<boolean>(false);
+  secretariaFilterSearch = signal<string>('');
+  filterPessoas = signal<string[]>([]);
+  pessoaInput = signal<string>('');
   showPessoaSuggestions = signal<boolean>(false);
 
   // ===== SORT & PAGINAÇÃO =====
@@ -77,12 +81,25 @@ export class AtasComponent implements OnInit {
 
   @HostListener('document:keydown.escape')
   onEscapeKey(): void {
-    if (this.isDetailsModalOpen()) {
+    if (this.showSecretariaDropdown()) {
+      this.showSecretariaDropdown.set(false);
+    } else if (this.showPessoaSuggestions()) {
+      this.showPessoaSuggestions.set(false);
+    } else if (this.isDetailsModalOpen()) {
       this.closeDetailsModal();
     } else if (this.isModalOpen()) {
       this.closeModal();
     } else if (this.isDeleteModalOpen()) {
       this.closeDeleteModal();
+    }
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!this.elementRef.nativeElement.contains(target)) {
+      this.showSecretariaDropdown.set(false);
+      this.showPessoaSuggestions.set(false);
     }
   }
 
@@ -108,8 +125,8 @@ export class AtasComponent implements OnInit {
     if (this.filterAno()) count++;
     if (this.filterTipo()) count++;
     if (this.filterStatus()) count++;
-    if (this.filterSecretaria()) count++;
-    if (this.filterPessoa()) count++;
+    count += this.filterSecretarias().length;
+    count += this.filterPessoas().length;
     return count;
   });
 
@@ -119,14 +136,22 @@ export class AtasComponent implements OnInit {
     return Array.from(anos).sort((a, b) => b - a);
   });
 
+  filteredSecretariasForFilter = computed(() => {
+    const search = this.secretariaFilterSearch().trim();
+    const list = this.secretariats();
+    if (!search) return list;
+    return list.filter(sec => matchesSearch([sec.sigla, sec.nome], search));
+  });
+
   filteredServidoresSuggestions = computed(() => {
-    const search = this.filterPessoa();
+    const search = this.pessoaInput().trim();
     const list = this.servidoresList();
-    if (!search || !search.trim()) {
-      return list.slice(0, 8);
+    const alreadySelected = this.filterPessoas();
+    if (!search) {
+      return list.filter(s => !alreadySelected.includes(s.nome)).slice(0, 8);
     }
     return list
-      .filter(s => matchesSearch(s.nome, search))
+      .filter(s => !alreadySelected.includes(s.nome) && matchesSearch(s.nome, search))
       .slice(0, 8);
   });
 
@@ -170,8 +195,8 @@ export class AtasComponent implements OnInit {
     const ano = this.filterAno();
     const tipo = this.filterTipo();
     const status = this.filterStatus();
-    const secId = this.filterSecretaria();
-    const pessoa = this.filterPessoa();
+    const selectedSecs = this.filterSecretarias();
+    const selectedPessoas = this.filterPessoas();
 
     return list.filter(ata => {
       // 1. Busca global inteligente
@@ -216,20 +241,22 @@ export class AtasComponent implements OnInit {
         if (ataStatus !== status) return false;
       }
 
-      // 5. Secretaria
-      if (secId) {
-        const secIdNumber = Number(secId);
-        const hasSecretaria = ata.secretarias?.some(s => s.id === secIdNumber);
+      // 5. Secretarias (Multi-select)
+      if (selectedSecs.length > 0) {
+        const hasSecretaria = ata.secretarias?.some(s => selectedSecs.includes(s.id));
         if (!hasSecretaria) return false;
       }
 
-      if (pessoa) {
+      // 6. Pessoas (Multi-select)
+      if (selectedPessoas.length > 0) {
         const equipes = ata.equipe || [];
-        const hasPessoa = equipes.some((eq: any) => {
-          if (eq.membros && eq.membros.length > 0) {
-            return eq.membros.some((m: any) => matchesSearch([m.servidorNome, m.servidorCargo, m.funcaoNome], pessoa));
-          }
-          return matchesSearch([eq.servidor, eq.funcao], pessoa);
+        const hasPessoa = selectedPessoas.some(pessoa => {
+          return equipes.some((eq: any) => {
+            if (eq.membros && eq.membros.length > 0) {
+              return eq.membros.some((m: any) => matchesSearch([m.servidorNome, m.servidorCargo, m.funcaoNome], pessoa));
+            }
+            return matchesSearch([eq.servidor, eq.funcao], pessoa);
+          });
         });
         if (!hasPessoa) return false;
       }
@@ -392,10 +419,53 @@ export class AtasComponent implements OnInit {
     return `${di} - ${df}`;
   }
 
-  // ===== AUTOCOMPLETE SUGGESTIONS =====
-  selectPessoaSuggestion(nome: string): void {
-    this.filterPessoa.set(nome);
+  toggleSecretariaDropdown(): void {
+    this.showSecretariaDropdown.update(v => !v);
+    if (this.showSecretariaDropdown()) {
+      this.secretariaFilterSearch.set('');
+    }
+  }
+
+  toggleSecretariaFilter(id: number): void {
+    this.filterSecretarias.update(ids => {
+      const exists = ids.includes(id);
+      return exists ? ids.filter(i => i !== id) : [...ids, id];
+    });
+    this.currentPage.set(1);
+  }
+
+  isSecretariaFilterSelected(id: number): boolean {
+    return this.filterSecretarias().includes(id);
+  }
+
+  selectAllSecretariasFilter(): void {
+    this.filterSecretarias.set(this.secretariats().map(s => s.id));
+    this.currentPage.set(1);
+  }
+
+  clearSecretariaFilter(): void {
+    this.filterSecretarias.set([]);
+    this.currentPage.set(1);
+  }
+
+  removeSecretariaFilter(id: number): void {
+    this.filterSecretarias.update(ids => ids.filter(i => i !== id));
+    this.currentPage.set(1);
+  }
+
+  addPessoaFilter(nome: string): void {
+    const trimmed = nome.trim();
+    if (!trimmed) return;
+    if (!this.filterPessoas().includes(trimmed)) {
+      this.filterPessoas.update(p => [...p, trimmed]);
+    }
+    this.pessoaInput.set('');
     this.showPessoaSuggestions.set(false);
+    this.currentPage.set(1);
+  }
+
+  removePessoaFilter(nome: string): void {
+    this.filterPessoas.update(p => p.filter(item => item !== nome));
     this.currentPage.set(1);
   }
 
@@ -410,15 +480,18 @@ export class AtasComponent implements OnInit {
     this.filterAno.set('');
     this.filterTipo.set('');
     this.filterStatus.set('');
-    this.filterSecretaria.set('');
-    this.filterPessoa.set('');
+    this.filterSecretarias.set([]);
+    this.filterPessoas.set([]);
+    this.pessoaInput.set('');
     this.showPessoaSuggestions.set(false);
+    this.showSecretariaDropdown.set(false);
     this.currentPage.set(1);
   }
 
-  getSecretariaNome(id: number): string {
-    const sec = this.secretariats().find(s => s.id === id);
-    return sec ? `${sec.sigla} - ${sec.nome}` : '';
+  getSecretariaNome(id: number | ''): string {
+    if (!id) return '';
+    const sec = this.secretariats().find(s => s.id === Number(id));
+    return sec ? (sec.sigla || sec.nome) : '';
   }
 
   toggleFilters(): void {
