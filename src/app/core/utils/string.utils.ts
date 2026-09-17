@@ -23,3 +23,33 @@ export function includesNormalized(
   if (!target) return false;
   return normalizeText(target).includes(normalizeText(search));
 }
+
+/**
+ * Realiza busca inteligente multi-termo (tokenizada).
+ * Garante que todas as palavras digitadas na busca estejam presentes no alvo (em qualquer ordem).
+ * Também suporta arrays de campos para pesquisa em múltiplos atributos de uma só vez.
+ * Exemplo: busca "smed merenda" bate com objeto "Fornecimento de merenda escolar" e secretaria "SMED".
+ */
+export function matchesSearch(
+  targets: (string | number | null | undefined)[] | string | number | null | undefined,
+  search: string | number | null | undefined
+): boolean {
+  if (!search || !search.toString().trim()) return true;
+  if (!targets) return false;
+
+  const searchTokens = normalizeText(search)
+    .split(/[\s/,-]+/)
+    .filter(t => t.length > 0);
+
+  if (searchTokens.length === 0) return true;
+
+  let composite = '';
+  if (Array.isArray(targets)) {
+    composite = targets.map(t => normalizeText(t)).join(' ');
+  } else {
+    composite = normalizeText(targets);
+  }
+
+  // Verifica se todos os tokens da busca estão presentes na composição
+  return searchTokens.every(token => composite.includes(token));
+}

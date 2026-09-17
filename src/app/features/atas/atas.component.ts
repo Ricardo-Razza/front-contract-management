@@ -1,10 +1,10 @@
-import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PaginationComponent } from '@shared';
 import { AtaService, SecretariaService, ServidorService, LookupService, ToastService } from '@core/services';
 import { Agreement, Secretariat, LookupItem } from '@core/models';
-import { includesNormalized, normalizeText } from '@core/utils';
+import { includesNormalized, matchesSearch } from '@core/utils';
 
 @Component({
   selector: 'app-atas',
@@ -73,6 +73,18 @@ export class AtasComponent implements OnInit {
   itemToDelete = signal<Agreement | null>(null);
   editingAta = signal<Agreement | null>(null);
   selectedAtaForDetails = signal<Agreement | null>(null);
+  modalSecretariaSearch = signal<string>('');
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.isDetailsModalOpen()) {
+      this.closeDetailsModal();
+    } else if (this.isModalOpen()) {
+      this.closeModal();
+    } else if (this.isDeleteModalOpen()) {
+      this.closeDeleteModal();
+    }
+  }
 
   // ===== FORM =====
   form: FormGroup = this.fb.group({
@@ -114,9 +126,42 @@ export class AtasComponent implements OnInit {
       return list.slice(0, 8);
     }
     return list
-      .filter(s => includesNormalized(s.nome, search))
+      .filter(s => matchesSearch(s.nome, search))
       .slice(0, 8);
   });
+
+  filteredModalSecretarias = computed(() => {
+    const search = this.modalSecretariaSearch();
+    const list = this.secretariats();
+    if (!search || !search.trim()) return list;
+    return list.filter(sec => matchesSearch([sec.sigla, sec.nome], search));
+  });
+
+  selectAllSecretarias(): void {
+    const allIds = this.secretariats().map(s => s.id);
+    const control = this.form.get('secretariasIds');
+    control?.setValue(allIds);
+    control?.markAsTouched();
+    control?.updateValueAndValidity();
+  }
+
+  clearAllSecretarias(): void {
+    const control = this.form.get('secretariasIds');
+    control?.setValue([]);
+    control?.markAsTouched();
+    control?.updateValueAndValidity();
+  }
+
+  getVigenciaPercent(dataInicio?: string, dataFim?: string): number {
+    if (!dataInicio || !dataFim) return 0;
+    const start = new Date(dataInicio).getTime();
+    const end = new Date(dataFim).getTime();
+    const now = new Date().getTime();
+    if (end <= start) return 100;
+    if (now <= start) return 0;
+    if (now >= end) return 100;
+    return Math.min(100, Math.max(0, Math.round(((now - start) / (end - start)) * 100)));
+  }
 
   filteredAgreements = computed(() => {
     let list = this.agreements();
@@ -129,15 +174,34 @@ export class AtasComponent implements OnInit {
     const pessoa = this.filterPessoa();
 
     return list.filter(ata => {
-      // 1. Busca global
+      // 1. Busca global inteligente
       if (global) {
-        const match =
-          includesNormalized(ata.numero, global) ||
-          includesNormalized(ata.ano, global) ||
-          includesNormalized(ata.objeto, global) ||
-          includesNormalized(ata.portariaDesignacao, global) ||
-          includesNormalized(ata.observacao, global);
-        if (!match) return false;
+        const targets: (string | number | null | undefined)[] = [
+          ata.numero,
+          ata.ano,
+          `${ata.numero}/${ata.ano}`,
+          ata.objeto,
+          ata.portariaDesignacao,
+          ata.observacao,
+          ata.tipo,
+          ata.situacao
+        ];
+        if (ata.secretarias && ata.secretarias.length > 0) {
+          for (const s of ata.secretarias) {
+            targets.push(s.sigla, s.nome);
+          }
+        }
+        if (ata.equipe && ata.equipe.length > 0) {
+          for (const eq of ata.equipe as any[]) {
+            if (eq.servidor) targets.push(eq.servidor, eq.funcao);
+            if (eq.membros && eq.membros.length > 0) {
+              for (const m of eq.membros) {
+                targets.push(m.servidorNome, m.funcaoNome, m.servidorCargo);
+              }
+            }
+          }
+        }
+        if (!matchesSearch(targets, global)) return false;
       }
 
       // 2. Ano
@@ -159,14 +223,13 @@ export class AtasComponent implements OnInit {
         if (!hasSecretaria) return false;
       }
 
-
       if (pessoa) {
         const equipes = ata.equipe || [];
         const hasPessoa = equipes.some((eq: any) => {
           if (eq.membros && eq.membros.length > 0) {
-            return eq.membros.some((m: any) => includesNormalized(m.servidorNome || '', pessoa));
+            return eq.membros.some((m: any) => matchesSearch([m.servidorNome, m.servidorCargo, m.funcaoNome], pessoa));
           }
-          return includesNormalized(eq.servidor || '', pessoa);
+          return matchesSearch([eq.servidor, eq.funcao], pessoa);
         });
         if (!hasPessoa) return false;
       }
@@ -401,6 +464,7 @@ export class AtasComponent implements OnInit {
   openCreateModal(): void {
     this.editingAta.set(null);
     this.isEditModalOpen.set(false);
+    this.modalSecretariaSearch.set('');
     this.form.reset({
       numero: '',
       ano: new Date().getFullYear(),
@@ -420,6 +484,7 @@ export class AtasComponent implements OnInit {
   openEditModal(ata: Agreement): void {
     this.editingAta.set(ata);
     this.isEditModalOpen.set(true);
+    this.modalSecretariaSearch.set('');
 
     const tipoObj = this.tiposList().find(t => t.tipoArp === ata.tipo || t.nome === ata.tipo);
     const activeObj = this.statusList().find(s => s.situacao === ata.situacao || s.nome === ata.situacao);
@@ -445,6 +510,7 @@ export class AtasComponent implements OnInit {
     this.isModalOpen.set(false);
     this.isEditModalOpen.set(false);
     this.editingAta.set(null);
+    this.modalSecretariaSearch.set('');
     this.form.reset();
   }
 

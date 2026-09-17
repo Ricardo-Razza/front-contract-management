@@ -1,10 +1,10 @@
-import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PhonePipe, PhoneMaskDirective, PaginationComponent } from '@shared';
 import { ServidorService, SecretariaService, LookupService, ToastService } from '@core/services';
 import { Servant, Secretariat, LookupItem } from '@core/models';
-import { includesNormalized } from '@core/utils';
+import { includesNormalized, matchesSearch } from '@core/utils';
 
 @Component({
   selector: 'app-servidores',
@@ -39,6 +39,15 @@ export class ServidoresComponent implements OnInit {
   selectedSecretariatFilter = signal<string>('');
   selectedStatusFilter = signal<string>('');
 
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.isModalOpen()) {
+      this.closeModal();
+    } else if (this.isDeleteModalOpen()) {
+      this.closeDeleteModal();
+    }
+  }
+
   // Sort & Pagination
   sortColumn = signal<string>('nome');
   sortDirection = signal<'asc' | 'desc'>('asc');
@@ -72,10 +81,7 @@ export class ServidoresComponent implements OnInit {
 
     if (term) {
       result = result.filter(s =>
-        includesNormalized(s.nome, term) ||
-        includesNormalized(s.matricula, term) ||
-        includesNormalized(s.cargo, term) ||
-        includesNormalized(s.email, term)
+        matchesSearch([s.nome, s.matricula, s.cargo, s.email, s.telefone, s.secretaria], term)
       );
     }
 

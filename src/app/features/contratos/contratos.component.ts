@@ -1,10 +1,10 @@
-import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PaginationComponent } from '@shared';
 import { ContratoService, SecretariaService, ServidorService, LookupService, ToastService } from '@core/services';
 import { Contract, Secretariat, LookupItem } from '@core/models';
-import { includesNormalized } from '@core/utils';
+import { includesNormalized, matchesSearch } from '@core/utils';
 
 @Component({
   selector: 'app-contratos',
@@ -61,6 +61,18 @@ export class ContratosComponent implements OnInit {
   itemToDelete = signal<Contract | null>(null);
   editingContrato = signal<Contract | null>(null);
   selectedContratoForDetails = signal<Contract | null>(null);
+  modalSecretariaSearch = signal<string>('');
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.isDetailsModalOpen()) {
+      this.closeDetailsModal();
+    } else if (this.isModalOpen()) {
+      this.closeModal();
+    } else if (this.isDeleteModalOpen()) {
+      this.closeDeleteModal();
+    }
+  }
 
   form: FormGroup = this.fb.group({
     numero: ['', Validators.required],
@@ -74,7 +86,7 @@ export class ContratosComponent implements OnInit {
     portariaDesignacao: ['', Validators.required],
     dataDesignacao: ['', Validators.required],
     ativoId: [1, Validators.required],
-    secretariasIds: [[], Validators.required] // <-- ALTERADO: array vazio ao invés de [[] as number[]]
+    secretariasIds: [[], Validators.required] 
   });
 
   activeFiltersCount = computed(() => {
@@ -109,9 +121,42 @@ export class ContratosComponent implements OnInit {
       return list.slice(0, 8);
     }
     return list
-      .filter(s => includesNormalized(s.nome, search))
+      .filter(s => matchesSearch(s.nome, search))
       .slice(0, 8);
   });
+
+  filteredModalSecretarias = computed(() => {
+    const search = this.modalSecretariaSearch();
+    const list = this.secretariats();
+    if (!search || !search.trim()) return list;
+    return list.filter(sec => matchesSearch([sec.sigla, sec.nome], search));
+  });
+
+  selectAllSecretarias(): void {
+    const allIds = this.secretariats().map(s => s.id);
+    const control = this.form.get('secretariasIds');
+    control?.setValue(allIds);
+    control?.markAsTouched();
+    control?.updateValueAndValidity();
+  }
+
+  clearAllSecretarias(): void {
+    const control = this.form.get('secretariasIds');
+    control?.setValue([]);
+    control?.markAsTouched();
+    control?.updateValueAndValidity();
+  }
+
+  getVigenciaPercent(dataInicio?: string, dataFim?: string): number {
+    if (!dataInicio || !dataFim) return 0;
+    const start = new Date(dataInicio).getTime();
+    const end = new Date(dataFim).getTime();
+    const now = new Date().getTime();
+    if (end <= start) return 100;
+    if (now <= start) return 0;
+    if (now >= end) return 100;
+    return Math.min(100, Math.max(0, Math.round(((now - start) / (end - start)) * 100)));
+  }
 
   filteredContracts = computed(() => {
     let list = this.contracts();
@@ -125,13 +170,33 @@ export class ContratosComponent implements OnInit {
 
     return list.filter(contrato => {
       if (global) {
-        const match =
-          includesNormalized(contrato.numero, global) ||
-          includesNormalized(contrato.ano, global) ||
-          includesNormalized(contrato.objeto, global) ||
-          includesNormalized(contrato.nomeContratado, global) ||
-          includesNormalized(contrato.portariaDesignacao, global);
-        if (!match) return false;
+        const targets: (string | number | null | undefined)[] = [
+          contrato.numero,
+          contrato.ano,
+          `${contrato.numero}/${contrato.ano}`,
+          contrato.objeto,
+          contrato.nomeContratado,
+          contrato.portariaDesignacao,
+          contrato.tipo,
+          contrato.situacao,
+          contrato.observacao
+        ];
+        if (contrato.secretarias && contrato.secretarias.length > 0) {
+          for (const s of contrato.secretarias) {
+            targets.push(s.sigla, s.nome);
+          }
+        }
+        if (contrato.equipe && contrato.equipe.length > 0) {
+          for (const eq of contrato.equipe as any[]) {
+            if (eq.servidor) targets.push(eq.servidor, eq.funcao);
+            if (eq.membros && eq.membros.length > 0) {
+              for (const m of eq.membros) {
+                targets.push(m.servidorNome, m.funcaoNome, m.servidorCargo);
+              }
+            }
+          }
+        }
+        if (!matchesSearch(targets, global)) return false;
       }
 
       if (ano && contrato.ano !== Number(ano)) return false;
@@ -152,9 +217,9 @@ export class ContratosComponent implements OnInit {
         const equipes = contrato.equipe || [];
         const hasPessoa = equipes.some((eq: any) => {
           if (eq.membros && eq.membros.length > 0) {
-            return eq.membros.some((m: any) => includesNormalized(m.servidorNome || '', pessoa));
+            return eq.membros.some((m: any) => matchesSearch([m.servidorNome, m.servidorCargo, m.funcaoNome], pessoa));
           }
-          return includesNormalized(eq.servidor || '', pessoa);
+          return matchesSearch([eq.servidor, eq.funcao], pessoa);
         });
         if (!hasPessoa) return false;
       }
@@ -391,6 +456,7 @@ export class ContratosComponent implements OnInit {
   openCreateModal(): void {
     this.editingContrato.set(null);
     this.isEditModalOpen.set(false);
+    this.modalSecretariaSearch.set('');
     this.form.reset({
       numero: '',
       ano: new Date().getFullYear(),
@@ -403,7 +469,7 @@ export class ContratosComponent implements OnInit {
       portariaDesignacao: '',
       dataDesignacao: '',
       ativoId: 1,
-      secretariasIds: [] // <-- ALTERADO: array vazio
+      secretariasIds: []
     });
     this.isModalOpen.set(true);
   }
@@ -411,6 +477,7 @@ export class ContratosComponent implements OnInit {
   openEditModal(contrato: Contract): void {
     this.editingContrato.set(contrato);
     this.isEditModalOpen.set(true);
+    this.modalSecretariaSearch.set('');
 
     const tipoObj = this.tiposList().find(t => t.tipoArp === contrato.tipo || t.nome === contrato.tipo);
     const activeObj = this.statusList().find(s => s.situacao === contrato.situacao || s.nome === contrato.situacao);
@@ -427,7 +494,7 @@ export class ContratosComponent implements OnInit {
       portariaDesignacao: contrato.portariaDesignacao || '',
       dataDesignacao: contrato.dataDesignacao ? contrato.dataDesignacao.substring(0, 10) : '',
       ativoId: activeObj ? activeObj.id : 1,
-      secretariasIds: contrato.secretarias?.map(s => s.id) || [] // <-- ALTERADO: preenche com os IDs
+      secretariasIds: contrato.secretarias?.map(s => s.id) || []
     });
 
     this.isModalOpen.set(true);
@@ -437,6 +504,7 @@ export class ContratosComponent implements OnInit {
     this.isModalOpen.set(false);
     this.isEditModalOpen.set(false);
     this.editingContrato.set(null);
+    this.modalSecretariaSearch.set('');
     this.form.reset();
   }
 

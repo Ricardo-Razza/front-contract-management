@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -52,14 +52,15 @@ import { CommonModule } from '@angular/common';
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background-color: rgba(15, 23, 42, 0.6);
-      backdrop-filter: blur(4px);
-      z-index: 1000;
+      background-color: rgba(15, 23, 42, 0.68);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 1050;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 1rem;
-      animation: fadeIn 0.15s ease-out;
+      animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .modal-card {
@@ -167,6 +168,13 @@ export class ConfirmModalComponent {
   onCancel(): void {
     if (!this.loading) {
       this.cancel.emit();
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.isOpen && !this.loading) {
+      this.onCancel();
     }
   }
 }

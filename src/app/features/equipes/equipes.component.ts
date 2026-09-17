@@ -4,7 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Va
 import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PaginationComponent } from '@shared';
 import { EquipeService, AtaService, ServidorService, LookupService, ToastService, ContratoService } from '@core/services';
 import { ContractTeam, Agreement, Contract, Servant, LookupItem } from '@core/models';
-import { includesNormalized } from '@core/utils';
+import { includesNormalized, matchesSearch } from '@core/utils';
 
 type TipoVinculo = 'ATA' | 'CONTRATO';
 
@@ -43,6 +43,21 @@ export class EquipesComponent implements OnInit {
     }
   }
 
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.ataDropdownOpen()) {
+      this.ataDropdownOpen.set(false);
+    } else if (this.contratoDropdownOpen()) {
+      this.contratoDropdownOpen.set(false);
+    } else if (this.openServidorDropdownIndex() !== null) {
+      this.openServidorDropdownIndex.set(null);
+    } else if (this.isModalOpen()) {
+      this.closeModal();
+    } else if (this.isDeleteModalOpen()) {
+      this.closeDeleteModal();
+    }
+  }
+
   teams = signal<ContractTeam[]>([]);
   agreements = signal<Agreement[]>([]);
   contracts = signal<Contract[]>([]);
@@ -51,6 +66,10 @@ export class EquipesComponent implements OnInit {
   statusList = signal<LookupItem[]>([]);
 
   searchTerm = signal<string>('');
+  filterTypeTab = signal<'ALL' | 'ATA' | 'CONTRATO'>('ALL');
+
+  countAtas = computed(() => this.teams().filter(t => !t.contratoId && !t.contrato).length);
+  countContratos = computed(() => this.teams().filter(t => !!(t.contratoId || t.contrato)).length);
 
   // Tipo de vínculo da equipe (Ata ou Contrato)
   tipoVinculo = signal<TipoVinculo>('ATA');
@@ -62,16 +81,15 @@ export class EquipesComponent implements OnInit {
   filteredAgreementsDropdown = computed(() => {
     const term = this.ataSearch().trim();
     if (!term) return this.agreements();
-    const termLower = term.toLowerCase();
     return this.agreements().filter(a => {
-      const numero = String(a.numero ?? '');
-      const ano = String(a.ano ?? '');
-      const numAno = `${numero}/${ano}`;
-      const objeto = (a.objeto ?? '').toLowerCase();
-      return numero.startsWith(term) ||
-        numAno.includes(term) ||
-        ano.startsWith(term) ||
-        objeto.includes(termLower);
+      const targets = [
+        a.numero,
+        a.ano,
+        `${a.numero}/${a.ano}`,
+        a.objeto,
+        a.portariaDesignacao
+      ];
+      return matchesSearch(targets, term);
     });
   });
 
@@ -84,18 +102,16 @@ export class EquipesComponent implements OnInit {
   filteredContractsDropdown = computed(() => {
     const term = this.contratoSearch().trim();
     if (!term) return this.contracts();
-    const termLower = term.toLowerCase();
     return this.contracts().filter(c => {
-      const numero = String(c.numero ?? '');
-      const ano = String(c.ano ?? '');
-      const numAno = `${numero}/${ano}`;
-      const objeto = (c.objeto ?? '').toLowerCase();
-      const contratado = (c.nomeContratado ?? '').toLowerCase();
-      return numero.startsWith(term) ||
-        numAno.includes(term) ||
-        ano.startsWith(term) ||
-        objeto.includes(termLower) ||
-        contratado.includes(termLower);
+      const targets = [
+        c.numero,
+        c.ano,
+        `${c.numero}/${c.ano}`,
+        c.objeto,
+        c.nomeContratado,
+        c.portariaDesignacao
+      ];
+      return matchesSearch(targets, term);
     });
   });
 
@@ -107,12 +123,10 @@ export class EquipesComponent implements OnInit {
   selectedServants = signal<(Servant | null)[]>([]);
 
   filteredServantsForDropdown = computed(() => {
-    const term = this.servidorSearch().trim().toLowerCase();
+    const term = this.servidorSearch().trim();
     if (!term) return this.servants();
     return this.servants().filter(s =>
-      (s.nome ?? '').toLowerCase().includes(term) ||
-      (s.cargo ?? '').toLowerCase().includes(term) ||
-      String(s.matricula ?? '').includes(term)
+      matchesSearch([s.nome, s.cargo, s.matricula, s.secretaria], term)
     );
   });
 
@@ -252,23 +266,44 @@ export class EquipesComponent implements OnInit {
   }
 
   filteredTeams = computed(() => {
+    let list = this.teams();
+    const tab = this.filterTypeTab();
     const term = this.searchTerm();
-    if (!term) return this.teams();
 
-    return this.teams().filter(t => {
-      const ataLabel = t.ataNumero && t.ataAno ? `${t.ataNumero}/${t.ataAno}` : t.ata || '';
-      const contratoLabel = t.contratoNumero && t.contratoAno ? `${t.contratoNumero}/${t.contratoAno}` : t.contrato || '';
-      const objetoAta = t.ataObjeto || '';
-      const objetoContrato = t.contratoObjeto || '';
-      const matchAta = includesNormalized(ataLabel, term) || includesNormalized(objetoAta, term);
-      const matchContrato = includesNormalized(contratoLabel, term) || includesNormalized(objetoContrato, term);
-      const matchMembros = t.membros?.some(m =>
-        includesNormalized(m.servidorNome || '', term) ||
-        includesNormalized(m.funcaoNome || '', term)
-      );
-      const matchLegacy = includesNormalized(t.servidor || '', term) || includesNormalized(t.funcao || '', term);
+    // Filtro por tipo de vínculo (Tab)
+    if (tab === 'ATA') {
+      list = list.filter(t => !t.contratoId && !t.contrato);
+    } else if (tab === 'CONTRATO') {
+      list = list.filter(t => !!(t.contratoId || t.contrato));
+    }
 
-      return matchAta || matchContrato || matchMembros || matchLegacy;
+    if (!term || !term.trim()) return list;
+
+    return list.filter(t => {
+      const targets: (string | number | null | undefined)[] = [
+        t.id,
+        t.ataNumero,
+        t.ataAno,
+        t.ataNumero && t.ataAno ? `${t.ataNumero}/${t.ataAno}` : '',
+        t.ata,
+        t.ataObjeto,
+        t.contratoNumero,
+        t.contratoAno,
+        t.contratoNumero && t.contratoAno ? `${t.contratoNumero}/${t.contratoAno}` : '',
+        t.contrato,
+        t.contratoObjeto,
+        t.servidor,
+        t.funcao,
+        t.situacao
+      ];
+
+      if (t.membros && t.membros.length > 0) {
+        for (const m of t.membros) {
+          targets.push(m.servidorNome, m.funcaoNome, m.servidorCargo);
+        }
+      }
+
+      return matchesSearch(targets, term);
     });
   });
 

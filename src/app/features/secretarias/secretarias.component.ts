@@ -1,10 +1,10 @@
-import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PaginationComponent } from '@shared';
 import { SecretariaService, LookupService, ToastService } from '@core/services';
 import { Secretariat, LookupItem } from '@core/models';
-import { includesNormalized } from '@core/utils';
+import { includesNormalized, matchesSearch } from '@core/utils';
 
 @Component({
   selector: 'app-secretarias',
@@ -32,6 +32,15 @@ export class SecretariasComponent implements OnInit {
   statusList = signal<LookupItem[]>([]);
   searchTerm = signal<string>('');
 
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.isModalOpen()) {
+      this.closeModal();
+    } else if (this.isDeleteModalOpen()) {
+      this.closeDeleteModal();
+    }
+  }
+
   // Sort & Pagination
   sortColumn = signal<string>('nome');
   sortDirection = signal<'asc' | 'desc'>('asc');
@@ -58,8 +67,7 @@ export class SecretariasComponent implements OnInit {
     if (!term) return this.secretariats();
 
     return this.secretariats().filter(s =>
-      includesNormalized(s.nome, term) ||
-      includesNormalized(s.sigla, term)
+      matchesSearch([s.nome, s.sigla, s.situacao], term)
     );
   });
 

@@ -27,8 +27,11 @@
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
-          <input type="text" placeholder="Buscar por nome ou matrícula..." [ngModel]="searchTerm()"
+          <input type="text" placeholder="Buscar por nome, matrícula, cargo..." [ngModel]="searchTerm()"
             (ngModelChange)="searchTerm.set($event)" />
+          @if (searchTerm()) {
+          <button type="button" class="search-clear-btn" (click)="searchTerm.set('')" title="Limpar busca">✕</button>
+          }
         </div>
 
         <div class="filter-select">
@@ -180,7 +183,7 @@
 <!-- Create / Edit Modal -->
 @if (isModalOpen()) {
 <div class="modal-backdrop" (click)="closeModal()">
-  <div class="modal-card" (click)="$event.stopPropagation()">
+  <div class="modal-card modal-md" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>{{ editingId() ? 'Editar Servidor' : 'Novo Servidor' }}</h3>
       <button class="modal-close" (click)="closeModal()">&times;</button>

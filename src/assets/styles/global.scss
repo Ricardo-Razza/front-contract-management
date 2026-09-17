@@ -364,6 +364,153 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+// ============================================================================
+// Modern Responsive Modal System
+// ============================================================================
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.68);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-card {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.15);
+  max-width: 620px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 3.5rem);
+  overflow: hidden;
+  animation: modalPopIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+
+  &.modal-sm { max-width: 440px; }
+  &.modal-md { max-width: 640px; }
+  &.modal-lg { max-width: 860px; }
+  &.modal-xl { max-width: 1040px; }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+.modal-header {
+  flex-shrink: 0;
+  padding: 1.25rem 1.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: #ffffff;
+  z-index: 2;
+
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: $color-secondary;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+
+  .modal-close {
+    background: transparent;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 1.25rem;
+    line-height: 1;
+    transition: all 0.18s ease;
+    flex-shrink: 0;
+
+    &:hover {
+      background-color: #f1f5f9;
+      color: #0f172a;
+      transform: scale(1.05);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.75rem;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 6px;
+
+    &:hover {
+      background: #94a3b8;
+    }
+  }
+}
+
+.modal-footer {
+  flex-shrink: 0;
+  padding: 1.125rem 1.75rem;
+  background-color: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  z-index: 2;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalPopIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 // Responsive layout tweaks
 @media (max-width: 768px) {
   .main-content {
@@ -378,4 +525,319 @@ h1, h2, h3, h4, h5, h6 {
   .col-12, .col-8, .col-6, .col-4, .col-3 {
     grid-column: span 12;
   }
+
+  .modal-backdrop {
+    padding: 0.75rem;
+  }
+
+  .modal-card {
+    max-height: calc(100vh - 1.5rem);
+    border-radius: 16px;
+  }
+
+  .modal-header {
+    padding: 1rem 1.25rem;
+  }
+
+  .modal-body {
+    padding: 1.25rem;
+  }
+
+  .modal-footer {
+    padding: 0.875rem 1.25rem;
+  }
 }
+
+// ============================================================================
+// Enhanced Search & Input Clear Buttons
+// ============================================================================
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .search-clear-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #e2e8f0;
+    color: #64748b;
+    border: none;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    z-index: 5;
+
+    &:hover {
+      background: #cbd5e1;
+      color: #0f172a;
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    &:active {
+      transform: translateY(-50%) scale(0.95);
+    }
+  }
+}
+
+// ============================================================================
+// Modal Form Section Titles & Helper Elements
+// ============================================================================
+.form-section-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #1e3a8a;
+  background: #f0f7ff;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  border-left: 3px solid #3b82f6;
+  margin: 1.25rem 0 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+.form-hint {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 0.35rem;
+}
+
+.form-error {
+  font-size: 0.75rem;
+  color: #ef4444;
+  font-weight: 500;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+// ============================================================================
+// Interactive Secretarias Selector inside Modals
+// ============================================================================
+.secretarias-modal-box {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 0.875rem;
+  margin-top: 0.35rem;
+
+  .sec-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+
+    .sec-search-input {
+      flex: 1;
+      min-width: 180px;
+      padding: 0.45rem 0.75rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.825rem;
+      background: #ffffff;
+      outline: none;
+      transition: all 0.18s;
+
+      &:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+      }
+    }
+
+    .sec-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+
+      .btn-sec-action {
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        color: #475569;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.35rem 0.65rem;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s;
+
+        &:hover {
+          background: #eff6ff;
+          color: #1d4ed8;
+          border-color: #93c5fd;
+        }
+      }
+
+      .sec-count {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #2563eb;
+        background: #dbeafe;
+        padding: 0.25rem 0.6rem;
+        border-radius: 20px;
+      }
+    }
+  }
+
+  .sec-checkboxes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.5rem;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 4px;
+
+    &::-webkit-scrollbar {
+      width: 5px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    .sec-check-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.65rem;
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+
+      input[type="checkbox"] {
+        accent-color: #2563eb;
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        margin: 0;
+      }
+
+      .sec-info {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+        overflow: hidden;
+
+        .sec-sigla {
+          font-weight: 700;
+          font-size: 0.78rem;
+          color: #1e293b;
+        }
+
+        .sec-nome {
+          font-size: 0.7rem;
+          color: #64748b;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+
+      &:hover {
+        border-color: #93c5fd;
+        background: #f8fafc;
+        transform: translateY(-1px);
+      }
+
+      &.checked {
+        border-color: #3b82f6;
+        background: #eff6ff;
+
+        .sec-sigla {
+          color: #1d4ed8;
+        }
+      }
+    }
+  }
+}
+
+// ============================================================================
+// Modern Details Modal Components (Progress Bar & Cards)
+// ============================================================================
+.vigencia-timeline {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+
+  .timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+
+    .timeline-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .timeline-status-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.65rem;
+      border-radius: 20px;
+
+      &.ok { background: #dcfce7; color: #15803d; }
+      &.warning { background: #fef3c7; color: #b45309; }
+      &.critical { background: #fee2e2; color: #b91c1c; }
+      &.expired { background: #f1f5f9; color: #475569; }
+    }
+  }
+
+  .timeline-progress-track {
+    width: 100%;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 0.5rem;
+
+    .timeline-progress-fill {
+      height: 100%;
+      border-radius: 6px;
+      transition: width 0.4s ease;
+
+      &.fill-ok { background: linear-gradient(90deg, #22c55e, #16a34a); }
+      &.fill-warning { background: linear-gradient(90deg, #f59e0b, #d97706); }
+      &.fill-critical { background: linear-gradient(90deg, #ef4444, #dc2626); }
+      &.fill-expired { background: #94a3b8; }
+    }
+  }
+
+  .timeline-dates {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #64748b;
+
+    strong {
+      color: #1e293b;
+    }
+  }
+}
+
+

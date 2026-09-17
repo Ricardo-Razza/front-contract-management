@@ -35,7 +35,7 @@ export class DashboardComponent implements OnInit {
   private equipeService = inject(EquipeService);
 
   loading = signal(true);
-  
+
   // Dados brutos
   contracts = signal<Contract[]>([]);
   agreements = signal<Agreement[]>([]);
@@ -175,7 +175,7 @@ export class DashboardComponent implements OnInit {
   monthlyStats = computed(() => {
     const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
     const currentYear = new Date().getFullYear();
-    
+
     const countContratos = new Array(12).fill(0);
     const countAtas = new Array(12).fill(0);
 
@@ -217,6 +217,12 @@ export class DashboardComponent implements OnInit {
       maxVal
     };
   });
+
+  getChartYLabels(): (number | string)[] {
+    const max = this.monthlyStats().maxVal;
+    const mid = max > 1 ? Math.round(max / 2) : '';
+    return [max, mid, 0];
+  }
 
   ngOnInit(): void {
     this.loadData();

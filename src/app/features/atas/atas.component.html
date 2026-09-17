@@ -46,11 +46,15 @@
 
     @if (showFilters()) {
     <div class="filters-grid">
-      <!-- Busca Global -->
       <div class="filter-group full-width">
         <label>🔎 Buscar</label>
-        <input type="text" placeholder="Pesquisar em número, ano, objeto, portaria, observação..."
-          [ngModel]="globalSearch()" (ngModelChange)="globalSearch.set($event)" class="filter-input" />
+        <div class="search-input-wrapper">
+          <input type="text" placeholder="Pesquisar em número, ano, objeto, portaria, observação, secretaria, equipe..."
+            [ngModel]="globalSearch()" (ngModelChange)="globalSearch.set($event)" class="filter-input" />
+          @if (globalSearch()) {
+          <button type="button" class="search-clear-btn" (click)="globalSearch.set('')" title="Limpar busca">✕</button>
+          }
+        </div>
       </div>
 
       <!-- Filtros -->
@@ -352,20 +356,35 @@
           </div>
         </div>
 
-        <!-- ===== BLOCO DE SECRETARIAS PADRONIZADO ===== -->
+        <!-- ===== BLOCO DE SECRETARIAS MODERNO & INTERATIVO ===== -->
         <div class="form-group">
-          <label>Secretarias <span class="required">*</span></label>
-          <div class="checkbox-group">
-            @for (sec of secretariats(); track sec.id) {
-            <label class="checkbox-item" [class.checked]="isSecretariaSelected(sec.id)">
-              <input type="checkbox" [checked]="isSecretariaSelected(sec.id)" (change)="toggleSecretaria(sec.id)"
-                [id]="'sec-' + sec.id" />
-              <span class="checkbox-label">
-                <span class="sec-sigla">{{ sec.sigla }}</span>
-                <span class="sec-nome">{{ sec.nome }}</span>
+          <label>Secretarias Vinculadas <span class="required">*</span></label>
+          <div class="secretarias-modal-box">
+            <div class="sec-toolbar">
+              <input type="text" class="sec-search-input" placeholder="Filtrar secretaria por sigla ou nome..."
+                [ngModel]="modalSecretariaSearch()" (ngModelChange)="modalSecretariaSearch.set($event)"
+                [ngModelOptions]="{standalone: true}" />
+              <div class="sec-actions">
+                <button type="button" class="btn-sec-action" (click)="selectAllSecretarias()">Todas</button>
+                <button type="button" class="btn-sec-action" (click)="clearAllSecretarias()">Limpar</button>
+                <span class="sec-count">{{ form.get('secretariasIds')?.value?.length || 0 }} de {{ secretariats().length }}</span>
+              </div>
+            </div>
+            <div class="sec-checkboxes-grid">
+              @for (sec of filteredModalSecretarias(); track sec.id) {
+              <label class="sec-check-item" [class.checked]="isSecretariaSelected(sec.id)">
+                <input type="checkbox" [checked]="isSecretariaSelected(sec.id)" (change)="toggleSecretaria(sec.id)" />
+                <div class="sec-info">
+                  <span class="sec-sigla">{{ sec.sigla }}</span>
+                  <span class="sec-nome" [title]="sec.nome">{{ sec.nome }}</span>
+                </div>
+              </label>
+              } @empty {
+              <span class="text-muted" style="padding: 0.75rem; grid-column: 1 / -1; font-size: 0.8rem;">
+                Nenhuma secretaria encontrada para "{{ modalSecretariaSearch() }}"
               </span>
-            </label>
-            }
+              }
+            </div>
           </div>
           @if (form.get('secretariasIds')?.touched && form.get('secretariasIds')?.hasError('required')) {
           <span class="form-error">Selecione ao menos uma secretaria</span>
@@ -461,17 +480,24 @@
     </div>
 
     <div class="modal-body details-body">
-      <!-- Card de Vigência Inteligente -->
-      <div class="vigencia-card" [ngClass]="getVigenciaStatus(selectedAtaForDetails()?.dataFim).badgeClass">
-        <div class="vigencia-header">
-          <span class="vigencia-icon">⏱️</span>
-          <div>
-            <span class="vigencia-label">Status da Vigência</span>
-            <h4>{{ getVigenciaStatus(selectedAtaForDetails()?.dataFim).text }}</h4>
+      <!-- Card de Vigência Inteligente com Barra de Progresso -->
+      <div class="vigencia-timeline">
+        <div class="timeline-header">
+          <span class="timeline-title">⏱️ Status da Vigência</span>
+          <span class="timeline-status-badge"
+            [ngClass]="getVigenciaStatus(selectedAtaForDetails()?.dataFim).badgeClass">
+            {{ getVigenciaStatus(selectedAtaForDetails()?.dataFim).text }}
+          </span>
+        </div>
+        <div class="timeline-progress-track">
+          <div class="timeline-progress-fill"
+            [ngClass]="'fill-' + getVigenciaStatus(selectedAtaForDetails()?.dataFim).badgeClass"
+            [style.width.%]="getVigenciaPercent(selectedAtaForDetails()?.dataInicio, selectedAtaForDetails()?.dataFim)">
           </div>
         </div>
-        <div class="vigencia-dates">
+        <div class="timeline-dates">
           <span>Início: <strong>{{ selectedAtaForDetails()?.dataInicio | date:'dd/MM/yyyy' }}</strong></span>
+          <span>Decorrido: <strong>{{ getVigenciaPercent(selectedAtaForDetails()?.dataInicio, selectedAtaForDetails()?.dataFim) }}%</strong></span>
           <span>Término: <strong>{{ selectedAtaForDetails()?.dataFim | date:'dd/MM/yyyy' }}</strong></span>
         </div>
       </div>

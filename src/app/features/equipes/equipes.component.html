@@ -19,13 +19,28 @@
 
   <div class="table-card">
     <div class="table-header-toolbar">
+      <div class="toolbar-tabs">
+        <button type="button" class="tab-btn" [class.active]="filterTypeTab() === 'ALL'" (click)="filterTypeTab.set('ALL')">
+          Todas <span class="tab-badge">{{ teams().length }}</span>
+        </button>
+        <button type="button" class="tab-btn" [class.active]="filterTypeTab() === 'ATA'" (click)="filterTypeTab.set('ATA')">
+          Atas <span class="tab-badge">{{ countAtas() }}</span>
+        </button>
+        <button type="button" class="tab-btn" [class.active]="filterTypeTab() === 'CONTRATO'" (click)="filterTypeTab.set('CONTRATO')">
+          Contratos <span class="tab-badge">{{ countContratos() }}</span>
+        </button>
+      </div>
+
       <div class="search-input-wrapper">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8" />
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
-        <input type="text" placeholder="Buscar por ata, servidor ou função..." [ngModel]="searchTerm()"
+        <input type="text" placeholder="Buscar por ata, contrato, servidor ou função..." [ngModel]="searchTerm()"
           (ngModelChange)="searchTerm.set($event)" />
+        @if (searchTerm()) {
+        <button type="button" class="search-clear-btn" (click)="searchTerm.set('')" title="Limpar busca">✕</button>
+        }
       </div>
     </div>
 
