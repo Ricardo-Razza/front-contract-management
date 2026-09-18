@@ -1,6 +1,5 @@
 @use 'variables' as *;
 @use 'mixins' as *;
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -284,6 +283,9 @@ h1, h2, h3, h4, h5, h6 {
   .table-responsive {
     width: 100%;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
   }
 }
 
