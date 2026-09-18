@@ -8,13 +8,23 @@
         <h1>Acordos e Atas de Registro de Preços</h1>
         <p>Gerencie as atas registradas, vigências e secretarias aderentes</p>
       </div>
-      <button class="btn btn-primary" (click)="openCreateModal()">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-        Nova Ata
-      </button>
+      <div class="title-actions" style="display: flex; gap: 0.75rem; align-items: center;">
+        <button type="button" class="btn btn-outline" (click)="exportAgreements()" title="Exportar dados filtrados para planilha CSV (Excel)">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Exportar (.CSV)
+        </button>
+        <button class="btn btn-primary" (click)="openCreateModal()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          Nova Ata
+        </button>
+      </div>
     </div>
   </div>
 
@@ -247,7 +257,16 @@
           <tr>
             <td class="text-center col-id">#{{ ata.id }}</td>
             <td class="text-center col-numero"><strong>{{ ata.numero }}/{{ ata.ano }}</strong></td>
-            <td class="text-center col-vigencia">{{ getDataVigente(ata) }}</td>
+            <td class="text-center col-vigencia">
+              <div class="vigencia-cell">
+                <span class="vigencia-date">{{ getDataVigente(ata) }}</span>
+                @if (ata.dataFim) {
+                  <span class="vigencia-pill" [ngClass]="getVigenciaPillClass(ata.dataFim)">
+                    {{ getVigenciaPillText(ata.dataFim) }}
+                  </span>
+                }
+              </div>
+            </td>
             <td class="text-center col-status">
               <span class="badge-status"
                 [ngClass]="ata.situacao === 'DESATIVADO' ? 'status-inactive' : 'status-active'">
@@ -531,6 +550,13 @@
     <div class="modal-header">
       <div class="header-title-with-badge">
         <h3>Detalhes da Ata Nº {{ selectedAtaForDetails()?.numero }}/{{ selectedAtaForDetails()?.ano }}</h3>
+        <button type="button" class="copy-btn" (click)="copyToClipboard(selectedAtaForDetails()?.numero + '/' + selectedAtaForDetails()?.ano, 'Número da Ata')" title="Copiar número da ata">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          Copiar
+        </button>
         <span class="badge-status"
           [ngClass]="selectedAtaForDetails()?.situacao === 'DESATIVADO' ? 'status-inactive' : 'status-active'">
           <span class="dot"></span>
@@ -545,7 +571,13 @@
       <!-- Card de Vigência Inteligente com Barra de Progresso -->
       <div class="vigencia-timeline">
         <div class="timeline-header">
-          <span class="timeline-title">⏱️ Status da Vigência</span>
+          <span class="timeline-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 4px;">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            Status da Vigência
+          </span>
           <span class="timeline-status-badge"
             [ngClass]="getVigenciaStatus(selectedAtaForDetails()?.dataFim).badgeClass">
             {{ getVigenciaStatus(selectedAtaForDetails()?.dataFim).text }}
@@ -566,13 +598,13 @@
 
       <!-- Objeto -->
       <div class="detail-section">
-        <label class="section-label">📋 Objeto da Ata</label>
+        <label class="section-label">Objeto da Ata</label>
         <p class="section-text highlight-box">{{ selectedAtaForDetails()?.objeto }}</p>
       </div>
 
       <!-- Secretarias Participantes -->
       <div class="detail-section">
-        <label class="section-label">🏛️ Secretarias Participantes / Aderentes</label>
+        <label class="section-label">Secretarias Participantes / Aderentes</label>
         <div class="sec-tags-container">
           @for (sec of selectedAtaForDetails()?.secretarias; track sec.id) {
           <div class="sec-chip">
@@ -587,7 +619,7 @@
 
       <!-- Equipe de Fiscalização e Gestão -->
       <div class="detail-section">
-        <label class="section-label">👥 Equipe de Gestão e Fiscalização</label>
+        <label class="section-label">Equipe de Gestão e Fiscalização</label>
         @if (selectedAtaForDetails()?.equipe && selectedAtaForDetails()!.equipe!.length > 0) {
         <div class="team-cards-grid">
           @for (eq of selectedAtaForDetails()?.equipe; track eq.id) {
@@ -617,11 +649,22 @@
       <!-- Portaria e Designação -->
       <div class="detail-grid">
         <div class="detail-item">
-          <label>📜 Portaria de Designação</label>
+          <label style="display: flex; align-items: center; justify-content: space-between;">
+            <span>Portaria de Designação</span>
+            @if (selectedAtaForDetails()?.portariaDesignacao) {
+              <button type="button" class="copy-btn" (click)="copyToClipboard(selectedAtaForDetails()?.portariaDesignacao || '', 'Portaria')" title="Copiar portaria">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                Copiar
+              </button>
+            }
+          </label>
           <span>{{ selectedAtaForDetails()?.portariaDesignacao || '-' }}</span>
         </div>
         <div class="detail-item">
-          <label>📅 Data da Designação</label>
+          <label>Data da Designação</label>
           <span>{{ selectedAtaForDetails()?.dataDesignacao | date:'dd/MM/yyyy' || '-' }}</span>
         </div>
       </div>
@@ -629,13 +672,21 @@
       <!-- Observações -->
       @if (selectedAtaForDetails()?.observacao) {
       <div class="detail-section">
-        <label class="section-label">📝 Observações Gerais</label>
+        <label class="section-label">Observações Gerais</label>
         <p class="section-text note-box">{{ selectedAtaForDetails()?.observacao }}</p>
       </div>
       }
     </div>
 
     <div class="modal-footer">
+      <button type="button" class="btn btn-outline" (click)="printFicha(selectedAtaForDetails())" title="Imprimir ficha cadastral formatada">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <polyline points="6 9 6 2 18 2 18 9"/>
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+          <rect x="6" y="14" width="12" height="8"/>
+        </svg>
+        Imprimir Ficha
+      </button>
       <button type="button" class="btn btn-secondary" (click)="closeDetailsModal()">Fechar</button>
       <button type="button" class="btn btn-primary"
         (click)="closeDetailsModal(); openEditModal(selectedAtaForDetails()!)">

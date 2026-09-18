@@ -1,10 +1,11 @@
 import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PaginationComponent } from '@shared';
 import { ContratoService, SecretariaService, ServidorService, LookupService, ToastService } from '@core/services';
 import { Contract, Secretariat, LookupItem } from '@core/models';
-import { includesNormalized, matchesSearch } from '@core/utils';
+import { includesNormalized, matchesSearch, exportToCsv, printFichaDocumento } from '@core/utils';
 
 @Component({
   selector: 'app-contratos',
@@ -23,6 +24,7 @@ import { includesNormalized, matchesSearch } from '@core/utils';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ContratosComponent implements OnInit {
+  private route = inject(ActivatedRoute);
   private contratoService = inject(ContratoService);
   private secService = inject(SecretariaService);
   private servidorService = inject(ServidorService);
@@ -305,6 +307,17 @@ export class ContratosComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.route.queryParams.subscribe(params => {
+      if (params['status']) {
+        this.filterStatus.set(params['status']);
+      }
+      if (params['ano']) {
+        this.filterAno.set(params['ano']);
+      }
+      if (params['search']) {
+        this.globalSearch.set(params['search']);
+      }
+    });
     this.loadData();
     this.loadLookups();
     this.loadServidores();
@@ -435,6 +448,90 @@ export class ContratosComponent implements OnInit {
     const di = new Date(contrato.dataInicio).toLocaleDateString('pt-BR');
     const df = new Date(contrato.dataFim).toLocaleDateString('pt-BR');
     return `${di} - ${df}`;
+  }
+
+  getVigenciaPillClass(dataFim?: string): string {
+    const status = this.getVigenciaStatus(dataFim);
+    if (status.badgeClass === 'vigencia-expired') return 'pill-expired';
+    if (status.badgeClass === 'vigencia-critical') return 'pill-urgent';
+    if (status.badgeClass === 'vigencia-warning') return 'pill-warning';
+    if (status.badgeClass === 'vigencia-ok') return 'pill-valid';
+    return 'pill-none';
+  }
+
+  getVigenciaPillText(dataFim?: string): string {
+    const status = this.getVigenciaStatus(dataFim);
+    if (status.badgeClass === 'vigencia-expired') return 'Vencido';
+    if (status.badgeClass === 'vigencia-critical') return `Vence em ${status.days}d`;
+    if (status.badgeClass === 'vigencia-warning') return `Vence em ${status.days}d`;
+    if (status.badgeClass === 'vigencia-ok') return 'Vigente';
+    return '-';
+  }
+
+  copyToClipboard(text: string, label: string): void {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      this.toast.info(`${label} copiado!`);
+    }).catch(() => {
+      this.toast.error('Não foi possível copiar');
+    });
+  }
+
+  exportContracts(): void {
+    const list = this.filteredContracts();
+    if (!list.length) {
+      this.toast.warning('Nenhum contrato para exportar com os filtros atuais.');
+      return;
+    }
+
+    exportToCsv('relatorio_contratos', [
+      { header: 'ID', accessor: c => c.id },
+      { header: 'Número/Ano', accessor: c => `${c.numero}/${c.ano}` },
+      { header: 'Tipo', accessor: c => c.tipo || 'PRODUTO' },
+      { header: 'Situação', accessor: c => c.situacao || 'ATIVO' },
+      { header: 'Contratado', accessor: c => c.nomeContratado || '' },
+      { header: 'Data Início', accessor: c => c.dataInicio ? new Date(c.dataInicio).toLocaleDateString('pt-BR') : '' },
+      { header: 'Data Término', accessor: c => c.dataFim ? new Date(c.dataFim).toLocaleDateString('pt-BR') : '' },
+      { header: 'Status Vigência', accessor: c => this.getVigenciaPillText(c.dataFim) },
+      { header: 'Portaria', accessor: c => c.portariaDesignacao || '' },
+      { header: 'Data Portaria', accessor: c => c.dataDesignacao ? new Date(c.dataDesignacao).toLocaleDateString('pt-BR') : '' },
+      { header: 'Secretarias', accessor: c => (c.secretarias || []).map(s => s.sigla || s.nome).join(', ') },
+      { header: 'Objeto', accessor: c => c.objeto || '' },
+      { header: 'Observação', accessor: c => c.observacao || '' }
+    ], list);
+
+    this.toast.success(`${list.length} contrato(s) exportado(s) com sucesso!`);
+  }
+
+  printFicha(contrato: Contract | null): void {
+    if (!contrato) return;
+    const membros: any[] = [];
+    if (contrato.equipe) {
+      contrato.equipe.forEach(eq => {
+        if (eq.membros && eq.membros.length > 0) {
+          eq.membros.forEach(m => membros.push(m));
+        } else if (eq.servidor) {
+          membros.push({ funcaoNome: eq.funcao, servidorNome: eq.servidor });
+        }
+      });
+    }
+
+    printFichaDocumento({
+      tipoDocumento: 'Contrato',
+      numero: contrato.numero,
+      ano: contrato.ano,
+      tipo: contrato.tipo,
+      situacao: contrato.situacao,
+      objeto: contrato.objeto,
+      nomeContratado: contrato.nomeContratado,
+      dataInicio: contrato.dataInicio,
+      dataFim: contrato.dataFim,
+      portariaDesignacao: contrato.portariaDesignacao,
+      dataDesignacao: contrato.dataDesignacao,
+      observacao: contrato.observacao,
+      secretarias: contrato.secretarias,
+      equipe: membros
+    });
   }
 
   toggleSecretariaDropdown(): void {

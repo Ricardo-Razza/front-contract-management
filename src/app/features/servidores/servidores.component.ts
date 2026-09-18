@@ -4,7 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PhonePipe, PhoneMaskDirective, PaginationComponent } from '@shared';
 import { ServidorService, SecretariaService, LookupService, ToastService } from '@core/services';
 import { Servant, Secretariat, LookupItem } from '@core/models';
-import { includesNormalized, matchesSearch } from '@core/utils';
+import { includesNormalized, matchesSearch, exportToCsv } from '@core/utils';
 
 @Component({
   selector: 'app-servidores',
@@ -105,6 +105,27 @@ export class ServidoresComponent implements OnInit {
     this.selectedSecretariatFilter.set('');
     this.selectedStatusFilter.set('');
     this.currentPage.set(1);
+  }
+
+  exportServants(): void {
+    const list = this.filteredServants();
+    if (!list.length) {
+      this.toast.warning('Nenhum servidor para exportar com os filtros atuais.');
+      return;
+    }
+
+    exportToCsv('relatorio_servidores', [
+      { header: 'ID', accessor: s => s.id },
+      { header: 'Nome Completo', accessor: s => s.nome },
+      { header: 'Matrícula', accessor: s => s.matricula },
+      { header: 'Cargo / Função', accessor: s => s.cargo },
+      { header: 'Secretaria', accessor: s => s.secretaria || '' },
+      { header: 'E-mail', accessor: s => s.email || '' },
+      { header: 'Telefone', accessor: s => s.telefone || '' },
+      { header: 'Situação', accessor: s => s.situacao || 'ATIVO' }
+    ], list);
+
+    this.toast.success(`${list.length} servidor(es) exportado(s) com sucesso!`);
   }
 
   sortedServants = computed(() => {

@@ -1,10 +1,11 @@
 import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PaginationComponent } from '@shared';
 import { AtaService, SecretariaService, ServidorService, LookupService, ToastService } from '@core/services';
 import { Agreement, Secretariat, LookupItem } from '@core/models';
-import { includesNormalized, matchesSearch } from '@core/utils';
+import { includesNormalized, matchesSearch, exportToCsv, printFichaDocumento } from '@core/utils';
 
 @Component({
   selector: 'app-atas',
@@ -24,6 +25,7 @@ import { includesNormalized, matchesSearch } from '@core/utils';
 })
 export class AtasComponent implements OnInit {
   // ===== INJECTS =====
+  private route = inject(ActivatedRoute);
   private ataService = inject(AtaService);
   private secService = inject(SecretariaService);
   private servidorService = inject(ServidorService);
@@ -311,6 +313,17 @@ export class AtasComponent implements OnInit {
 
   // ===== LIFECYCLE =====
   ngOnInit(): void {
+    this.route.queryParams.subscribe(params => {
+      if (params['status']) {
+        this.filterStatus.set(params['status']);
+      }
+      if (params['ano']) {
+        this.filterAno.set(params['ano']);
+      }
+      if (params['search']) {
+        this.globalSearch.set(params['search']);
+      }
+    });
     this.loadData();
     this.loadLookups();
     this.loadServidores();
@@ -417,6 +430,88 @@ export class AtasComponent implements OnInit {
     const di = new Date(ata.dataInicio).toLocaleDateString('pt-BR');
     const df = new Date(ata.dataFim).toLocaleDateString('pt-BR');
     return `${di} - ${df}`;
+  }
+
+  getVigenciaPillClass(dataFim?: string): string {
+    const status = this.getVigenciaStatus(dataFim);
+    if (status.badgeClass === 'vigencia-expired') return 'pill-expired';
+    if (status.badgeClass === 'vigencia-critical') return 'pill-urgent';
+    if (status.badgeClass === 'vigencia-warning') return 'pill-warning';
+    if (status.badgeClass === 'vigencia-ok') return 'pill-valid';
+    return 'pill-none';
+  }
+
+  getVigenciaPillText(dataFim?: string): string {
+    const status = this.getVigenciaStatus(dataFim);
+    if (status.badgeClass === 'vigencia-expired') return 'Vencido';
+    if (status.badgeClass === 'vigencia-critical') return `Vence em ${status.days}d`;
+    if (status.badgeClass === 'vigencia-warning') return `Vence em ${status.days}d`;
+    if (status.badgeClass === 'vigencia-ok') return 'Vigente';
+    return '-';
+  }
+
+  copyToClipboard(text: string, label: string): void {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      this.toast.info(`${label} copiado!`);
+    }).catch(() => {
+      this.toast.error('Não foi possível copiar');
+    });
+  }
+
+  exportAgreements(): void {
+    const list = this.filteredAgreements();
+    if (!list.length) {
+      this.toast.warning('Nenhuma ata para exportar com os filtros atuais.');
+      return;
+    }
+
+    exportToCsv('relatorio_atas', [
+      { header: 'ID', accessor: a => a.id },
+      { header: 'Número/Ano', accessor: a => `${a.numero}/${a.ano}` },
+      { header: 'Tipo', accessor: a => a.tipo || 'PRODUTO' },
+      { header: 'Situação', accessor: a => a.situacao || 'ATIVO' },
+      { header: 'Data Início', accessor: a => a.dataInicio ? new Date(a.dataInicio).toLocaleDateString('pt-BR') : '' },
+      { header: 'Data Término', accessor: a => a.dataFim ? new Date(a.dataFim).toLocaleDateString('pt-BR') : '' },
+      { header: 'Status Vigência', accessor: a => this.getVigenciaPillText(a.dataFim) },
+      { header: 'Portaria', accessor: a => a.portariaDesignacao || '' },
+      { header: 'Data Portaria', accessor: a => a.dataDesignacao ? new Date(a.dataDesignacao).toLocaleDateString('pt-BR') : '' },
+      { header: 'Secretarias', accessor: a => (a.secretarias || []).map(s => s.sigla || s.nome).join(', ') },
+      { header: 'Objeto', accessor: a => a.objeto || '' },
+      { header: 'Observação', accessor: a => a.observacao || '' }
+    ], list);
+
+    this.toast.success(`${list.length} ata(s) exportada(s) com sucesso!`);
+  }
+
+  printFicha(ata: Agreement | null): void {
+    if (!ata) return;
+    const membros: any[] = [];
+    if (ata.equipe) {
+      ata.equipe.forEach(eq => {
+        if (eq.membros && eq.membros.length > 0) {
+          eq.membros.forEach(m => membros.push(m));
+        } else if (eq.servidor) {
+          membros.push({ funcaoNome: eq.funcao, servidorNome: eq.servidor });
+        }
+      });
+    }
+
+    printFichaDocumento({
+      tipoDocumento: 'Ata de Registro de Preços',
+      numero: ata.numero,
+      ano: ata.ano,
+      tipo: ata.tipo,
+      situacao: ata.situacao,
+      objeto: ata.objeto,
+      dataInicio: ata.dataInicio,
+      dataFim: ata.dataFim,
+      portariaDesignacao: ata.portariaDesignacao,
+      dataDesignacao: ata.dataDesignacao,
+      observacao: ata.observacao,
+      secretarias: ata.secretarias,
+      equipe: membros
+    });
   }
 
   toggleSecretariaDropdown(): void {

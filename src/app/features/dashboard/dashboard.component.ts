@@ -252,4 +252,11 @@ export class DashboardComponent implements OnInit {
       }
     });
   }
+
+  scrollToExpiring(): void {
+    const el = document.getElementById('expiring-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
 }

@@ -224,6 +224,18 @@ h1, h2, h3, h4, h5, h6 {
     }
   }
 
+  &.btn-outline {
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+
+    &:hover:not(:disabled) {
+      background-color: #f8fafc;
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+  }
+
   &.btn-danger {
     background-color: $color-danger;
     color: #ffffff;
@@ -1507,5 +1519,128 @@ h1, h2, h3, h4, h5, h6 {
       background: #fee2e2;
     }
   }
+}
+
+// ============================================================================
+// Vigência Cell & Urgency Indicators
+// ============================================================================
+.vigencia-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+
+  .vigencia-date {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+  }
+
+  .vigencia-pill {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 1px 8px;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    line-height: 1.35;
+    white-space: nowrap;
+
+    &.pill-expired {
+      background-color: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+
+    &.pill-urgent {
+      background-color: #ffedd5;
+      color: #9a3412;
+      border: 1px solid #fed7aa;
+    }
+
+    &.pill-warning {
+      background-color: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+
+    &.pill-valid {
+      background-color: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+
+    &.pill-none {
+      background-color: #f1f5f9;
+      color: #94a3b8;
+    }
+  }
+}
+
+// Quick Copy Button
+.copy-btn {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 6px;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  vertical-align: middle;
+
+  &:hover {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    border-color: #cbd5e1;
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+}
+
+// Table Skeleton Rows (modern pulsating loader)
+.skeleton-row {
+  td {
+    padding: 1rem 0.75rem !important;
+    vertical-align: middle;
+  }
+
+  .skeleton-line {
+    height: 13px;
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.5s infinite ease-in-out;
+    border-radius: 4px;
+    margin: 0 auto;
+
+    &.w-30 { width: 30%; }
+    &.w-50 { width: 50%; }
+    &.w-70 { width: 70%; }
+    &.w-90 { width: 90%; }
+    &.w-full { width: 100%; }
+    &.pill {
+      height: 22px;
+      border-radius: 9999px;
+      width: 68px;
+    }
+  }
+}
+
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 

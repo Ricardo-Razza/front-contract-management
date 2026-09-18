@@ -13,7 +13,7 @@
     <!-- ===== KPI METRICS ===== -->
     <div class="metrics-grid">
 
-      <div class="metric-card">
+      <a class="metric-card" routerLink="/contratos" title="Ver todos os contratos">
         <div class="metric-accent accent-blue"></div>
         <div class="metric-icon icon-blue">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
@@ -31,9 +31,9 @@
             <span class="sub-chip chip-gray">{{ inactiveContractsCount() }} inativos</span>
           </div>
         </div>
-      </div>
+      </a>
 
-      <div class="metric-card">
+      <a class="metric-card" routerLink="/atas" title="Ver todas as atas de registro de preços">
         <div class="metric-accent accent-purple"></div>
         <div class="metric-icon icon-purple">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
@@ -49,9 +49,9 @@
             <span class="sub-chip chip-gray">{{ inactiveAgreementsCount() }} inativas</span>
           </div>
         </div>
-      </div>
+      </a>
 
-      <div class="metric-card" [class.metric-card--alert]="expiringItems().length > 0">
+      <div class="metric-card" [class.metric-card--alert]="expiringItems().length > 0" (click)="scrollToExpiring()" style="cursor: pointer;" title="Ir para lista de vencimentos próximos">
         <div class="metric-accent accent-orange"></div>
         <div class="metric-icon icon-orange">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
@@ -63,12 +63,12 @@
           <span class="metric-label">Vencendo em breve</span>
           <span class="metric-value" [class.value-orange]="expiringItems().length > 0">{{ expiringItems().length }}</span>
           <div class="metric-sub">
-            <span class="sub-text">Próximos 90 dias</span>
+            <span class="sub-text">Próximos 90 dias &darr;</span>
           </div>
         </div>
       </div>
 
-      <div class="metric-card">
+      <a class="metric-card" routerLink="/secretarias" title="Ver secretarias municipais">
         <div class="metric-accent accent-green"></div>
         <div class="metric-icon icon-green">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
@@ -84,9 +84,9 @@
             <span class="sub-text">Órgãos participantes</span>
           </div>
         </div>
-      </div>
+      </a>
 
-      <div class="metric-card">
+      <a class="metric-card" routerLink="/servidores" title="Ver servidores cadastrados">
         <div class="metric-accent accent-slate"></div>
         <div class="metric-icon icon-slate">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
@@ -103,9 +103,9 @@
             <span class="sub-text">Cadastrados no sistema</span>
           </div>
         </div>
-      </div>
+      </a>
 
-      <div class="metric-card">
+      <a class="metric-card" routerLink="/equipes" title="Ver equipes de gestão e fiscalização">
         <div class="metric-accent accent-teal"></div>
         <div class="metric-icon icon-teal">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
@@ -119,10 +119,10 @@
           <span class="metric-label">Equipes Gestão / Fiscal</span>
           <span class="metric-value">{{ totalTeams() }}</span>
           <div class="metric-sub">
-            <span class="sub-text">Vínculos ativos</span>
+            <span class="sub-text">Vínculos cadastrados</span>
           </div>
         </div>
-      </div>
+      </a>
 
     </div>
 
@@ -233,7 +233,7 @@
 
       <!-- RIGHT: Expiring Alert Panel -->
       <div class="right-column">
-        <div class="dash-card expiring-card">
+        <div class="dash-card expiring-card" id="expiring-section">
           <div class="dash-card-header">
             <div class="dash-card-title-group">
               <div class="expiring-title-row">
@@ -265,7 +265,11 @@
           <!-- Expiring items list -->
           <div class="expiring-list">
             @for (item of filteredExpiringItems(); track item.id + '-' + item.tipoItem) {
-              <div class="expiring-item" [ngClass]="item.statusClass">
+              <a class="expiring-item" [ngClass]="item.statusClass"
+                 [routerLink]="item.tipoItem === 'CONTRATO' ? ['/contratos'] : ['/atas']"
+                 [queryParams]="{ search: item.numero + '/' + item.ano }"
+                 title="Ver na listagem de {{ item.tipoItem === 'CONTRATO' ? 'Contratos' : 'Atas' }}"
+                 style="text-decoration: none; color: inherit; cursor: pointer;">
                 <div class="expiring-item-left">
                   <span class="item-type-badge" [class.type-contract]="item.tipoItem === 'CONTRATO'" [class.type-arp]="item.tipoItem === 'ATA'">
                     {{ item.tipoItem === 'ATA' ? 'ARP' : item.tipoItem }}
@@ -287,7 +291,7 @@
                     }
                   </div>
                 </div>
-              </div>
+              </a>
             } @empty {
               <div class="expiring-empty">
                 <div class="expiring-empty-icon">
