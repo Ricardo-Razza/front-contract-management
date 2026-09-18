@@ -96,6 +96,17 @@ export class ServidoresComponent implements OnInit {
     return result;
   });
 
+  hasActiveFilters = computed(() => {
+    return !!(this.searchTerm() || this.selectedSecretariatFilter() || this.selectedStatusFilter());
+  });
+
+  clearFilters(): void {
+    this.searchTerm.set('');
+    this.selectedSecretariatFilter.set('');
+    this.selectedStatusFilter.set('');
+    this.currentPage.set(1);
+  }
+
   sortedServants = computed(() => {
     const list = [...this.filteredServants()];
     const col = this.sortColumn();

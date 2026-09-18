@@ -30,7 +30,10 @@ import { CommonModule } from '@angular/common';
               (click)="goToPage(1)"
               title="Primeira página"
             >
-              &laquo;
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="11 17 6 12 11 7"></polyline>
+                <polyline points="18 17 13 12 18 7"></polyline>
+              </svg>
             </button>
 
             <button
@@ -39,7 +42,9 @@ import { CommonModule } from '@angular/common';
               (click)="goToPage(currentPage - 1)"
               title="Página anterior"
             >
-              &lsaquo;
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
             </button>
 
             @for (page of visiblePages; track page) {
@@ -58,7 +63,9 @@ import { CommonModule } from '@angular/common';
               (click)="goToPage(currentPage + 1)"
               title="Próxima página"
             >
-              &rsaquo;
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
             </button>
 
             <button
@@ -67,7 +74,10 @@ import { CommonModule } from '@angular/common';
               (click)="goToPage(totalPages)"
               title="Última página"
             >
-              &raquo;
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="13 17 18 12 13 7"></polyline>
+                <polyline points="6 17 11 12 6 7"></polyline>
+              </svg>
             </button>
           </div>
         </div>
@@ -115,17 +125,24 @@ import { CommonModule } from '@angular/common';
       }
 
       select {
-        padding: 0.25rem 0.5rem;
-        border: 1px solid $color-border;
-        border-radius: 6px;
-        background-color: #ffffff;
+        height: 32px;
+        padding: 0 1.75rem 0 0.65rem;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        background: #f8fafc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 8px center;
+        -webkit-appearance: none;
+        appearance: none;
         font-size: 0.8125rem;
+        font-family: inherit;
         color: $color-secondary;
         cursor: pointer;
+        transition: all 0.15s ease;
 
         &:focus {
           outline: none;
           border-color: $color-accent;
+          background-color: #ffffff;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
       }
     }
@@ -133,15 +150,15 @@ import { CommonModule } from '@angular/common';
     .page-buttons {
       display: flex;
       align-items: center;
-      gap: 0.25rem;
+      gap: 0.35rem;
     }
 
     .page-btn {
       min-width: 32px;
       height: 32px;
       padding: 0 0.5rem;
-      border: 1px solid $color-border;
-      border-radius: 6px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
       background-color: #ffffff;
       color: $color-secondary;
       font-size: 0.8125rem;
@@ -155,7 +172,7 @@ import { CommonModule } from '@angular/common';
       &:hover:not(:disabled) {
         border-color: $color-accent;
         color: $color-accent;
-        background-color: #f8fafc;
+        background-color: #eff6ff;
       }
 
       &.active {
@@ -163,17 +180,21 @@ import { CommonModule } from '@angular/common';
         border-color: $color-accent;
         color: #ffffff;
         font-weight: 600;
+        box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
       }
 
       &:disabled {
-        opacity: 0.4;
+        opacity: 0.35;
         cursor: not-allowed;
-        background-color: #f1f5f9;
+        background-color: #f8fafc;
+        border-color: #e2e8f0;
       }
 
       &.nav-btn {
-        font-size: 1.125rem;
-        line-height: 1;
+        padding: 0 6px;
+        svg {
+          display: block;
+        }
       }
     }
   `]

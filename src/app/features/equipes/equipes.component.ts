@@ -71,6 +71,16 @@ export class EquipesComponent implements OnInit {
   countAtas = computed(() => this.teams().filter(t => !t.contratoId && !t.contrato).length);
   countContratos = computed(() => this.teams().filter(t => !!(t.contratoId || t.contrato)).length);
 
+  hasActiveFilters = computed(() => {
+    return !!(this.searchTerm() || this.filterTypeTab() !== 'ALL');
+  });
+
+  clearFilters(): void {
+    this.searchTerm.set('');
+    this.filterTypeTab.set('ALL');
+    this.currentPage.set(1);
+  }
+
   // Tipo de vínculo da equipe (Ata ou Contrato)
   tipoVinculo = signal<TipoVinculo>('ATA');
 

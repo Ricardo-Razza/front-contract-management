@@ -81,7 +81,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
               <polyline points="14 2 14 8 20 8"></polyline>
               <path d="m9 15 2 2 4-4"></path>
             </svg>
-            <span>Atas (Agreements)</span>
+            <span>Atas de Preços</span>
           </a>
 
           <a routerLink="/contratos" routerLinkActive="active" class="nav-item">
@@ -110,8 +110,12 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
             <div class="avatar">ADM</div>
             <div class="user-details">
               <span class="user-name">Administrador</span>
-              <span class="user-role">Sistema ARP</span>
+              <span class="user-role">Gestão Municipal</span>
             </div>
+          </div>
+          <div class="system-meta">
+            <span class="status-indicator"></span>
+            <span>ARP System • v1.0</span>
           </div>
         </div>
       </div>
@@ -268,6 +272,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
         background-color: $color-accent;
         color: #ffffff;
         font-weight: 600;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
         svg { color: #ffffff; }
       }
     }
@@ -286,7 +291,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
           width: 34px;
           height: 34px;
           border-radius: 50%;
-          background-color: #334155;
+          background: linear-gradient(135deg, #3b82f6, #1d4ed8);
           color: #ffffff;
           font-weight: 700;
           font-size: 0.75rem;
@@ -294,10 +299,31 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
+          box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
         }
 
         .user-name { display: block; font-size: 0.8125rem; font-weight: 600; color: #ffffff; white-space: nowrap; }
         .user-role { display: block; font-size: 0.6875rem; color: #94a3b8; white-space: nowrap; }
+      }
+
+      .system-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 0.75rem;
+        padding-top: 0.65rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        font-size: 0.6875rem;
+        color: #64748b;
+        font-weight: 500;
+
+        .status-indicator {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #22c55e;
+          box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+        }
       }
     }
   `]

@@ -71,6 +71,11 @@ export class SecretariasComponent implements OnInit {
     );
   });
 
+  clearFilters(): void {
+    this.searchTerm.set('');
+    this.currentPage.set(1);
+  }
+
   sortedSecretariats = computed(() => {
     const list = [...this.filteredSecretariats()];
     const col = this.sortColumn();

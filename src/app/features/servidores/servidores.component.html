@@ -162,13 +162,23 @@
           <tr>
             <td colspan="9">
               <div class="empty-state">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                </svg>
+                <div class="empty-state-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                  </svg>
+                </div>
                 <h4>Nenhum servidor encontrado</h4>
-                <p>Nenhum servidor corresponde aos filtros aplicados.</p>
+                <p>Não encontramos servidores com os filtros atuais. Tente ajustar os termos ou limpar os filtros.</p>
+                @if (hasActiveFilters()) {
+                  <button type="button" class="btn-clear-empty" (click)="clearFilters()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                    Limpar Filtros
+                  </button>
+                }
               </div>
             </td>
           </tr>
@@ -194,20 +204,26 @@
 
     <form [formGroup]="form" (ngSubmit)="save()">
       <div class="modal-body">
+        <div class="form-section-title">
+          <span class="section-bullet">1</span>
+          Dados Pessoais & Matrícula
+        </div>
         <div class="form-grid">
           <div class="col-8 form-group">
             <label>Nome Completo <span class="required">*</span></label>
-            <input type="text" formControlName="nome" placeholder="Ex: João da Silva" />
+            <input type="text" formControlName="nome" placeholder="Ex: João da Silva"
+              [class.is-invalid]="form.get('nome')?.invalid && form.get('nome')?.touched" />
             @if (form.get('nome')?.touched && form.get('nome')?.hasError('required')) {
-            <span class="form-error">O nome é obrigatório</span>
+              <span class="invalid-feedback">O nome é obrigatório</span>
             }
           </div>
 
           <div class="col-4 form-group">
             <label>Matrícula <span class="required">*</span></label>
-            <input type="text" formControlName="matricula" placeholder="Ex: 12345" />
+            <input type="text" formControlName="matricula" placeholder="Ex: 12345"
+              [class.is-invalid]="form.get('matricula')?.invalid && form.get('matricula')?.touched" />
             @if (form.get('matricula')?.touched && form.get('matricula')?.hasError('required')) {
-            <span class="form-error">A matrícula é obrigatória</span>
+              <span class="invalid-feedback">A matrícula é obrigatória</span>
             }
           </div>
         </div>
@@ -215,32 +231,39 @@
         <div class="form-grid">
           <div class="col-6 form-group">
             <label>Cargo / Função <span class="required">*</span></label>
-            <input type="text" formControlName="cargo" placeholder="Ex: Analista Administrativo" />
+            <input type="text" formControlName="cargo" placeholder="Ex: Analista Administrativo"
+              [class.is-invalid]="form.get('cargo')?.invalid && form.get('cargo')?.touched" />
             @if (form.get('cargo')?.touched && form.get('cargo')?.hasError('required')) {
-            <span class="form-error">O cargo é obrigatório</span>
+              <span class="invalid-feedback">O cargo é obrigatório</span>
             }
           </div>
 
           <div class="col-6 form-group">
             <label>Secretaria de Lotação <span class="required">*</span></label>
-            <select formControlName="secretariaId">
+            <select formControlName="secretariaId"
+              [class.is-invalid]="form.get('secretariaId')?.invalid && form.get('secretariaId')?.touched">
               <option value="">Selecione uma secretaria</option>
               @for (sec of secretariats(); track sec.id) {
               <option [value]="sec.id">{{ sec.nome }} ({{ sec.sigla }})</option>
               }
             </select>
             @if (form.get('secretariaId')?.touched && form.get('secretariaId')?.hasError('required')) {
-            <span class="form-error">Selecione uma secretaria</span>
+              <span class="invalid-feedback">Selecione uma secretaria</span>
             }
           </div>
         </div>
 
+        <div class="form-section-title">
+          <span class="section-bullet">2</span>
+          Contato & Situação Cadastral
+        </div>
         <div class="form-grid">
           <div class="col-6 form-group">
             <label>E-mail Funcional</label>
-            <input type="email" formControlName="email" placeholder="servidor@orgao.gov.br" />
+            <input type="email" formControlName="email" placeholder="servidor@orgao.gov.br"
+              [class.is-invalid]="form.get('email')?.invalid && form.get('email')?.touched" />
             @if (form.get('email')?.touched && form.get('email')?.hasError('email')) {
-            <span class="form-error">Informe um e-mail válido</span>
+              <span class="invalid-feedback">Informe um e-mail válido</span>
             }
           </div>
 
@@ -252,7 +275,8 @@
 
         <div class="form-group">
           <label>Status / Situação <span class="required">*</span></label>
-          <select formControlName="ativoId">
+          <select formControlName="ativoId"
+            [class.is-invalid]="form.get('ativoId')?.invalid && form.get('ativoId')?.touched">
             @for (item of statusList(); track item.id) {
             <option [value]="item.id">{{ item.nome || item.descricao || item.situacao }}</option>
             }

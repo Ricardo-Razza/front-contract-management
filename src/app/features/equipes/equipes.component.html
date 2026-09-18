@@ -142,14 +142,30 @@
           <tr>
             <td colspan="5">
               <div class="empty-state">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <line x1="19" y1="8" x2="19" y2="14" />
-                </svg>
-                <h4>Nenhuma equipe cadastrada</h4>
-                <p>Clique em "Cadastrar Nova Equipe" para atribuir uma equipe completa a uma ata ou contrato.</p>
+                <div class="empty-state-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <line x1="19" y1="8" x2="19" y2="14" />
+                  </svg>
+                </div>
+                <h4>Nenhuma equipe encontrada</h4>
+                <p>
+                  @if (hasActiveFilters()) {
+                    Não encontramos equipes com os filtros atuais. Tente ajustar os termos ou limpar os filtros.
+                  } @else {
+                    Clique em "Cadastrar Nova Equipe" para atribuir uma equipe completa a uma ata ou contrato.
+                  }
+                </p>
+                @if (hasActiveFilters()) {
+                  <button type="button" class="btn-clear-empty" (click)="clearFilters()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                    Limpar Filtros
+                  </button>
+                }
               </div>
             </td>
           </tr>
