@@ -3,7 +3,7 @@
   <div class="page-title-group">
     <div class="title-with-badge">
       <h1>Gestão de Outsourcing de Impressoras</h1>
-      <span class="badge-total">{{ totalImpressoras() }} equipamentos</span>
+      <span class="badge-total">{{ totalImpressoras() | number }} equipamentos</span>
     </div>
     <p>Controle patrimonial, alocações por secretaria, franquias, medições de contadores e empenhos orçamentários</p>
   </div>
@@ -21,9 +21,9 @@
       </div>
       <div class="metric-body">
         <span class="metric-label">Parque Total</span>
-        <span class="metric-value">{{ totalImpressoras() }}</span>
+        <span class="metric-value">{{ totalImpressoras() | number }}</span>
         <div class="metric-sub">
-          <span class="sub-chip chip-blue">167 instaladas</span>
+          <span class="sub-chip chip-blue">{{ totalImpressoras() | number }} instaladas</span>
         </div>
       </div>
     </div>
@@ -38,7 +38,7 @@
       </div>
       <div class="metric-body">
         <span class="metric-label">Instaladas e Ativas</span>
-        <span class="metric-value">{{ totalAtivas() }}</span>
+        <span class="metric-value">{{ totalAtivas() | number }}</span>
         <div class="metric-sub">
           <span class="sub-chip chip-green">100% operacionais</span>
         </div>
@@ -56,7 +56,7 @@
       </div>
       <div class="metric-body">
         <span class="metric-label">Monocromáticas</span>
-        <span class="metric-value">{{ totalMono() }}</span>
+        <span class="metric-value">{{ totalMono() | number }}</span>
         <div class="metric-sub">
           <span class="sub-chip chip-slate">Lote 01 e 04</span>
         </div>
@@ -73,7 +73,7 @@
       </div>
       <div class="metric-body">
         <span class="metric-label">Policromáticas (Cor)</span>
-        <span class="metric-value">{{ totalColor() }}</span>
+        <span class="metric-value">{{ totalColor() | number }}</span>
         <div class="metric-sub">
           <span class="sub-chip chip-purple">Lote 03 (Híbridas)</span>
         </div>
@@ -92,7 +92,7 @@
       </div>
       <div class="metric-body">
         <span class="metric-label">Empenhos Vinculados</span>
-        <span class="metric-value">{{ empenhos().length }}</span>
+        <span class="metric-value">{{ empenhos().length | number }}</span>
         <div class="metric-sub">
           <span class="sub-chip chip-orange">8 Secretarias</span>
         </div>
@@ -611,7 +611,7 @@
                       <tr>
                         <td class="td-empenho">Emp. {{ emp.numeroEmpenho }}</td>
                         <td><span class="sec-tag">{{ emp.secretariaSigla }}</span></td>
-                        <td>{{ emp.quantidadeImpressoras }} un</td>
+                        <td>{{ emp.quantidadeImpressoras | number }} un</td>
                         <td><strong>R$ {{ emp.valorTotalEmpenhado | number:'1.2-2' }}</strong></td>
 
                         <!-- 12 Meses -->
@@ -859,11 +859,11 @@
             </div>
             <div class="empenho-metric-card">
               <span class="metric-title">Equipamentos Cobertos</span>
-              <span class="metric-number">{{ totalMaquinasEmpenhadas() }} un</span>
+              <span class="metric-number">{{ totalMaquinasEmpenhadas() | number }} un</span>
             </div>
             <div class="empenho-metric-card">
               <span class="metric-title">Empenhos Ativos</span>
-              <span class="metric-number">{{ empenhos().length }}</span>
+              <span class="metric-number">{{ empenhos().length | number }}</span>
             </div>
           </div>
 
@@ -894,7 +894,7 @@
                     <td style="color: #16a34a; font-weight: 600;">R$ {{ emp.saldo | number:'1.2-2' }}</td>
                     <td>
                       <button class="btn btn-sm" style="padding: 2px 8px; font-size: 0.75rem; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer;" (click)="filtrarPorEmpenhoNoInventario(emp.numeroEmpenho)" title="Filtrar impressoras deste empenho no inventário">
-                        {{ emp.quantidadeImpressoras || 0 }} máquinas &rarr;
+                        {{ (emp.quantidadeImpressoras || 0) | number }} máquinas &rarr;
                       </button>
                     </td>
                     <td>
@@ -963,7 +963,7 @@
           <div class="budget-summary-banner">
             <div class="budget-kpi">
               <span class="kpi-title">Equipamentos no Lote</span>
-              <span class="kpi-value text-blue">{{ b.totalGeralEquipamentos }} un</span>
+              <span class="kpi-value text-blue">{{ b.totalGeralEquipamentos | number }} un</span>
               <span class="kpi-sub">5 Lotes Contratuais</span>
             </div>
             <div class="budget-kpi">
@@ -1018,7 +1018,7 @@
                       <td><span class="lote-badge">Lote 0{{ lote.numeroLote }}</span></td>
                       <td><strong>{{ lote.descricao }}</strong></td>
                       <td><span class="badge-status status-active">{{ lote.tipo }}</span></td>
-                      <td>{{ lote.quantidadeEquipamentos }} un</td>
+                      <td>{{ lote.quantidadeEquipamentos | number }} un</td>
                       <td>{{ lote.franquiaIndividualMono | number }} un</td>
                       <td><strong>{{ lote.franquiaTotalMono | number }}</strong></td>
                       <td><strong>{{ lote.copiasMonoProduzidas | number }}</strong></td>
@@ -1042,7 +1042,7 @@
                   }
                   <tr style="background: #f8fafc; font-weight: 700; border-top: 2px solid #cbd5e1;">
                     <td colspan="3"><strong>TOTAL CONSOLIDADO</strong></td>
-                    <td>{{ b.totalGeralEquipamentos }} un</td>
+                    <td>{{ b.totalGeralEquipamentos | number }} un</td>
                     <td>—</td>
                     <td>—</td>
                     <td>{{ b.totalGeralCopiasMono | number }}</td>
@@ -1458,7 +1458,7 @@
           Ficha Técnica & Alocação
         </button>
         <button class="modal-tab-btn" [class.active]="activeDetailsTab() === 'LEITURAS'" (click)="activeDetailsTab.set('LEITURAS')">
-          Histórico de Contadores & Cópias ({{ historicoLeiturasImpressora().length }})
+          Histórico de Contadores & Cópias ({{ historicoLeiturasImpressora().length | number }})
         </button>
       </div>
 
@@ -1534,7 +1534,7 @@
         } @else if (activeDetailsTab() === 'LEITURAS') {
           <div class="history-toolbar">
             <span class="history-summary">
-              Registros encontrados: <strong>{{ historicoLeiturasImpressora().length }} medições</strong>
+              Registros encontrados: <strong>{{ historicoLeiturasImpressora().length | number }} medições</strong>
             </span>
             <div class="history-actions">
               <button class="btn btn-secondary btn-sm" (click)="exportarHistoricoImpressoraCSV()">

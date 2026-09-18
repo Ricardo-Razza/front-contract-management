@@ -697,7 +697,7 @@ export class ImpressorasComponent implements OnInit {
       { header: 'Lote', accessor: (p: Impressora) => p.numeroLote ? 'Lote ' + p.numeroLote : '' },
       { header: 'IP', accessor: (p: Impressora) => p.ip || '' },
       { header: 'Transformador', accessor: (p: Impressora) => p.transformador || 'NAO' },
-      { header: 'Ultimo Contador', accessor: (p: Impressora) => p.ultimoContadorMono || 0 },
+      { header: 'Ultimo Contador', accessor: (p: Impressora) => (p.ultimoContadorMono || 0).toLocaleString('pt-BR') },
       { header: 'Status', accessor: (p: Impressora) => p.statusInstalacao || 'ATIVA' }
     ];
     exportToCsv('inventario_impressoras_' + new Date().toISOString().substring(0, 10), columns, list);
@@ -712,14 +712,14 @@ export class ImpressorasComponent implements OnInit {
       { header: 'Local Instalacao', accessor: (l: LeituraContador) => l.localInstalacao || '' },
       { header: 'Modelo', accessor: (l: LeituraContador) => l.impressoraModelo || '' },
       { header: 'IP', accessor: (l: LeituraContador) => l.impressoraIp || '' },
-      { header: 'Leitura Anterior', accessor: (l: LeituraContador) => l.leituraMonoAnterior },
-      { header: 'Leitura Atual', accessor: (l: LeituraContador) => l.leituraMonoAtual },
-      { header: 'Copias Mono', accessor: (l: LeituraContador) => l.copiasMono },
-      { header: 'Franquia Aplicada', accessor: (l: LeituraContador) => l.franquiaMonoAplicada },
-      { header: 'Excedente Mono', accessor: (l: LeituraContador) => l.excedenteMono },
-      { header: 'Valor Locacao', accessor: (l: LeituraContador) => l.valorLocacao.toFixed(2) },
-      { header: 'Valor Excedente', accessor: (l: LeituraContador) => l.valorExcedenteMono.toFixed(2) },
-      { header: 'Total a Pagar', accessor: (l: LeituraContador) => l.valorTotal.toFixed(2) }
+      { header: 'Leitura Anterior', accessor: (l: LeituraContador) => (l.leituraMonoAnterior || 0).toLocaleString('pt-BR') },
+      { header: 'Leitura Atual', accessor: (l: LeituraContador) => (l.leituraMonoAtual || 0).toLocaleString('pt-BR') },
+      { header: 'Copias Mono', accessor: (l: LeituraContador) => (l.copiasMono || 0).toLocaleString('pt-BR') },
+      { header: 'Franquia Aplicada', accessor: (l: LeituraContador) => (l.franquiaMonoAplicada || 0).toLocaleString('pt-BR') },
+      { header: 'Excedente Mono', accessor: (l: LeituraContador) => (l.excedenteMono || 0).toLocaleString('pt-BR') },
+      { header: 'Valor Locacao', accessor: (l: LeituraContador) => (l.valorLocacao || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Valor Excedente', accessor: (l: LeituraContador) => (l.valorExcedenteMono || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Total a Pagar', accessor: (l: LeituraContador) => (l.valorTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
     ];
     exportToCsv('medicao_impressoras_' + this.mesCompetencia() + '_' + this.anoCompetencia(), columns, list);
     this.toast.success('Medição mensal exportada em .CSV com sucesso!');
@@ -733,12 +733,12 @@ export class ImpressorasComponent implements OnInit {
       { header: 'Competencia Mes', accessor: (l: LeituraContador) => l.mesReferencia },
       { header: 'Competencia Ano', accessor: (l: LeituraContador) => l.anoReferencia },
       { header: 'Data Leitura', accessor: (l: LeituraContador) => l.dataLeitura },
-      { header: 'Contador Inicial', accessor: (l: LeituraContador) => l.leituraMonoAnterior },
-      { header: 'Contador Final', accessor: (l: LeituraContador) => l.leituraMonoAtual },
-      { header: 'Copias Realizadas', accessor: (l: LeituraContador) => l.copiasMono },
-      { header: 'Franquia', accessor: (l: LeituraContador) => l.franquiaMonoAplicada },
-      { header: 'Excedente', accessor: (l: LeituraContador) => l.excedenteMono },
-      { header: 'Valor Total R$', accessor: (l: LeituraContador) => l.valorTotal.toFixed(2) }
+      { header: 'Contador Inicial', accessor: (l: LeituraContador) => (l.leituraMonoAnterior || 0).toLocaleString('pt-BR') },
+      { header: 'Contador Final', accessor: (l: LeituraContador) => (l.leituraMonoAtual || 0).toLocaleString('pt-BR') },
+      { header: 'Copias Realizadas', accessor: (l: LeituraContador) => (l.copiasMono || 0).toLocaleString('pt-BR') },
+      { header: 'Franquia', accessor: (l: LeituraContador) => (l.franquiaMonoAplicada || 0).toLocaleString('pt-BR') },
+      { header: 'Excedente', accessor: (l: LeituraContador) => (l.excedenteMono || 0).toLocaleString('pt-BR') },
+      { header: 'Valor Total R$', accessor: (l: LeituraContador) => (l.valorTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
     ];
     exportToCsv('historico_contadores_item_' + (p.itemPedido || p.id), columns, list);
     this.toast.success('Histórico de contadores exportado em .CSV com sucesso!');
@@ -751,9 +751,9 @@ export class ImpressorasComponent implements OnInit {
       { header: 'Exercicio', accessor: (e: EmpenhoImpressao) => e.ano },
       { header: 'Secretaria', accessor: (e: EmpenhoImpressao) => e.secretariaSigla || '' },
       { header: 'Descricao', accessor: (e: EmpenhoImpressao) => e.descricao || '' },
-      { header: 'Valor Total R$', accessor: (e: EmpenhoImpressao) => e.valorTotal.toFixed(2) },
-      { header: 'Saldo Restante R$', accessor: (e: EmpenhoImpressao) => e.saldo.toFixed(2) },
-      { header: 'Qtd Impressoras', accessor: (e: EmpenhoImpressao) => e.quantidadeImpressoras || 0 }
+      { header: 'Valor Total R$', accessor: (e: EmpenhoImpressao) => (e.valorTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Saldo Restante R$', accessor: (e: EmpenhoImpressao) => (e.saldo || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Qtd Impressoras', accessor: (e: EmpenhoImpressao) => (e.quantidadeImpressoras || 0).toLocaleString('pt-BR') }
     ];
     exportToCsv('empenhos_impressao_' + new Date().getFullYear(), columns, list);
     this.toast.success('Empenhos exportados em .CSV com sucesso!');
@@ -842,9 +842,9 @@ export class ImpressorasComponent implements OnInit {
       { header: 'Codigo', accessor: (it: ItemFatura) => it.codigoItem },
       { header: 'Descricao', accessor: (it: ItemFatura) => it.descricao },
       { header: 'Unidade', accessor: (it: ItemFatura) => it.unidade },
-      { header: 'Quantidade', accessor: (it: ItemFatura) => it.quantidade },
-      { header: 'Valor Unitario R$', accessor: (it: ItemFatura) => it.valorUnitario.toFixed(3) },
-      { header: 'Subtotal R$', accessor: (it: ItemFatura) => it.valorTotal.toFixed(2) }
+      { header: 'Quantidade', accessor: (it: ItemFatura) => (it.quantidade || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) },
+      { header: 'Valor Unitario R$', accessor: (it: ItemFatura) => (it.valorUnitario || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 3 }) },
+      { header: 'Subtotal R$', accessor: (it: ItemFatura) => (it.valorTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
     ];
     exportToCsv(`espelho_fatura_emp_${fatura.numeroEmpenho}_${fatura.mesReferencia}_${fatura.anoReferencia}`, columns, list);
     this.toast.success('Espelho de fatura exportado em .CSV com sucesso!');
@@ -859,22 +859,22 @@ export class ImpressorasComponent implements OnInit {
       { header: 'Empenho', accessor: (e: EmpenhoExecucao) => e.numeroEmpenho },
       { header: 'Secretaria', accessor: (e: EmpenhoExecucao) => e.secretariaSigla },
       { header: 'Descricao', accessor: (e: EmpenhoExecucao) => e.descricao || '' },
-      { header: 'Dotacao Anual R$', accessor: (e: EmpenhoExecucao) => e.valorTotalEmpenhado.toFixed(2) },
-      { header: 'Jan R$', accessor: (e: EmpenhoExecucao) => (e.meses[0]?.valorFaturado || 0).toFixed(2) },
-      { header: 'Fev R$', accessor: (e: EmpenhoExecucao) => (e.meses[1]?.valorFaturado || 0).toFixed(2) },
-      { header: 'Mar R$', accessor: (e: EmpenhoExecucao) => (e.meses[2]?.valorFaturado || 0).toFixed(2) },
-      { header: 'Abr R$', accessor: (e: EmpenhoExecucao) => (e.meses[3]?.valorFaturado || 0).toFixed(2) },
-      { header: 'Mai R$', accessor: (e: EmpenhoExecucao) => (e.meses[4]?.valorFaturado || 0).toFixed(2) },
-      { header: 'Jun R$', accessor: (e: EmpenhoExecucao) => (e.meses[5]?.valorFaturado || 0).toFixed(2) },
-      { header: 'Jul R$', accessor: (e: EmpenhoExecucao) => (e.meses[6]?.valorFaturado || 0).toFixed(2) },
-      { header: 'Ago R$', accessor: (e: EmpenhoExecucao) => (e.meses[7]?.valorFaturado || 0).toFixed(2) },
-      { header: 'Set R$', accessor: (e: EmpenhoExecucao) => (e.meses[8]?.valorFaturado || 0).toFixed(2) },
-      { header: 'Out R$', accessor: (e: EmpenhoExecucao) => (e.meses[9]?.valorFaturado || 0).toFixed(2) },
-      { header: 'Nov R$', accessor: (e: EmpenhoExecucao) => (e.meses[10]?.valorFaturado || 0).toFixed(2) },
-      { header: 'Dez R$', accessor: (e: EmpenhoExecucao) => (e.meses[11]?.valorFaturado || 0).toFixed(2) },
-      { header: 'Total Liquidado R$', accessor: (e: EmpenhoExecucao) => e.totalLiquidado.toFixed(2) },
-      { header: 'Saldo Restante R$', accessor: (e: EmpenhoExecucao) => e.saldoRestante.toFixed(2) },
-      { header: '% Consumido', accessor: (e: EmpenhoExecucao) => e.percentualConsumido.toFixed(1) + '%' }
+      { header: 'Dotacao Anual R$', accessor: (e: EmpenhoExecucao) => (e.valorTotalEmpenhado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Jan R$', accessor: (e: EmpenhoExecucao) => (e.meses[0]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Fev R$', accessor: (e: EmpenhoExecucao) => (e.meses[1]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Mar R$', accessor: (e: EmpenhoExecucao) => (e.meses[2]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Abr R$', accessor: (e: EmpenhoExecucao) => (e.meses[3]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Mai R$', accessor: (e: EmpenhoExecucao) => (e.meses[4]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Jun R$', accessor: (e: EmpenhoExecucao) => (e.meses[5]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Jul R$', accessor: (e: EmpenhoExecucao) => (e.meses[6]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Ago R$', accessor: (e: EmpenhoExecucao) => (e.meses[7]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Set R$', accessor: (e: EmpenhoExecucao) => (e.meses[8]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Out R$', accessor: (e: EmpenhoExecucao) => (e.meses[9]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Nov R$', accessor: (e: EmpenhoExecucao) => (e.meses[10]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Dez R$', accessor: (e: EmpenhoExecucao) => (e.meses[11]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Total Liquidado R$', accessor: (e: EmpenhoExecucao) => (e.totalLiquidado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Saldo Restante R$', accessor: (e: EmpenhoExecucao) => (e.saldoRestante || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: '% Consumido', accessor: (e: EmpenhoExecucao) => (e.percentualConsumido || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%' }
     ];
     exportToCsv(`execucao_orcamentaria_empenhos_${exec.ano}`, columns, list);
     this.toast.success('Matriz de execução orçamentária exportada em .CSV com sucesso!');
@@ -889,14 +889,14 @@ export class ImpressorasComponent implements OnInit {
       { header: 'Lote', accessor: (l: LoteBalanco) => 'Lote 0' + l.numeroLote },
       { header: 'Descricao', accessor: (l: LoteBalanco) => l.descricao },
       { header: 'Tipo', accessor: (l: LoteBalanco) => l.tipo },
-      { header: 'Qtd Maquinas', accessor: (l: LoteBalanco) => l.quantidadeEquipamentos },
-      { header: 'Franquia Total Mono', accessor: (l: LoteBalanco) => l.franquiaTotalMono },
-      { header: 'Copias Mono Produzidas', accessor: (l: LoteBalanco) => l.copiasMonoProduzidas },
-      { header: 'Excedente Mono', accessor: (l: LoteBalanco) => l.excedenteMonoTotal },
-      { header: '% Uso Mono', accessor: (l: LoteBalanco) => l.percentualUsoMono.toFixed(1) + '%' },
-      { header: 'Custo Locacao R$', accessor: (l: LoteBalanco) => l.custoFixoLocacao.toFixed(2) },
-      { header: 'Custo Excedente R$', accessor: (l: LoteBalanco) => (l.custoExcedenteMono + l.custoExcedenteColor).toFixed(2) },
-      { header: 'Custo Total R$', accessor: (l: LoteBalanco) => l.custoTotal.toFixed(2) }
+      { header: 'Qtd Maquinas', accessor: (l: LoteBalanco) => (l.quantidadeEquipamentos || 0).toLocaleString('pt-BR') },
+      { header: 'Franquia Total Mono', accessor: (l: LoteBalanco) => (l.franquiaTotalMono || 0).toLocaleString('pt-BR') },
+      { header: 'Copias Mono Produzidas', accessor: (l: LoteBalanco) => (l.copiasMonoProduzidas || 0).toLocaleString('pt-BR') },
+      { header: 'Excedente Mono', accessor: (l: LoteBalanco) => (l.excedenteMonoTotal || 0).toLocaleString('pt-BR') },
+      { header: '% Uso Mono', accessor: (l: LoteBalanco) => (l.percentualUsoMono || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%' },
+      { header: 'Custo Locacao R$', accessor: (l: LoteBalanco) => (l.custoFixoLocacao || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Custo Excedente R$', accessor: (l: LoteBalanco) => ((l.custoExcedenteMono || 0) + (l.custoExcedenteColor || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Custo Total R$', accessor: (l: LoteBalanco) => (l.custoTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
     ];
     exportToCsv(`balanco_franquias_${balanco.mesReferencia}_${balanco.anoReferencia}`, columns, list);
     this.toast.success('Balanço de franquias exportado em .CSV com sucesso!');
