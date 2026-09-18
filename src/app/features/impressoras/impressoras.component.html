@@ -8,96 +8,115 @@
     <p>Controle patrimonial, alocações por secretaria, franquias, medições de contadores e empenhos orçamentários</p>
   </div>
 
-  <!-- KPI CARDS (Centered, no underlines) -->
+  <!-- KPI CARDS (Centered Executive Cards) -->
   <div class="metrics-grid">
     <div class="metric-card">
       <div class="metric-accent accent-blue"></div>
-      <div class="metric-icon-box blue">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div class="metric-icon icon-blue">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="6 9 6 2 18 2 18 9"></polyline>
           <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
           <rect x="6" y="14" width="12" height="8"></rect>
         </svg>
       </div>
-      <div class="metric-content">
-        <span class="metric-val">{{ totalImpressoras() }}</span>
-        <span class="metric-lbl">Parque Total</span>
+      <div class="metric-body">
+        <span class="metric-label">Parque Total</span>
+        <span class="metric-value">{{ totalImpressoras() }}</span>
+        <div class="metric-sub">
+          <span class="sub-chip chip-blue">167 instaladas</span>
+        </div>
       </div>
     </div>
 
     <div class="metric-card">
       <div class="metric-accent accent-green"></div>
-      <div class="metric-icon-box green">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div class="metric-icon icon-green">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
           <polyline points="22 4 12 14.01 9 11.01"></polyline>
         </svg>
       </div>
-      <div class="metric-content">
-        <span class="metric-val">{{ totalAtivas() }}</span>
-        <span class="metric-lbl">Instaladas e Ativas</span>
+      <div class="metric-body">
+        <span class="metric-label">Instaladas e Ativas</span>
+        <span class="metric-value">{{ totalAtivas() }}</span>
+        <div class="metric-sub">
+          <span class="sub-chip chip-green">100% operacionais</span>
+        </div>
       </div>
     </div>
 
     <div class="metric-card">
       <div class="metric-accent accent-slate"></div>
-      <div class="metric-icon-box slate">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div class="metric-icon icon-slate">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
           <line x1="3" y1="9" x2="21" y2="9"></line>
           <line x1="9" y1="21" x2="9" y2="9"></line>
         </svg>
       </div>
-      <div class="metric-content">
-        <span class="metric-val">{{ totalMono() }}</span>
-        <span class="metric-lbl">Monocromáticas</span>
+      <div class="metric-body">
+        <span class="metric-label">Monocromáticas</span>
+        <span class="metric-value">{{ totalMono() }}</span>
+        <div class="metric-sub">
+          <span class="sub-chip chip-slate">Lote 01 e 04</span>
+        </div>
       </div>
     </div>
 
     <div class="metric-card">
       <div class="metric-accent accent-purple"></div>
-      <div class="metric-icon-box purple">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div class="metric-icon icon-purple">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"></circle>
           <circle cx="12" cy="12" r="4"></circle>
         </svg>
       </div>
-      <div class="metric-content">
-        <span class="metric-val">{{ totalColor() }}</span>
-        <span class="metric-lbl">Policromáticas (Cor)</span>
+      <div class="metric-body">
+        <span class="metric-label">Policromáticas (Cor)</span>
+        <span class="metric-value">{{ totalColor() }}</span>
+        <div class="metric-sub">
+          <span class="sub-chip chip-purple">Lote 03 (Híbridas)</span>
+        </div>
       </div>
     </div>
 
     <div class="metric-card">
       <div class="metric-accent accent-orange"></div>
-      <div class="metric-icon-box orange">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div class="metric-icon icon-orange">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
           <polyline points="14 2 14 8 20 8"></polyline>
           <line x1="16" y1="13" x2="8" y2="13"></line>
           <line x1="16" y1="17" x2="8" y2="17"></line>
         </svg>
       </div>
-      <div class="metric-content">
-        <span class="metric-val">{{ empenhos().length }}</span>
-        <span class="metric-lbl">Empenhos Vinculados</span>
+      <div class="metric-body">
+        <span class="metric-label">Empenhos Vinculados</span>
+        <span class="metric-value">{{ empenhos().length }}</span>
+        <div class="metric-sub">
+          <span class="sub-chip chip-orange">8 Secretarias</span>
+        </div>
       </div>
     </div>
 
     <div class="metric-card">
       <div class="metric-accent accent-teal"></div>
-      <div class="metric-icon-box teal">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div class="metric-icon icon-teal">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="12" y1="1" x2="12" y2="23"></line>
           <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
         </svg>
       </div>
-      <div class="metric-content">
-        <span class="metric-val">R$ {{ (totalValorFaturaMes() > 0 ? totalValorFaturaMes() : 5800) | number:'1.0-0' }}</span>
-        <span class="metric-lbl">Fatura Mensal Prevista</span>
+      <div class="metric-body">
+        <span class="metric-label">Fatura Mensal Base</span>
+        <span class="metric-value">R$ 5.800</span>
+        <div class="metric-sub">
+          <span class="sub-chip chip-teal">Locação Fixa</span>
+        </div>
       </div>
     </div>
   </div>
+
 
   <!-- NAVEGAÇÃO POR ABAS -->
   <div class="main-card">
