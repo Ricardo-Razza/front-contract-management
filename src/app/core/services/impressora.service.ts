@@ -9,6 +9,7 @@ import {
   SubstituicaoImpressoraDTO,
   LoteImpressao,
   EmpenhoImpressao,
+  EmpenhoDTO,
   LeituraContador,
   LeituraContadorDTO
 } from '@core/models';
@@ -74,6 +75,18 @@ export class ImpressoraService {
     );
   }
 
+  createEmpenho(dto: EmpenhoDTO): Observable<EmpenhoImpressao> {
+    return this.http.post<EmpenhoImpressao>(`${this.apiUrl}/empenhos`, dto);
+  }
+
+  updateEmpenho(id: number, dto: EmpenhoDTO): Observable<EmpenhoImpressao> {
+    return this.http.put<EmpenhoImpressao>(`${this.apiUrl}/empenhos/${id}`, dto);
+  }
+
+  deleteEmpenho(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/empenhos/${id}`);
+  }
+
   getLeituras(mes: number, ano: number): Observable<LeituraContador[]> {
     const params = new HttpParams()
       .set('mes', mes.toString())
@@ -83,7 +96,14 @@ export class ImpressoraService {
     );
   }
 
+  getLeiturasPorImpressora(impressoraId: number): Observable<LeituraContador[]> {
+    return this.http.get<LeituraContador[]>(`${this.apiUrl}/${impressoraId}/leituras`).pipe(
+      catchError(() => of([]))
+    );
+  }
+
   lancarLeitura(dto: LeituraContadorDTO): Observable<LeituraContador> {
     return this.http.post<LeituraContador>(`${this.apiUrl}/leituras`, dto);
   }
 }
+

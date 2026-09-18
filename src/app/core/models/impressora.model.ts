@@ -22,6 +22,16 @@ export interface EmpenhoImpressao {
   valorTotal: number;
   saldo: number;
   ativo: boolean;
+  quantidadeImpressoras?: number;
+}
+
+export interface EmpenhoDTO {
+  numeroEmpenho: string;
+  ano: number;
+  secretariaId: number;
+  descricao?: string;
+  valorTotal: number;
+  saldo?: number;
 }
 
 export interface Impressora {

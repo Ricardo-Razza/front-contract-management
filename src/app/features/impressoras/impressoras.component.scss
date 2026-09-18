@@ -626,3 +626,99 @@
     }
   }
 }
+
+// EMPENHO BADGE
+.badge-empenho {
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  font-family: monospace;
+}
+
+// ACTION BUTTON FOR HISTORY
+.btn-action.btn-history {
+  color: #0284c7;
+  &:hover {
+    background: #e0f2fe;
+    color: #0369a1;
+  }
+}
+
+// MODAL INNER TABS
+.modal-tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid $color-border;
+  padding: 0 1.5rem;
+  background: #f8fafc;
+
+  .modal-tab-btn {
+    padding: 0.75rem 1rem;
+    border: none;
+    background: transparent;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: $color-text-muted;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      color: $color-secondary;
+    }
+
+    &.active {
+      color: #2563eb;
+      border-bottom-color: #2563eb;
+      font-weight: 700;
+    }
+  }
+}
+
+.history-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px dashed $color-border;
+
+  .history-summary {
+    font-size: 0.82rem;
+    color: $color-text-muted;
+    strong { color: $color-secondary; }
+  }
+
+  .history-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+}
+
+.empenho-metric-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid $color-border;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  .metric-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: $color-text-muted;
+  }
+
+  .metric-number {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: $color-secondary;
+  }
+}
+

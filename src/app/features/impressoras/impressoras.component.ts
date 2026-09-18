@@ -1,25 +1,20 @@
-import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { HeaderComponent } from '@shared/components/header/header.component';
-import { LoadingSkeletonComponent } from '@shared/components/loading-skeleton/loading-skeleton.component';
-import { PaginationComponent } from '@shared/components/pagination/pagination.component';
-import { ConfirmModalComponent } from '@shared/components/confirm-modal/confirm-modal.component';
-import { ToastService } from '@core/services/toast.service';
 import { ImpressoraService } from '@core/services/impressora.service';
 import { SecretariaService } from '@core/services/secretaria.service';
+import { ToastService } from '@core/services/toast.service';
+import { ConfirmModalComponent } from '@shared/components/confirm-modal/confirm-modal.component';
+import { PaginationComponent } from '@shared/components/pagination/pagination.component';
+import { exportToCsv } from '@core/utils/export.utils';
 import {
   Impressora,
-  ImpressoraDTO,
-  TrocaLocalDTO,
-  SubstituicaoImpressoraDTO,
   LoteImpressao,
   EmpenhoImpressao,
+  EmpenhoDTO,
   LeituraContador,
-  LeituraContadorDTO,
   Secretariat
 } from '@core/models';
-import { exportToCsv } from '@core/utils';
 
 @Component({
   selector: 'app-impressoras',
@@ -28,14 +23,11 @@ import { exportToCsv } from '@core/utils';
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    HeaderComponent,
-    LoadingSkeletonComponent,
     PaginationComponent,
     ConfirmModalComponent
   ],
   templateUrl: './impressoras.component.html',
-  styleUrls: ['./impressoras.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  styleUrls: ['./impressoras.component.scss']
 })
 export class ImpressorasComponent implements OnInit {
   private impressoraService = inject(ImpressoraService);
@@ -56,17 +48,20 @@ export class ImpressorasComponent implements OnInit {
   globalSearch = signal<string>('');
   filterSecretaria = signal<string>('');
   filterLote = signal<string>('');
+  filterEmpenho = signal<string>('');
   filterStatus = signal<string>('');
 
   // Competência selecionada para leituras
   mesCompetencia = signal<number>(new Date().getMonth() + 1);
   anoCompetencia = signal<number>(new Date().getFullYear());
+  termoBuscaLeituras = signal<string>('');
+  filtroSecretariaLeituras = signal<string>('');
 
   // Paginação da tabela de inventário
   currentPage = signal<number>(1);
   pageSize = signal<number>(15);
 
-  // Controle de Modais
+  // Controle de Modais de Impressoras
   isModalOpen = signal<boolean>(false);
   isEditMode = signal<boolean>(false);
   selectedPrinter = signal<Impressora | null>(null);
@@ -77,6 +72,18 @@ export class ImpressorasComponent implements OnInit {
   isDetailsModalOpen = signal<boolean>(false);
   isDeleteModalOpen = signal<boolean>(false);
   printerToDelete = signal<Impressora | null>(null);
+
+  // Histórico de contadores da impressora selecionada
+  activeDetailsTab = signal<'GERAL' | 'LEITURAS'>('GERAL');
+  historicoLeiturasImpressora = signal<LeituraContador[]>([]);
+  loadingHistorico = signal<boolean>(false);
+
+  // Controle de Modais de Empenhos
+  isEmpenhoModalOpen = signal<boolean>(false);
+  isEmpenhoEditMode = signal<boolean>(false);
+  selectedEmpenho = signal<EmpenhoImpressao | null>(null);
+  isDeleteEmpenhoModalOpen = signal<boolean>(false);
+  empenhoToDelete = signal<EmpenhoImpressao | null>(null);
 
   // Formulários
   form: FormGroup = this.fb.group({
@@ -135,6 +142,15 @@ export class ImpressorasComponent implements OnInit {
     observacoes: ['']
   });
 
+  empenhoForm: FormGroup = this.fb.group({
+    numeroEmpenho: ['', Validators.required],
+    ano: [new Date().getFullYear(), Validators.required],
+    secretariaId: ['', Validators.required],
+    descricao: [''],
+    valorTotal: [0, [Validators.required, Validators.min(0)]],
+    saldo: [0]
+  });
+
   // Métricas Computadas
   totalImpressoras = computed(() => this.printers().length);
   totalAtivas = computed(() => this.printers().filter(p => p.statusInstalacao === 'ATIVA' || p.ativo).length);
@@ -154,6 +170,7 @@ export class ImpressorasComponent implements OnInit {
         (p.secretariaSigla && p.secretariaSigla.toLowerCase().includes(search)) ||
         (p.secretariaNome && p.secretariaNome.toLowerCase().includes(search)) ||
         (p.numeroSerie && p.numeroSerie.toLowerCase().includes(search)) ||
+        (p.numeroEmpenho && p.numeroEmpenho.toLowerCase().includes(search)) ||
         (p.itemPedido && p.itemPedido.toString().includes(search))
       );
     }
@@ -166,6 +183,10 @@ export class ImpressorasComponent implements OnInit {
       list = list.filter(p => p.numeroLote === Number(this.filterLote()));
     }
 
+    if (this.filterEmpenho()) {
+      list = list.filter(p => p.numeroEmpenho === this.filterEmpenho());
+    }
+
     return list;
   });
 
@@ -175,11 +196,38 @@ export class ImpressorasComponent implements OnInit {
     return list.slice(start, start + this.pageSize());
   });
 
+  // Filtragem de Leituras da Competência
+  filteredLeituras = computed(() => {
+    let list = this.leituras();
+    const search = this.termoBuscaLeituras().toLowerCase().trim();
+
+    if (search) {
+      list = list.filter(l =>
+        (l.impressoraModelo && l.impressoraModelo.toLowerCase().includes(search)) ||
+        (l.localInstalacao && l.localInstalacao.toLowerCase().includes(search)) ||
+        (l.impressoraIp && l.impressoraIp.toLowerCase().includes(search)) ||
+        (l.secretariaSigla && l.secretariaSigla.toLowerCase().includes(search)) ||
+        (l.itemPedido && l.itemPedido.toString().includes(search))
+      );
+    }
+
+    if (this.filtroSecretariaLeituras()) {
+      list = list.filter(l => l.secretariaSigla === this.filtroSecretariaLeituras());
+    }
+
+    return list;
+  });
+
   // Métricas do Faturamento Mensal das Leituras
   totalCopiasMonoMes = computed(() => this.leituras().reduce((sum, l) => sum + (l.copiasMono || 0), 0));
   totalCopiasColorMes = computed(() => this.leituras().reduce((sum, l) => sum + (l.copiasColor || 0), 0));
   totalExcedenteMes = computed(() => this.leituras().reduce((sum, l) => sum + (l.excedenteMono || 0) + (l.excedenteColor || 0), 0));
   totalValorFaturaMes = computed(() => this.leituras().reduce((sum, l) => sum + (l.valorTotal || 0), 0));
+
+  // Métricas Computadas dos Empenhos
+  totalEmpenhadoGeral = computed(() => this.empenhos().reduce((sum, e) => sum + (e.valorTotal || 0), 0));
+  totalSaldoEmpenhos = computed(() => this.empenhos().reduce((sum, e) => sum + (e.saldo || 0), 0));
+  totalMaquinasEmpenhadas = computed(() => this.empenhos().reduce((sum, e) => sum + (e.quantidadeImpressoras || 0), 0));
 
   ngOnInit(): void {
     this.carregarDados();
@@ -198,12 +246,15 @@ export class ImpressorasComponent implements OnInit {
       error: () => this.toast.error('Erro ao carregar secretarias.')
     });
 
+    this.carregarEmpenhos();
+    this.carregarImpressoras();
+  }
+
+  carregarEmpenhos(): void {
     this.impressoraService.getEmpenhos().subscribe({
       next: emp => this.empenhos.set(emp),
       error: () => {}
     });
-
-    this.carregarImpressoras();
   }
 
   carregarImpressoras(): void {
@@ -228,32 +279,32 @@ export class ImpressorasComponent implements OnInit {
 
   trocarAba(tab: 'INVENTARIO' | 'LEITURAS' | 'FATURAMENTO' | 'LOTES'): void {
     this.activeTab.set(tab);
-    if (tab === 'LEITURAS' || tab === 'FATURAMENTO') {
+    if (tab === 'LEITURAS' && this.leituras().length === 0) {
       this.carregarLeiturasCompetencia();
     }
   }
 
-  // Modais de Criação / Edição
+  // Modal Impressora: Criar / Editar
   openCreateModal(): void {
     this.isEditMode.set(false);
     this.selectedPrinter.set(null);
     this.form.reset({
-      itemPedido: '',
-      numeroSerie: '',
       fabricante: 'Ricoh',
-      modelo: '',
       tipoImpressao: 'MONO',
       loteId: 1,
-      ip: '',
-      secretariaId: '',
-      empenhoId: '',
-      localInstalacao: '',
-      endereco: '',
-      responsavel: '',
       transformador: 'NAO',
       dataInstalacao: new Date().toISOString().substring(0, 10),
       contadorInicialMono: 0,
-      contadorInicialColor: 0
+      contadorInicialColor: 0,
+      secretariaId: '',
+      empenhoId: '',
+      modelo: '',
+      localInstalacao: '',
+      endereco: '',
+      responsavel: '',
+      ip: '',
+      numeroSerie: '',
+      itemPedido: ''
     });
     this.isModalOpen.set(true);
   }
@@ -275,7 +326,9 @@ export class ImpressorasComponent implements OnInit {
       endereco: p.endereco,
       responsavel: p.responsavel,
       transformador: p.transformador,
-      dataInstalacao: p.dataInstalacao
+      dataInstalacao: p.dataInstalacao,
+      contadorInicialMono: p.contadorInstalacaoMono || 0,
+      contadorInicialColor: p.contadorInstalacaoColor || 0
     });
     this.isModalOpen.set(true);
   }
@@ -292,21 +345,21 @@ export class ImpressorasComponent implements OnInit {
       return;
     }
 
-    const dto: ImpressoraDTO = this.form.value;
+    const payload = this.form.value;
 
     if (this.isEditMode() && this.selectedPrinter()) {
-      this.impressoraService.update(this.selectedPrinter()!.id, dto).subscribe({
+      this.impressoraService.update(this.selectedPrinter()!.id, payload).subscribe({
         next: () => {
-          this.toast.success('Impressora atualizada com sucesso!');
+          this.toast.success('Equipamento atualizado com sucesso!');
           this.closeModal();
           this.carregarImpressoras();
         },
         error: () => this.toast.error('Erro ao atualizar impressora.')
       });
     } else {
-      this.impressoraService.create(dto).subscribe({
+      this.impressoraService.create(payload).subscribe({
         next: () => {
-          this.toast.success('Impressora cadastrada com sucesso!');
+          this.toast.success('Equipamento cadastrado com sucesso!');
           this.closeModal();
           this.carregarImpressoras();
         },
@@ -339,14 +392,15 @@ export class ImpressorasComponent implements OnInit {
   }
 
   salvarRemanejamento(): void {
-    if (this.remanejarForm.invalid) {
+    if (this.remanejarForm.invalid || !this.selectedPrinter()) {
       this.remanejarForm.markAllAsTouched();
+      this.toast.error('Preencha os campos de remanejamento.');
       return;
     }
-    const dto: TrocaLocalDTO = this.remanejarForm.value;
-    this.impressoraService.remanejarLocal(this.selectedPrinter()!.id, dto).subscribe({
+
+    this.impressoraService.remanejarLocal(this.selectedPrinter()!.id, this.remanejarForm.value).subscribe({
       next: () => {
-        this.toast.success('Remanejamento registrado com sucesso!');
+        this.toast.success('Impressora remanejada com histórico registrado!');
         this.closeRemanejarModal();
         this.carregarImpressoras();
       },
@@ -377,30 +431,31 @@ export class ImpressorasComponent implements OnInit {
   }
 
   salvarSubstituicao(): void {
-    if (this.substituirForm.invalid) {
+    if (this.substituirForm.invalid || !this.selectedPrinter()) {
       this.substituirForm.markAllAsTouched();
+      this.toast.error('Preencha os dados da substituição técnica.');
       return;
     }
-    const dto: SubstituicaoImpressoraDTO = this.substituirForm.value;
-    this.impressoraService.substituirPorDefeito(this.selectedPrinter()!.id, dto).subscribe({
+
+    this.impressoraService.substituirPorDefeito(this.selectedPrinter()!.id, this.substituirForm.value).subscribe({
       next: () => {
-        this.toast.success('Substituição de equipamento registrada com sucesso!');
+        this.toast.success('Equipamento substituído por Swap com sucesso!');
         this.closeSubstituirModal();
         this.carregarImpressoras();
       },
-      error: () => this.toast.error('Erro ao registrar substituição.')
+      error: () => this.toast.error('Erro ao processar substituição por defeito.')
     });
   }
 
   // Modal Lançar Leitura
   openLeituraModal(p?: Impressora): void {
     this.leituraForm.reset({
-      impressoraId: p ? p.id : (this.printers().length > 0 ? this.printers()[0].id : ''),
+      impressoraId: p ? p.id : '',
       mesReferencia: this.mesCompetencia(),
       anoReferencia: this.anoCompetencia(),
       dataLeitura: new Date().toISOString().substring(0, 10),
-      leituraMonoAtual: p ? (p.ultimoContadorMono || 0) : 0,
-      leituraColorAtual: p ? (p.ultimoContadorColor || 0) : 0,
+      leituraMonoAtual: p ? (p.ultimoContadorMono || p.contadorInstalacaoMono || 0) : 0,
+      leituraColorAtual: p ? (p.ultimoContadorColor || p.contadorInstalacaoColor || 0) : 0,
       proporcao: 1.0,
       origemLeitura: 'MANUAL',
       observacoes: ''
@@ -415,33 +470,60 @@ export class ImpressorasComponent implements OnInit {
   salvarLeitura(): void {
     if (this.leituraForm.invalid) {
       this.leituraForm.markAllAsTouched();
+      this.toast.error('Informe a impressora e o contador atual.');
       return;
     }
-    const dto: LeituraContadorDTO = this.leituraForm.value;
-    this.impressoraService.lancarLeitura(dto).subscribe({
+
+    this.impressoraService.lancarLeitura(this.leituraForm.value).subscribe({
       next: () => {
-        this.toast.success('Leitura lançada e apurada com sucesso!');
+        this.toast.success('Leitura apurada e registrada com sucesso!');
         this.closeLeituraModal();
         this.carregarLeiturasCompetencia();
         this.carregarImpressoras();
+        if (this.selectedPrinter()) {
+          this.carregarHistoricoImpressora(this.selectedPrinter()!.id);
+        }
       },
-      error: () => this.toast.error('Erro ao lançar leitura.')
+      error: () => this.toast.error('Erro ao salvar medição de contador.')
     });
   }
 
-  // Detalhes da Impressora
+  // Modal Detalhes & Histórico da Impressora
   openDetailsModal(p: Impressora): void {
     this.selectedPrinter.set(p);
+    this.activeDetailsTab.set('GERAL');
     this.isDetailsModalOpen.set(true);
+    this.carregarHistoricoImpressora(p.id);
+  }
+
+  abrirHistoricoContadores(p: Impressora): void {
+    this.selectedPrinter.set(p);
+    this.activeDetailsTab.set('LEITURAS');
+    this.isDetailsModalOpen.set(true);
+    this.carregarHistoricoImpressora(p.id);
   }
 
   closeDetailsModal(): void {
     this.isDetailsModalOpen.set(false);
     this.selectedPrinter.set(null);
+    this.historicoLeiturasImpressora.set([]);
   }
 
-  // Exclusão
-  confirmDelete(p: Impressora): void {
+  carregarHistoricoImpressora(id: number): void {
+    this.loadingHistorico.set(true);
+    this.impressoraService.getLeiturasPorImpressora(id).subscribe({
+      next: list => {
+        this.historicoLeiturasImpressora.set(list);
+        this.loadingHistorico.set(false);
+      },
+      error: () => {
+        this.loadingHistorico.set(false);
+      }
+    });
+  }
+
+  // Modal Exclusão Impressora
+  confirmarExclusao(p: Impressora): void {
     this.printerToDelete.set(p);
     this.isDeleteModalOpen.set(true);
   }
@@ -454,9 +536,10 @@ export class ImpressorasComponent implements OnInit {
   executarExclusao(): void {
     const p = this.printerToDelete();
     if (!p) return;
+
     this.impressoraService.delete(p.id).subscribe({
       next: () => {
-        this.toast.success('Impressora recolhida/inativada com sucesso!');
+        this.toast.success('Equipamento inativado e recolhido com sucesso.');
         this.closeDeleteModal();
         this.carregarImpressoras();
       },
@@ -464,16 +547,115 @@ export class ImpressorasComponent implements OnInit {
     });
   }
 
-  // Exportar Inventário para CSV
+  // ==========================================
+  // GESTÃO DE EMPENHOS
+  // ==========================================
+  openCreateEmpenhoModal(): void {
+    this.isEmpenhoEditMode.set(false);
+    this.selectedEmpenho.set(null);
+    this.empenhoForm.reset({
+      numeroEmpenho: '',
+      ano: new Date().getFullYear(),
+      secretariaId: '',
+      descricao: '',
+      valorTotal: 0,
+      saldo: 0
+    });
+    this.isEmpenhoModalOpen.set(true);
+  }
+
+  openEditEmpenhoModal(emp: EmpenhoImpressao): void {
+    this.isEmpenhoEditMode.set(true);
+    this.selectedEmpenho.set(emp);
+    this.empenhoForm.patchValue({
+      numeroEmpenho: emp.numeroEmpenho,
+      ano: emp.ano,
+      secretariaId: emp.secretariaId,
+      descricao: emp.descricao || '',
+      valorTotal: emp.valorTotal,
+      saldo: emp.saldo
+    });
+    this.isEmpenhoModalOpen.set(true);
+  }
+
+  closeEmpenhoModal(): void {
+    this.isEmpenhoModalOpen.set(false);
+    this.selectedEmpenho.set(null);
+  }
+
+  salvarEmpenho(): void {
+    if (this.empenhoForm.invalid) {
+      this.empenhoForm.markAllAsTouched();
+      this.toast.error('Preencha os dados do empenho.');
+      return;
+    }
+
+    const payload: EmpenhoDTO = this.empenhoForm.value;
+
+    if (this.isEmpenhoEditMode() && this.selectedEmpenho()) {
+      this.impressoraService.updateEmpenho(this.selectedEmpenho()!.id, payload).subscribe({
+        next: () => {
+          this.toast.success('Empenho atualizado com sucesso!');
+          this.closeEmpenhoModal();
+          this.carregarEmpenhos();
+        },
+        error: () => this.toast.error('Erro ao atualizar empenho.')
+      });
+    } else {
+      this.impressoraService.createEmpenho(payload).subscribe({
+        next: () => {
+          this.toast.success('Empenho cadastrado com sucesso!');
+          this.closeEmpenhoModal();
+          this.carregarEmpenhos();
+        },
+        error: () => this.toast.error('Erro ao cadastrar empenho.')
+      });
+    }
+  }
+
+  confirmarExcluirEmpenho(emp: EmpenhoImpressao): void {
+    this.empenhoToDelete.set(emp);
+    this.isDeleteEmpenhoModalOpen.set(true);
+  }
+
+  closeDeleteEmpenhoModal(): void {
+    this.isDeleteEmpenhoModalOpen.set(false);
+    this.empenhoToDelete.set(null);
+  }
+
+  executarExclusaoEmpenho(): void {
+    const emp = this.empenhoToDelete();
+    if (!emp) return;
+
+    this.impressoraService.deleteEmpenho(emp.id).subscribe({
+      next: () => {
+        this.toast.success('Empenho inativado com sucesso.');
+        this.closeDeleteEmpenhoModal();
+        this.carregarEmpenhos();
+      },
+      error: () => this.toast.error('Erro ao inativar empenho.')
+    });
+  }
+
+  filtrarPorEmpenhoNoInventario(numeroEmpenho: string): void {
+    this.filterEmpenho.set(numeroEmpenho);
+    this.activeTab.set('INVENTARIO');
+  }
+
+  // ==========================================
+  // EXPORTAÇÕES CSV
+  // ==========================================
   exportarInventarioCSV(): void {
     const list = this.filteredPrinters();
     const columns = [
       { header: 'Item', accessor: (p: Impressora) => p.itemPedido || '' },
+      { header: 'Empenho', accessor: (p: Impressora) => p.numeroEmpenho || '' },
       { header: 'Secretaria', accessor: (p: Impressora) => p.secretariaSigla || '' },
       { header: 'Local Instalacao', accessor: (p: Impressora) => p.localInstalacao || '' },
       { header: 'Endereco', accessor: (p: Impressora) => p.endereco || '' },
       { header: 'Fabricante', accessor: (p: Impressora) => p.fabricante || '' },
       { header: 'Modelo', accessor: (p: Impressora) => p.modelo || '' },
+      { header: 'Numero Serie', accessor: (p: Impressora) => p.numeroSerie || '' },
       { header: 'Tipo', accessor: (p: Impressora) => p.tipoImpressao || '' },
       { header: 'Lote', accessor: (p: Impressora) => p.numeroLote ? 'Lote ' + p.numeroLote : '' },
       { header: 'IP', accessor: (p: Impressora) => p.ip || '' },
@@ -485,9 +667,8 @@ export class ImpressorasComponent implements OnInit {
     this.toast.success('Inventário exportado em .CSV com sucesso!');
   }
 
-  // Exportar Medição Mensal para CSV
   exportarMedicaoCSV(): void {
-    const list = this.leituras();
+    const list = this.filteredLeituras();
     const columns = [
       { header: 'Item', accessor: (l: LeituraContador) => l.itemPedido || '' },
       { header: 'Secretaria', accessor: (l: LeituraContador) => l.secretariaSigla || '' },
@@ -505,5 +686,39 @@ export class ImpressorasComponent implements OnInit {
     ];
     exportToCsv('medicao_impressoras_' + this.mesCompetencia() + '_' + this.anoCompetencia(), columns, list);
     this.toast.success('Medição mensal exportada em .CSV com sucesso!');
+  }
+
+  exportarHistoricoImpressoraCSV(): void {
+    const p = this.selectedPrinter();
+    if (!p) return;
+    const list = this.historicoLeiturasImpressora();
+    const columns = [
+      { header: 'Competencia Mes', accessor: (l: LeituraContador) => l.mesReferencia },
+      { header: 'Competencia Ano', accessor: (l: LeituraContador) => l.anoReferencia },
+      { header: 'Data Leitura', accessor: (l: LeituraContador) => l.dataLeitura },
+      { header: 'Contador Inicial', accessor: (l: LeituraContador) => l.leituraMonoAnterior },
+      { header: 'Contador Final', accessor: (l: LeituraContador) => l.leituraMonoAtual },
+      { header: 'Copias Realizadas', accessor: (l: LeituraContador) => l.copiasMono },
+      { header: 'Franquia', accessor: (l: LeituraContador) => l.franquiaMonoAplicada },
+      { header: 'Excedente', accessor: (l: LeituraContador) => l.excedenteMono },
+      { header: 'Valor Total R$', accessor: (l: LeituraContador) => l.valorTotal.toFixed(2) }
+    ];
+    exportToCsv('historico_contadores_item_' + (p.itemPedido || p.id), columns, list);
+    this.toast.success('Histórico de contadores exportado em .CSV com sucesso!');
+  }
+
+  exportarEmpenhosCSV(): void {
+    const list = this.empenhos();
+    const columns = [
+      { header: 'Numero Empenho', accessor: (e: EmpenhoImpressao) => e.numeroEmpenho },
+      { header: 'Exercicio', accessor: (e: EmpenhoImpressao) => e.ano },
+      { header: 'Secretaria', accessor: (e: EmpenhoImpressao) => e.secretariaSigla || '' },
+      { header: 'Descricao', accessor: (e: EmpenhoImpressao) => e.descricao || '' },
+      { header: 'Valor Total R$', accessor: (e: EmpenhoImpressao) => e.valorTotal.toFixed(2) },
+      { header: 'Saldo Restante R$', accessor: (e: EmpenhoImpressao) => e.saldo.toFixed(2) },
+      { header: 'Qtd Impressoras', accessor: (e: EmpenhoImpressao) => e.quantidadeImpressoras || 0 }
+    ];
+    exportToCsv('empenhos_impressao_' + new Date().getFullYear(), columns, list);
+    this.toast.success('Empenhos exportados em .CSV com sucesso!');
   }
 }

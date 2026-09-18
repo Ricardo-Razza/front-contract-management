@@ -1,307 +1,533 @@
-<app-header title="Gestão de Impressoras"></app-header>
-
 <div class="page-content">
+  <!-- CABEÇALHO -->
   <div class="page-title-group">
     <div class="title-with-badge">
-      <h1>Parque de Impressoras</h1>
+      <h1>Gestão de Outsourcing de Impressoras</h1>
       <span class="badge-total">{{ totalImpressoras() }} equipamentos</span>
     </div>
-    <p>Controle operacional de outsourcing de impressão, alocação por secretaria, leituras de contadores e rateio orçamentário</p>
+    <p>Controle patrimonial, alocações por secretaria, franquias, medições de contadores e empenhos orçamentários</p>
   </div>
 
-  @if (loading()) {
-    <app-loading-skeleton [rows]="6"></app-loading-skeleton>
-  } @else {
+  <!-- KPI CARDS (Centered, no underlines) -->
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-accent accent-blue"></div>
+      <div class="metric-icon-box blue">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 6 2 18 2 18 9"></polyline>
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+          <rect x="6" y="14" width="12" height="8"></rect>
+        </svg>
+      </div>
+      <div class="metric-content">
+        <span class="metric-val">{{ totalImpressoras() }}</span>
+        <span class="metric-lbl">Parque Total</span>
+      </div>
+    </div>
 
-    <!-- KPI METRICS -->
-    <div class="metrics-grid">
-      <div class="metric-card">
-        <div class="metric-accent accent-blue"></div>
-        <div class="metric-icon icon-blue">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+    <div class="metric-card">
+      <div class="metric-accent accent-green"></div>
+      <div class="metric-icon-box green">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+      </div>
+      <div class="metric-content">
+        <span class="metric-val">{{ totalAtivas() }}</span>
+        <span class="metric-lbl">Instaladas e Ativas</span>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-accent accent-slate"></div>
+      <div class="metric-icon-box slate">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="3" y1="9" x2="21" y2="9"></line>
+          <line x1="9" y1="21" x2="9" y2="9"></line>
+        </svg>
+      </div>
+      <div class="metric-content">
+        <span class="metric-val">{{ totalMono() }}</span>
+        <span class="metric-lbl">Monocromáticas</span>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-accent accent-purple"></div>
+      <div class="metric-icon-box purple">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <circle cx="12" cy="12" r="4"></circle>
+        </svg>
+      </div>
+      <div class="metric-content">
+        <span class="metric-val">{{ totalColor() }}</span>
+        <span class="metric-lbl">Policromáticas (Cor)</span>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-accent accent-orange"></div>
+      <div class="metric-icon-box orange">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+        </svg>
+      </div>
+      <div class="metric-content">
+        <span class="metric-val">{{ empenhos().length }}</span>
+        <span class="metric-lbl">Empenhos Vinculados</span>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-accent accent-teal"></div>
+      <div class="metric-icon-box teal">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="1" x2="12" y2="23"></line>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+        </svg>
+      </div>
+      <div class="metric-content">
+        <span class="metric-val">R$ {{ (totalValorFaturaMes() > 0 ? totalValorFaturaMes() : 5800) | number:'1.0-0' }}</span>
+        <span class="metric-lbl">Fatura Mensal Prevista</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- NAVEGAÇÃO POR ABAS -->
+  <div class="main-card">
+    <div class="card-header-tabs">
+      <div class="tabs-list">
+        <button class="nav-tab" [class.active]="activeTab() === 'INVENTARIO'" (click)="trocarAba('INVENTARIO')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="6 9 6 2 18 2 18 9"></polyline>
             <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
             <rect x="6" y="14" width="12" height="8"></rect>
           </svg>
-        </div>
-        <div class="metric-body">
-          <span class="metric-label">Parque Total</span>
-          <span class="metric-value">{{ totalImpressoras() }}</span>
-          <div class="metric-sub">
-            <span class="sub-chip chip-green">{{ totalAtivas() }} ativas</span>
-          </div>
-        </div>
-      </div>
+          Inventário de Impressoras
+        </button>
 
-      <div class="metric-card">
-        <div class="metric-accent accent-purple"></div>
-        <div class="metric-icon icon-purple">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="2" y1="12" x2="22" y2="12"></line>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        <button class="nav-tab" [class.active]="activeTab() === 'LEITURAS'" (click)="trocarAba('LEITURAS')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20v-6M6 20V10M18 20V4"></path>
           </svg>
-        </div>
-        <div class="metric-body">
-          <span class="metric-label">Comunicação IP</span>
-          <span class="metric-value">162</span>
-          <div class="metric-sub">
-            <span class="sub-chip chip-purple">IPs em rede</span>
-          </div>
-        </div>
-      </div>
+          Medição Mensal & Contadores
+        </button>
 
-      <div class="metric-card">
-        <div class="metric-accent accent-slate"></div>
-        <div class="metric-icon icon-slate">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="9" y1="3" x2="9" y2="21"></line>
-          </svg>
-        </div>
-        <div class="metric-body">
-          <span class="metric-label">Monocromáticas</span>
-          <span class="metric-value">{{ totalMono() }}</span>
-          <div class="metric-sub">
-            <span class="sub-chip chip-gray">P/B pequeno e médio</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-accent accent-teal"></div>
-        <div class="metric-icon icon-teal">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-            <circle cx="12" cy="12" r="4"></circle>
-            <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"></path>
-          </svg>
-        </div>
-        <div class="metric-body">
-          <span class="metric-label">Policromáticas</span>
-          <span class="metric-value">{{ totalColor() }}</span>
-          <div class="metric-sub">
-            <span class="sub-chip chip-purple">Híbridas Color</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-accent accent-orange"></div>
-        <div class="metric-icon icon-orange">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-            <path d="M12 2v20"></path>
+        <button class="nav-tab" [class.active]="activeTab() === 'FATURAMENTO'" (click)="trocarAba('FATURAMENTO')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="1" x2="12" y2="23"></line>
             <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
           </svg>
-        </div>
-        <div class="metric-body">
-          <span class="metric-label">Lotes Contratados</span>
-          <span class="metric-value">3</span>
-          <div class="metric-sub">
-            <span class="sub-chip chip-gray">Lotes 01, 03 e 04</span>
-          </div>
-        </div>
+          Espelho de Fatura & Empenhos
+        </button>
+
+        <button class="nav-tab" [class.active]="activeTab() === 'LOTES'" (click)="trocarAba('LOTES')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+          </svg>
+          Lotes Contratuais
+        </button>
       </div>
 
-      <div class="metric-card">
-        <div class="metric-accent accent-green"></div>
-        <div class="metric-icon icon-green">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-            <path d="M3 21h18"></path>
-            <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"></path>
-          </svg>
-        </div>
-        <div class="metric-body">
-          <span class="metric-label">Secretarias</span>
-          <span class="metric-value">15</span>
-          <div class="metric-sub">
-            <span class="sub-chip chip-green">Órgãos atendidos</span>
-          </div>
-        </div>
+      <div class="header-actions">
+        @if (activeTab() === 'INVENTARIO') {
+          <button class="btn btn-secondary btn-sm" (click)="exportarInventarioCSV()" title="Exportar inventário para Excel/CSV">
+            Exportar (.CSV)
+          </button>
+          <button class="btn btn-primary btn-sm" (click)="openCreateModal()">
+            + Nova Impressora
+          </button>
+        } @else if (activeTab() === 'LEITURAS') {
+          <button class="btn btn-secondary btn-sm" (click)="exportarMedicaoCSV()" title="Exportar leituras para CSV">
+            Exportar Medição (.CSV)
+          </button>
+          <button class="btn btn-primary btn-sm" (click)="openLeituraModal()">
+            + Lançar Leitura
+          </button>
+        } @else if (activeTab() === 'FATURAMENTO') {
+          <button class="btn btn-secondary btn-sm" (click)="exportarEmpenhosCSV()" title="Exportar relação de empenhos">
+            Exportar Empenhos (.CSV)
+          </button>
+          <button class="btn btn-primary btn-sm" (click)="openCreateEmpenhoModal()">
+            + Novo Empenho
+          </button>
+        }
       </div>
     </div>
 
-    <!-- MAIN TABS CONTAINER -->
-    <div class="dash-card">
-      <div class="card-header-tabs">
-        <div class="tabs-group">
-          <button class="nav-tab" [class.active]="activeTab() === 'INVENTARIO'" (click)="trocarAba('INVENTARIO')">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-              <line x1="8" y1="21" x2="16" y2="21"></line>
-              <line x1="12" y1="17" x2="12" y2="21"></line>
-            </svg>
-            Inventário de Impressoras
-            <span class="tab-badge">{{ filteredPrinters().length }}</span>
-          </button>
-
-          <button class="nav-tab" [class.active]="activeTab() === 'LEITURAS'" (click)="trocarAba('LEITURAS')">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            Medição Mensal & Contadores
-          </button>
-
-          <button class="nav-tab" [class.active]="activeTab() === 'FATURAMENTO'" (click)="trocarAba('FATURAMENTO')">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="1" x2="12" y2="23"></line>
-              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-            </svg>
-            Espelho de Fatura / Empenhos
-          </button>
-
-          <button class="nav-tab" [class.active]="activeTab() === 'LOTES'" (click)="trocarAba('LOTES')">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-            </svg>
-            Lotes Contratuais
-          </button>
+    <!-- ============================================================ -->
+    <!-- TAB 1: INVENTÁRIO DE IMPRESSORAS -->
+    <!-- ============================================================ -->
+    @if (activeTab() === 'INVENTARIO') {
+      <div class="table-header-toolbar">
+        <div class="search-box">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text"
+                 placeholder="Buscar por IP, Modelo, Local, Secretaria, Empenho..."
+                 [value]="globalSearch()"
+                 (input)="globalSearch.set($any($event.target).value)" />
         </div>
 
-        <div class="header-actions">
-          @if (activeTab() === 'INVENTARIO') {
-            <button class="btn btn-secondary btn-sm" (click)="exportarInventarioCSV()" title="Exportar inventário para Excel/CSV">
-              Exportar (.CSV)
-            </button>
-            <button class="btn btn-primary btn-sm" (click)="openCreateModal()">
-              + Nova Impressora
-            </button>
-          } @else if (activeTab() === 'LEITURAS') {
-            <button class="btn btn-secondary btn-sm" (click)="exportarMedicaoCSV()" title="Exportar leituras para CSV">
-              Exportar Medição (.CSV)
-            </button>
-            <button class="btn btn-primary btn-sm" (click)="openLeituraModal()">
-              + Lançar Leitura
-            </button>
-          }
+        <div class="filters-row">
+          <select class="form-select select-sm"
+                  [value]="filterSecretaria()"
+                  (change)="filterSecretaria.set($any($event.target).value)">
+            <option value="">Todas as Secretarias</option>
+            @for (sec of secretariats(); track sec.id) {
+              <option [value]="sec.sigla">{{ sec.sigla }} - {{ sec.nome }}</option>
+            }
+          </select>
+
+          <select class="form-select select-sm"
+                  [value]="filterEmpenho()"
+                  (change)="filterEmpenho.set($any($event.target).value); currentPage.set(1)">
+            <option value="">Todos os Empenhos</option>
+            @for (e of empenhos(); track e.id) {
+              <option [value]="e.numeroEmpenho">Empenho {{ e.numeroEmpenho }} ({{ e.secretariaSigla }})</option>
+            }
+          </select>
+
+          <select class="form-select select-sm"
+                  [value]="filterLote()"
+                  (change)="filterLote.set($any($event.target).value)">
+            <option value="">Todos os Lotes</option>
+            @for (lote of lotes(); track lote.id) {
+              <option [value]="lote.numeroLote">Lote {{ lote.numeroLote }} ({{ lote.descricao }})</option>
+            }
+          </select>
         </div>
       </div>
 
-      <!-- TAB 1: INVENTÁRIO -->
-      @if (activeTab() === 'INVENTARIO') {
-        <div class="table-header-toolbar">
-          <div class="search-box">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text"
-                   placeholder="Buscar por IP, Modelo, Local, Secretaria..."
-                   [value]="globalSearch()"
-                   (input)="globalSearch.set($any($event.target).value)" />
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Empenho</th>
+              <th>Secretaria</th>
+              <th>Local de Instalação</th>
+              <th>Fabricante / Modelo</th>
+              <th>Tipo</th>
+              <th>Lote</th>
+              <th>Endereço IP</th>
+              <th>Último Contador</th>
+              <th>Status</th>
+              <th style="text-align: right;">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of paginatedPrinters(); track p.id) {
+              <tr>
+                <td>
+                  <strong>#{{ p.itemPedido || p.id }}</strong>
+                </td>
+                <td>
+                  @if (p.numeroEmpenho) {
+                    <span class="badge-empenho" title="Empenho orçamentário vinculado">Emp. {{ p.numeroEmpenho }}</span>
+                  } @else {
+                    <span class="text-muted" style="font-size: 0.8rem;">—</span>
+                  }
+                </td>
+                <td>
+                  <span class="sec-tag">{{ p.secretariaSigla || '—' }}</span>
+                </td>
+                <td class="td-truncate" [title]="p.localInstalacao">
+                  <strong>{{ p.localInstalacao }}</strong>
+                  @if (p.endereco) {
+                    <span class="td-sub">{{ p.endereco }}</span>
+                  }
+                </td>
+                <td>
+                  <span>{{ p.fabricante }} {{ p.modelo }}</span>
+                  @if (p.numeroSerie) {
+                    <span class="td-sub">S/N: {{ p.numeroSerie }}</span>
+                  }
+                </td>
+                <td>
+                  @if (p.tipoImpressao === 'COLOR') {
+                    <span class="badge-tipo tipo-color">Color</span>
+                  } @else {
+                    <span class="badge-tipo tipo-mono">Mono (P/B)</span>
+                  }
+                </td>
+                <td>
+                  <span class="badge-lote">Lote {{ p.numeroLote || '1' }}</span>
+                </td>
+                <td>
+                  @if (p.ip) {
+                    <code class="ip-code">{{ p.ip }}</code>
+                  } @else {
+                    <span class="text-muted" style="font-size: 0.8rem;">Sem IP</span>
+                  }
+                </td>
+                <td>
+                  <strong>{{ p.ultimoContadorMono | number }}</strong>
+                </td>
+                <td>
+                  <span class="badge-status status-active">
+                    <span class="dot"></span>
+                    {{ p.statusInstalacao || 'ATIVA' }}
+                  </span>
+                </td>
+                <td class="actions-cell">
+                  <button class="btn-action btn-history" title="Ver Histórico de Leituras e Contadores" (click)="abrirHistoricoContadores(p)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                  </button>
+                  <button class="btn-action" title="Ver ficha técnica" (click)="openDetailsModal(p)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                  </button>
+                  <button class="btn-action btn-move" title="Remanejar para outro setor" (click)="openRemanejarModal(p)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+                  </button>
+                  <button class="btn-action btn-swap" title="Trocar por defeito (Swap)" (click)="openSubstituirModal(p)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                  </button>
+                  <button class="btn-action" title="Editar dados" (click)="openEditModal(p)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                  </button>
+                  <button class="btn-action btn-danger" title="Inativar/Recolher" (click)="confirmarExclusao(p)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="11">
+                  <div class="table-empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    <h4>Nenhuma impressora encontrada</h4>
+                    <p>Tente ajustar os filtros de pesquisa ou cadastre um novo equipamento.</p>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <app-pagination
+        [currentPage]="currentPage()"
+        [totalItems]="filteredPrinters().length"
+        [pageSize]="pageSize()"
+        (pageChange)="currentPage.set($event)">
+      </app-pagination>
+    }
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: MEDIÇÃO MENSAL & CONTADORES -->
+    <!-- ============================================================ -->
+    @if (activeTab() === 'LEITURAS') {
+      <div class="table-header-toolbar">
+        <div class="search-box" style="max-width: 280px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text"
+                 placeholder="Filtrar por item, setor, IP..."
+                 [value]="termoBuscaLeituras()"
+                 (input)="termoBuscaLeituras.set($any($event.target).value)" />
+        </div>
+
+        <div class="filters-row">
+          <label class="form-label" style="margin: 0; font-weight: 600;">Competência:</label>
+          <select class="form-select select-sm" [value]="mesCompetencia()" (change)="mesCompetencia.set(+$any($event.target).value); carregarLeiturasCompetencia()">
+            <option [value]="1">Janeiro</option>
+            <option [value]="2">Fevereiro</option>
+            <option [value]="3">Março</option>
+            <option [value]="4">Abril</option>
+            <option [value]="5">Maio</option>
+            <option [value]="6">Junho</option>
+            <option [value]="7">Julho</option>
+            <option [value]="8">Agosto</option>
+            <option [value]="9">Setembro</option>
+            <option [value]="10">Outubro</option>
+            <option [value]="11">Novembro</option>
+            <option [value]="12">Dezembro</option>
+          </select>
+
+          <select class="form-select select-sm" [value]="anoCompetencia()" (change)="anoCompetencia.set(+$any($event.target).value); carregarLeiturasCompetencia()">
+            <option [value]="2026">2026</option>
+            <option [value]="2025">2025</option>
+          </select>
+
+          <select class="form-select select-sm" [value]="filtroSecretariaLeituras()" (change)="filtroSecretariaLeituras.set($any($event.target).value)">
+            <option value="">Todas Secretarias</option>
+            @for (s of secretariats(); track s.id) {
+              <option [value]="s.sigla">{{ s.sigla }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="medicao-summary-pills">
+          <span class="summary-pill">Páginas Mono: <strong>{{ totalCopiasMonoMes() | number }}</strong></span>
+          <span class="summary-pill pill-alert">Excedente: <strong>{{ totalExcedenteMes() | number }}</strong></span>
+          <span class="summary-pill pill-success">Fatura Mês: <strong>R$ {{ totalValorFaturaMes() | number:'1.2-2' }}</strong></span>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Secretaria</th>
+              <th>Local de Instalação</th>
+              <th>Modelo</th>
+              <th>IP</th>
+              <th>Leitura Anterior</th>
+              <th>Leitura Atual</th>
+              <th>Cópias Mono</th>
+              <th>Franquia</th>
+              <th>Excedente</th>
+              <th>Locação R$</th>
+              <th>Excedente R$</th>
+              <th>Total R$</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (l of filteredLeituras(); track l.id) {
+              <tr>
+                <td><strong>#{{ l.itemPedido || l.impressoraId }}</strong></td>
+                <td><span class="sec-tag">{{ l.secretariaSigla || '—' }}</span></td>
+                <td class="td-truncate" [title]="l.localInstalacao">{{ l.localInstalacao }}</td>
+                <td>{{ l.impressoraModelo }}</td>
+                <td><code>{{ l.impressoraIp || '—' }}</code></td>
+                <td>{{ l.leituraMonoAnterior | number }}</td>
+                <td><strong>{{ l.leituraMonoAtual | number }}</strong></td>
+                <td><span class="badge-count">{{ l.copiasMono | number }}</span></td>
+                <td>{{ l.franquiaMonoAplicada | number }}</td>
+                <td>
+                  @if (l.excedenteMono > 0) {
+                    <span class="text-danger" style="font-weight: 700;">+{{ l.excedenteMono | number }}</span>
+                  } @else {
+                    <span class="text-muted">0</span>
+                  }
+                </td>
+                <td>R$ {{ l.valorLocacao | number:'1.2-2' }}</td>
+                <td>R$ {{ l.valorExcedenteMono | number:'1.2-2' }}</td>
+                <td><strong>R$ {{ l.valorTotal | number:'1.2-2' }}</strong></td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="13">
+                  <div class="table-empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20v-6M6 20V10M18 20V4"></path></svg>
+                    <h4>Nenhuma leitura registrada para esta competência</h4>
+                    <p>Clique em "+ Lançar Leitura" para realizar a medição mensal deste mês.</p>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: FATURAMENTO & EMPENHOS -->
+    <!-- ============================================================ -->
+    @if (activeTab() === 'FATURAMENTO') {
+      <div class="faturamento-container">
+        <div class="faturamento-header-box">
+          <div>
+            <h3>Gestão de Empenhos & Espelho de Medição</h3>
+            <p>Acompanhamento das dotações orçamentárias por secretaria e conferência de faturas contratuais</p>
           </div>
-
-          <div class="filters-row">
-            <select class="form-select select-sm"
-                    [value]="filterSecretaria()"
-                    (change)="filterSecretaria.set($any($event.target).value)">
-              <option value="">Todas as Secretarias</option>
-              @for (sec of secretariats(); track sec.id) {
-                <option [value]="sec.sigla">{{ sec.sigla }} - {{ sec.nome }}</option>
-              }
-            </select>
-
-            <select class="form-select select-sm"
-                    [value]="filterLote()"
-                    (change)="filterLote.set($any($event.target).value)">
-              <option value="">Todos os Lotes</option>
-              @for (lote of lotes(); track lote.id) {
-                <option [value]="lote.numeroLote">Lote {{ lote.numeroLote }} ({{ lote.descricao }})</option>
-              }
-            </select>
+          <div class="faturamento-totals" style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-secondary btn-sm" (click)="exportarEmpenhosCSV()">
+              Exportar Empenhos (.CSV)
+            </button>
+            <button class="btn btn-primary btn-sm" (click)="openCreateEmpenhoModal()">
+              + Novo Empenho
+            </button>
           </div>
         </div>
 
-        <div class="table-responsive">
+        <!-- EMPENHO KPI CARDS -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+          <div class="empenho-metric-card">
+            <span class="metric-title">Total Empenhado</span>
+            <span class="metric-number">R$ {{ totalEmpenhadoGeral() | number:'1.2-2' }}</span>
+          </div>
+          <div class="empenho-metric-card">
+            <span class="metric-title">Saldo Disponível</span>
+            <span class="metric-number" style="color: #16a34a;">R$ {{ totalSaldoEmpenhos() | number:'1.2-2' }}</span>
+          </div>
+          <div class="empenho-metric-card">
+            <span class="metric-title">Equipamentos Cobertos</span>
+            <span class="metric-number">{{ totalMaquinasEmpenhadas() }} un</span>
+          </div>
+          <div class="empenho-metric-card">
+            <span class="metric-title">Empenhos Ativos</span>
+            <span class="metric-number">{{ empenhos().length }}</span>
+          </div>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-size: 1.05rem; font-weight: 700; color: #1e293b;">Relação de Empenhos Orçamentários</h4>
+        <div class="table-responsive" style="margin-bottom: 2rem;">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Item</th>
+                <th>Nº Empenho</th>
+                <th>Exercício</th>
                 <th>Secretaria</th>
-                <th>Local de Instalação</th>
-                <th>Fabricante / Modelo</th>
-                <th>Tipo</th>
-                <th>Lote</th>
-                <th>Endereço IP</th>
-                <th>Último Contador</th>
+                <th>Descrição / Finalidade</th>
+                <th>Valor Empenhado</th>
+                <th>Saldo Restante</th>
+                <th>Máquinas Vinculadas</th>
                 <th>Status</th>
                 <th style="text-align: right;">Ações</th>
               </tr>
             </thead>
             <tbody>
-              @for (p of paginatedPrinters(); track p.id) {
+              @for (emp of empenhos(); track emp.id) {
                 <tr>
+                  <td><strong class="badge-empenho">Emp. {{ emp.numeroEmpenho }}</strong></td>
+                  <td>{{ emp.ano }}</td>
+                  <td><span class="sec-tag">{{ emp.secretariaSigla || '—' }}</span></td>
+                  <td class="td-truncate" [title]="emp.descricao">{{ emp.descricao || 'Outsourcing de Impressão' }}</td>
+                  <td><strong>R$ {{ emp.valorTotal | number:'1.2-2' }}</strong></td>
+                  <td style="color: #16a34a; font-weight: 600;">R$ {{ emp.saldo | number:'1.2-2' }}</td>
                   <td>
-                    <strong>#{{ p.itemPedido || p.id }}</strong>
-                  </td>
-                  <td>
-                    <span class="sec-tag">{{ p.secretariaSigla || '—' }}</span>
-                  </td>
-                  <td class="td-truncate" [title]="p.localInstalacao">
-                    <strong>{{ p.localInstalacao }}</strong>
-                    @if (p.endereco) {
-                      <span class="td-sub">{{ p.endereco }}</span>
-                    }
-                  </td>
-                  <td>
-                    <span>{{ p.fabricante }} {{ p.modelo }}</span>
-                    @if (p.numeroSerie) {
-                      <span class="td-sub">S/N: {{ p.numeroSerie }}</span>
-                    }
-                  </td>
-                  <td>
-                    <span class="type-pill" [class.pill-color]="p.tipoImpressao === 'COLOR'">
-                      {{ p.tipoImpressao === 'COLOR' ? 'Color' : 'P/B' }}
-                    </span>
-                  </td>
-                  <td>
-                    <span class="lote-badge">Lote {{ p.numeroLote || '—' }}</span>
-                  </td>
-                  <td>
-                    @if (p.ip) {
-                      <code class="ip-tag">{{ p.ip }}</code>
-                    } @else {
-                      <span class="text-muted">—</span>
-                    }
-                  </td>
-                  <td>
-                    <strong>{{ (p.ultimoContadorMono || 0) | number }}</strong>
-                    @if (p.tipoImpressao === 'COLOR') {
-                      <span class="td-sub" style="color: #7c3aed;">Color: {{ (p.ultimoContadorColor || 0) | number }}</span>
-                    }
+                    <button class="btn btn-sm" style="padding: 2px 8px; font-size: 0.75rem; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer;" (click)="filtrarPorEmpenhoNoInventario(emp.numeroEmpenho)" title="Filtrar impressoras deste empenho no inventário">
+                      {{ emp.quantidadeImpressoras || 0 }} máquinas &rarr;
+                    </button>
                   </td>
                   <td>
                     <span class="badge-status status-active">
                       <span class="dot"></span>
-                      {{ p.statusInstalacao || 'ATIVA' }}
+                      {{ emp.ativo ? 'ATIVO' : 'INATIVO' }}
                     </span>
                   </td>
                   <td class="actions-cell">
-                    <button class="btn-action" title="Ver ficha técnica" (click)="openDetailsModal(p)">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                    </button>
-                    <button class="btn-action btn-move" title="Remanejar para outro setor" (click)="openRemanejarModal(p)">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
-                    </button>
-                    <button class="btn-action btn-swap" title="Trocar por defeito (Swap)" (click)="openSubstituirModal(p)">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
-                    </button>
-                    <button class="btn-action" title="Editar dados" (click)="openEditModal(p)">
+                    <button class="btn-action" title="Editar empenho" (click)="openEditEmpenhoModal(emp)">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                     </button>
-                    <button class="btn-action btn-danger" title="Inativar/Recolher" (click)="confirmDelete(p)">
+                    <button class="btn-action btn-danger" title="Inativar empenho" (click)="confirmarExcluirEmpenho(emp)">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                     </button>
                   </td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="10">
+                  <td colspan="9">
                     <div class="table-empty-state">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                      <h4>Nenhuma impressora encontrada</h4>
-                      <p>Tente ajustar os filtros de pesquisa ou cadastre um novo equipamento.</p>
+                      <h4>Nenhum empenho cadastrado</h4>
+                      <p>Clique em "+ Novo Empenho" para vincular dotações orçamentárias.</p>
                     </div>
                   </td>
                 </tr>
@@ -310,223 +536,116 @@
           </table>
         </div>
 
-        <app-pagination
-          [currentPage]="currentPage()"
-          [totalItems]="filteredPrinters().length"
-          [pageSize]="pageSize()"
-          (pageChange)="currentPage.set($event)">
-        </app-pagination>
-      }
-
-      <!-- TAB 2: MEDIÇÃO MENSAL -->
-      @if (activeTab() === 'LEITURAS') {
-        <div class="table-header-toolbar">
-          <div class="filters-row">
-            <label class="form-label" style="margin: 0; font-weight: 600;">Competência:</label>
-            <select class="form-select select-sm" [value]="mesCompetencia()" (change)="mesCompetencia.set(+$any($event.target).value); carregarLeiturasCompetencia()">
-              <option [value]="1">Janeiro</option>
-              <option [value]="2">Fevereiro</option>
-              <option [value]="3">Março</option>
-              <option [value]="4">Abril</option>
-              <option [value]="5">Maio</option>
-              <option [value]="6">Junho</option>
-              <option [value]="7">Julho</option>
-              <option [value]="8">Agosto</option>
-              <option [value]="9">Setembro</option>
-              <option [value]="10">Outubro</option>
-              <option [value]="11">Novembro</option>
-              <option [value]="12">Dezembro</option>
-            </select>
-
-            <select class="form-select select-sm" [value]="anoCompetencia()" (change)="anoCompetencia.set(+$any($event.target).value); carregarLeiturasCompetencia()">
-              <option [value]="2026">2026</option>
-              <option [value]="2025">2025</option>
-            </select>
-          </div>
-
-          <div class="medicao-summary-pills">
-            <span class="summary-pill">Páginas Mono: <strong>{{ totalCopiasMonoMes() | number }}</strong></span>
-            <span class="summary-pill">Páginas Color: <strong>{{ totalCopiasColorMes() | number }}</strong></span>
-            <span class="summary-pill pill-alert">Excedente: <strong>{{ totalExcedenteMes() | number }}</strong></span>
-            <span class="summary-pill pill-success">Fatura Prevista: <strong>R$ {{ totalValorFaturaMes() | number:'1.2-2' }}</strong></span>
-          </div>
-        </div>
-
+        <h4 style="margin-bottom: 0.75rem; font-size: 1.05rem; font-weight: 700; color: #1e293b;">Espelho Contratual por Lote</h4>
         <div class="table-responsive">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Item</th>
-                <th>Secretaria</th>
-                <th>Local</th>
-                <th>Modelo</th>
-                <th>IP</th>
-                <th>Leitura Anterior</th>
-                <th>Leitura Atual</th>
-                <th>Cópias Mono</th>
-                <th>Franquia</th>
-                <th>Excedente</th>
-                <th>Locação R$</th>
-                <th>Excedente R$</th>
-                <th>Total R$</th>
+                <th>Lote Contratual</th>
+                <th>Tipo de Cobrança</th>
+                <th>Qtd Máquinas</th>
+                <th>Valor Fixo Unitário</th>
+                <th>Subtotal Locação</th>
+                <th>Páginas Excedentes</th>
+                <th>Valor por Cópia</th>
+                <th>Subtotal Excedente</th>
+                <th>Total do Lote</th>
               </tr>
             </thead>
             <tbody>
-              @for (l of leituras(); track l.id) {
-                <tr>
-                  <td><strong>#{{ l.itemPedido || l.impressoraId }}</strong></td>
-                  <td><span class="sec-tag">{{ l.secretariaSigla || '—' }}</span></td>
-                  <td class="td-truncate" [title]="l.localInstalacao">{{ l.localInstalacao }}</td>
-                  <td>{{ l.impressoraModelo }}</td>
-                  <td><code>{{ l.impressoraIp || '—' }}</code></td>
-                  <td>{{ l.leituraMonoAnterior | number }}</td>
-                  <td><strong>{{ l.leituraMonoAtual | number }}</strong></td>
-                  <td><span class="badge-count">{{ l.copiasMono | number }}</span></td>
-                  <td>{{ l.franquiaMonoAplicada | number }}</td>
-                  <td>
-                    @if (l.excedenteMono > 0) {
-                      <span class="text-danger" style="font-weight: 700;">+{{ l.excedenteMono | number }}</span>
-                    } @else {
-                      <span class="text-muted">0</span>
-                    }
-                  </td>
-                  <td>R$ {{ l.valorLocacao | number:'1.2-2' }}</td>
-                  <td>R$ {{ l.valorExcedenteMono | number:'1.2-2' }}</td>
-                  <td><strong>R$ {{ l.valorTotal | number:'1.2-2' }}</strong></td>
-                </tr>
-              } @empty {
-                <tr>
-                  <td colspan="13">
-                    <div class="table-empty-state">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                      <h4>Nenhuma leitura apurada para {{ mesCompetencia() }}/{{ anoCompetencia() }}</h4>
-                      <p>Clique em "+ Lançar Leitura" para registrar os contadores do mês.</p>
-                    </div>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-
-      <!-- TAB 3: FATURAMENTO & NOTAS FISCAIS -->
-      @if (activeTab() === 'FATURAMENTO') {
-        <div class="faturamento-container">
-          <div class="faturamento-header-box">
-            <div>
-              <h3>Espelho de Medição e Notas Fiscais</h3>
-              <p>Conferência dos valores por lote contratual e empenho para atesto de pagamento</p>
-            </div>
-            <div class="faturamento-totals">
-              <span class="total-badge-lg">Total Competência: R$ {{ totalValorFaturaMes() | number:'1.2-2' }}</span>
-            </div>
-          </div>
-
-          <div class="table-responsive">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Lote Contratual</th>
-                  <th>Tipo de Cobrança</th>
-                  <th>Qtd Máquinas</th>
-                  <th>Valor Fixo Unitário</th>
-                  <th>Subtotal Locação</th>
-                  <th>Páginas Excedentes</th>
-                  <th>Valor por Cópia</th>
-                  <th>Subtotal Excedente</th>
-                  <th>Total do Lote</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><strong>LOTE 01</strong></td>
-                  <td>Multifuncional Laser P/B (Pequeno/Médio)</td>
-                  <td>142 un</td>
-                  <td>R$ 30,00</td>
-                  <td>R$ 4.260,00</td>
-                  <td>{{ totalExcedenteMes() | number }} un</td>
-                  <td>R$ 0,030</td>
-                  <td>R$ {{ (totalExcedenteMes() * 0.03) | number:'1.2-2' }}</td>
-                  <td><strong>R$ {{ (4260 + (totalExcedenteMes() * 0.03)) | number:'1.2-2' }}</strong></td>
-                </tr>
-                <tr>
-                  <td><strong>LOTE 03</strong></td>
-                  <td>Multifuncional Laser Policromática Híbrida</td>
-                  <td>5 un</td>
-                  <td>R$ 204,00</td>
-                  <td>R$ 1.020,00</td>
-                  <td>0 un</td>
-                  <td>R$ 0,040 (PB) / R$ 0,290 (Cor)</td>
-                  <td>R$ 0,00</td>
-                  <td><strong>R$ 1.020,00</strong></td>
-                </tr>
-                <tr>
-                  <td><strong>LOTE 04</strong></td>
-                  <td>Impressora Laser Monocromática Simples</td>
-                  <td>20 un</td>
-                  <td>R$ 26,00</td>
-                  <td>R$ 520,00</td>
-                  <td>0 un</td>
-                  <td>R$ 0,020</td>
-                  <td>R$ 0,00</td>
-                  <td><strong>R$ 520,00</strong></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      }
-
-      <!-- TAB 4: LOTES CONTRATUAIS -->
-      @if (activeTab() === 'LOTES') {
-        <div class="table-responsive">
-          <table class="data-table">
-            <thead>
               <tr>
-                <th>Lote</th>
-                <th>Descrição do Equipamento</th>
-                <th>Tipo</th>
-                <th>Franquia Mensal P/B</th>
-                <th>Franquia Mensal Color</th>
-                <th>Valor Locação / Mês</th>
-                <th>Valor Cópia Adicional P/B</th>
-                <th>Valor Cópia Adicional Color</th>
-                <th>Status</th>
+                <td><strong>LOTE 01</strong></td>
+                <td>Multifuncional Laser P/B (Pequeno/Médio)</td>
+                <td>142 un</td>
+                <td>R$ 30,00</td>
+                <td>R$ 4.260,00</td>
+                <td>{{ totalExcedenteMes() | number }} un</td>
+                <td>R$ 0,030</td>
+                <td>R$ {{ (totalExcedenteMes() * 0.03) | number:'1.2-2' }}</td>
+                <td><strong>R$ {{ (4260 + (totalExcedenteMes() * 0.03)) | number:'1.2-2' }}</strong></td>
               </tr>
-            </thead>
-            <tbody>
-              @for (lote of lotes(); track lote.id) {
-                <tr>
-                  <td><span class="lote-badge">Lote {{ lote.numeroLote }}</span></td>
-                  <td><strong>{{ lote.descricao }}</strong></td>
-                  <td><span class="type-pill" [class.pill-color]="lote.tipo === 'COLOR'">{{ lote.tipo }}</span></td>
-                  <td>{{ lote.franquiaMono | number }} páginas</td>
-                  <td>{{ lote.franquiaColor | number }} páginas</td>
-                  <td><strong>R$ {{ lote.valorLocacaoMensal | number:'1.2-2' }}</strong></td>
-                  <td>R$ {{ lote.valorExcedenteMono | number:'1.4-4' }}</td>
-                  <td>R$ {{ lote.valorExcedenteColor | number:'1.4-4' }}</td>
-                  <td><span class="badge-status status-active"><span class="dot"></span>Ativo</span></td>
-                </tr>
-              }
+              <tr>
+                <td><strong>LOTE 03</strong></td>
+                <td>Multifuncional Laser Policromática Híbrida</td>
+                <td>5 un</td>
+                <td>R$ 204,00</td>
+                <td>R$ 1.020,00</td>
+                <td>0 un</td>
+                <td>R$ 0,040 (PB) / R$ 0,290 (Cor)</td>
+                <td>R$ 0,00</td>
+                <td><strong>R$ 1.020,00</strong></td>
+              </tr>
+              <tr>
+                <td><strong>LOTE 04</strong></td>
+                <td>Impressora Laser Monocromática Simples</td>
+                <td>20 un</td>
+                <td>R$ 26,00</td>
+                <td>R$ 520,00</td>
+                <td>0 un</td>
+                <td>R$ 0,020</td>
+                <td>R$ 0,00</td>
+                <td><strong>R$ 520,00</strong></td>
+              </tr>
             </tbody>
           </table>
         </div>
-      }
+      </div>
+    }
 
-    </div>
+    <!-- ============================================================ -->
+    <!-- TAB 4: LOTES CONTRATUAIS -->
+    <!-- ============================================================ -->
+    @if (activeTab() === 'LOTES') {
+      <div class="lotes-grid">
+        @for (lote of lotes(); track lote.id) {
+          <div class="lote-card">
+            <div class="lote-card-header">
+              <span class="lote-badge">LOTE 0{{ lote.numeroLote }}</span>
+              <span class="badge-status status-active">{{ lote.tipo }}</span>
+            </div>
+            <h3>{{ lote.descricao }}</h3>
 
-  }
+            <div class="lote-specs">
+              <div class="spec-row">
+                <span>Franquia Mensal P/B:</span>
+                <strong>{{ lote.franquiaMono | number }} cópias</strong>
+              </div>
+              @if (lote.franquiaColor > 0) {
+                <div class="spec-row">
+                  <span>Franquia Mensal Cor:</span>
+                  <strong>{{ lote.franquiaColor | number }} cópias</strong>
+                </div>
+              }
+              <div class="spec-row">
+                <span>Valor Locação / Equipamento:</span>
+                <strong>R$ {{ lote.valorLocacaoMensal | number:'1.2-2' }}</strong>
+              </div>
+              <div class="spec-row">
+                <span>Excedente P/B por cópia:</span>
+                <strong>R$ {{ lote.valorExcedenteMono | number:'1.3-3' }}</strong>
+              </div>
+              @if (lote.valorExcedenteColor > 0) {
+                <div class="spec-row">
+                  <span>Excedente Color por cópia:</span>
+                  <strong>R$ {{ lote.valorExcedenteColor | number:'1.3-3' }}</strong>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
 </div>
 
 <!-- ============================================================ -->
-<!-- MODAL: NOVA / EDITAR IMPRESSORA -->
+<!-- MODAL: CADASTRAR / EDITAR IMPRESSORA -->
 <!-- ============================================================ -->
 @if (isModalOpen()) {
   <div class="modal-overlay" (click)="closeModal()">
     <div class="modal-container modal-lg" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h2>{{ isEditMode() ? 'Editar Impressora' : 'Cadastrar Nova Impressora' }}</h2>
+        <h2>{{ isEditMode() ? 'Editar Equipamento' : 'Cadastrar Nova Impressora' }}</h2>
         <button class="modal-close-btn" (click)="closeModal()">&times;</button>
       </div>
 
@@ -534,18 +653,25 @@
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-group">
-              <label class="form-label">Item do Pedido:</label>
-              <input type="number" class="form-control" formControlName="itemPedido" placeholder="Ex: 1, 2, 501" />
+              <label class="form-label">Item do Pedido / Nº Ordem: *</label>
+              <input type="number" class="form-control" formControlName="itemPedido" placeholder="Ex: 85" />
             </div>
 
             <div class="form-group">
               <label class="form-label">Número de Série (S/N):</label>
-              <input type="text" class="form-control" formControlName="numeroSerie" placeholder="Serial do fabricante" />
+              <input type="text" class="form-control" formControlName="numeroSerie" placeholder="Ex: W933M400123" />
             </div>
 
             <div class="form-group">
               <label class="form-label">Fabricante: *</label>
-              <input type="text" class="form-control" formControlName="fabricante" placeholder="Ex: Ricoh, Pantum" />
+              <select class="form-select" formControlName="fabricante">
+                <option value="Ricoh">Ricoh</option>
+                <option value="Samsung">Samsung</option>
+                <option value="HP">HP</option>
+                <option value="Pantum">Pantum</option>
+                <option value="Lexmark">Lexmark</option>
+                <option value="Brother">Brother</option>
+              </select>
             </div>
 
             <div class="form-group">
@@ -585,6 +711,16 @@
               </select>
             </div>
 
+            <div class="form-group">
+              <label class="form-label">Empenho Vinculado:</label>
+              <select class="form-select" formControlName="empenhoId">
+                <option value="">Nenhum empenho vinculado</option>
+                @for (emp of empenhos(); track emp.id) {
+                  <option [value]="emp.id">Empenho {{ emp.numeroEmpenho }} ({{ emp.secretariaSigla }})</option>
+                }
+              </select>
+            </div>
+
             <div class="form-group full-width">
               <label class="form-label">Local de Instalação / Sala / Setor: *</label>
               <input type="text" class="form-control" formControlName="localInstalacao" placeholder="Ex: SMS – USF Centro II – Consultório Dentista" />
@@ -619,18 +755,13 @@
                 <label class="form-label">Contador Inicial Mono:</label>
                 <input type="number" class="form-control" formControlName="contadorInicialMono" />
               </div>
-
-              <div class="form-group">
-                <label class="form-label">Contador Inicial Color:</label>
-                <input type="number" class="form-control" formControlName="contadorInicialColor" />
-              </div>
             }
           </div>
         </div>
 
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">{{ isEditMode() ? 'Salvar Alterações' : 'Cadastrar Impressora' }}</button>
+          <button type="submit" class="btn btn-primary">{{ isEditMode() ? 'Atualizar Equipamento' : 'Salvar Equipamento' }}</button>
         </div>
       </form>
     </div>
@@ -638,26 +769,26 @@
 }
 
 <!-- ============================================================ -->
-<!-- MODAL: REMANEJAR LOCAL (MUDANÇA DE SETOR) -->
+<!-- MODAL: REMANEJAR DE LOCAL -->
 <!-- ============================================================ -->
-@if (isRemanejarModalOpen()) {
+@if (isRemanejarModalOpen() && selectedPrinter()) {
   <div class="modal-overlay" (click)="closeRemanejarModal()">
     <div class="modal-container" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h2>Remanejar Impressora de Local</h2>
+        <h2>Remanejar Equipamento de Setor</h2>
         <button class="modal-close-btn" (click)="closeRemanejarModal()">&times;</button>
       </div>
 
       <form [formGroup]="remanejarForm" (ngSubmit)="salvarRemanejamento()">
         <div class="modal-body">
-          <div class="alert-box-info" style="margin-bottom: 1rem; padding: 0.75rem; background: #eff6ff; border-radius: 8px; font-size: 0.82rem; color: #1e40af;">
-            Equipamento: <strong>{{ selectedPrinter()?.modelo }}</strong> (IP: {{ selectedPrinter()?.ip || 'S/N' }})<br>
-            Local Atual: {{ selectedPrinter()?.localInstalacao }}
-          </div>
+          <p class="form-desc">
+            Equipamento: <strong>{{ selectedPrinter()?.modelo }}</strong> (IP: {{ selectedPrinter()?.ip || 'N/A' }})<br />
+            Local Atual: <strong>{{ selectedPrinter()?.secretariaSigla }} - {{ selectedPrinter()?.localInstalacao }}</strong>
+          </p>
 
           <div class="form-grid">
             <div class="form-group full-width">
-              <label class="form-label">Nova Secretaria de Destino: *</label>
+              <label class="form-label">Nova Secretaria: *</label>
               <select class="form-select" formControlName="novaSecretariaId">
                 @for (sec of secretariats(); track sec.id) {
                   <option [value]="sec.id">{{ sec.sigla }} - {{ sec.nome }}</option>
@@ -666,13 +797,18 @@
             </div>
 
             <div class="form-group full-width">
-              <label class="form-label">Novo Local de Instalação / Sala: *</label>
-              <input type="text" class="form-control" formControlName="novoLocalInstalacao" placeholder="Ex: SEMED – EMEF Manoel Mendes – Direção" />
+              <label class="form-label">Novo Local / Setor de Instalação: *</label>
+              <input type="text" class="form-control" formControlName="novoLocalInstalacao" placeholder="Ex: SMED – EMEF Estado de Santa Catarina" />
             </div>
 
             <div class="form-group">
-              <label class="form-label">Novo IP de Rede:</label>
-              <input type="text" class="form-control" formControlName="novoIp" placeholder="Ex: 192.168.12.14" />
+              <label class="form-label">Novo IP:</label>
+              <input type="text" class="form-control" formControlName="novoIp" placeholder="Ex: 192.168.10.15" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Novo Responsável:</label>
+              <input type="text" class="form-control" formControlName="novoResponsavel" placeholder="Servidor responsável" />
             </div>
 
             <div class="form-group">
@@ -681,20 +817,20 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Contador Atual Mono: *</label>
+              <label class="form-label">Contador no Momento da Troca: *</label>
               <input type="number" class="form-control" formControlName="contadorAtualMono" />
             </div>
 
-            <div class="form-group">
-              <label class="form-label">Contador Atual Color:</label>
-              <input type="number" class="form-control" formControlName="contadorAtualColor" />
+            <div class="form-group full-width">
+              <label class="form-label">Motivo do Remanejamento:</label>
+              <input type="text" class="form-control" formControlName="motivo" placeholder="Ex: Demanda maior de impressões na nova unidade" />
             </div>
           </div>
         </div>
 
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" (click)="closeRemanejarModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Confirmar Remanejamento</button>
+          <button type="submit" class="btn btn-primary">Efetivar Remanejamento</button>
         </div>
       </form>
     </div>
@@ -704,24 +840,28 @@
 <!-- ============================================================ -->
 <!-- MODAL: SUBSTITUIR POR DEFEITO (SWAP) -->
 <!-- ============================================================ -->
-@if (isSubstituirModalOpen()) {
+@if (isSubstituirModalOpen() && selectedPrinter()) {
   <div class="modal-overlay" (click)="closeSubstituirModal()">
     <div class="modal-container" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h2>Registrar Troca por Defeito (Swap)</h2>
+        <h2>Substituir por Defeito (Troca Técnica)</h2>
         <button class="modal-close-btn" (click)="closeSubstituirModal()">&times;</button>
       </div>
 
       <form [formGroup]="substituirForm" (ngSubmit)="salvarSubstituicao()">
         <div class="modal-body">
-          <div class="alert-box-warning" style="margin-bottom: 1rem; padding: 0.75rem; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; font-size: 0.82rem; color: #92400e;">
-            Importante: Anote o contador final da máquina retirada para que a locadora não cobre páginas indevidas.
+          <div class="alert-info-box">
+            A impressora atual com defeito será recolhida e uma nova impressora assumirá a posição no mesmo setor.
           </div>
 
-          <h4 style="margin: 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; color: #64748b;">1. Máquina Retirada (Defeito)</h4>
           <div class="form-grid">
+            <div class="form-group full-width">
+              <label class="form-label">Motivo do Defeito / Chamado: *</label>
+              <textarea class="form-control" rows="2" formControlName="motivoDefeito" placeholder="Ex: Placa lógica danificada, atolamento mecânico frequente"></textarea>
+            </div>
+
             <div class="form-group">
-              <label class="form-label">Contador Final Mono: *</label>
+              <label class="form-label">Contador Final da Máquina com Defeito: *</label>
               <input type="number" class="form-control" formControlName="contadorFinalMonoRetirada" />
             </div>
 
@@ -730,39 +870,26 @@
               <input type="date" class="form-control" formControlName="dataSubstituicao" />
             </div>
 
-            <div class="form-group full-width">
-              <label class="form-label">Motivo do Defeito: *</label>
-              <input type="text" class="form-control" formControlName="motivoDefeito" placeholder="Ex: Quebra de fusor, placa de rede queimada" />
-            </div>
-          </div>
-
-          <h4 style="margin: 1rem 0 0.5rem; font-size: 0.85rem; text-transform: uppercase; color: #64748b;">2. Nova Máquina Entregue</h4>
-          <div class="form-grid">
             <div class="form-group">
-              <label class="form-label">Novo Modelo: *</label>
+              <label class="form-label">Modelo da Nova Máquina: *</label>
               <input type="text" class="form-control" formControlName="novoModelo" placeholder="Ex: Ricoh M320F" />
             </div>
 
             <div class="form-group">
-              <label class="form-label">Novo Número de Série:</label>
-              <input type="text" class="form-control" formControlName="novoNumeroSerie" />
+              <label class="form-label">Número de Série da Nova Máquina:</label>
+              <input type="text" class="form-control" formControlName="novoNumeroSerie" placeholder="S/N novo" />
             </div>
 
-            <div class="form-group">
-              <label class="form-label">Contador Inicial Mono: *</label>
+            <div class="form-group full-width">
+              <label class="form-label">Contador Inicial da Nova Máquina: *</label>
               <input type="number" class="form-control" formControlName="contadorInicialMonoNova" />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Contador Inicial Color:</label>
-              <input type="number" class="form-control" formControlName="contadorInicialColorNova" />
             </div>
           </div>
         </div>
 
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" (click)="closeSubstituirModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Registrar Substituição</button>
+          <button type="submit" class="btn btn-primary">Confirmar Substituição (Swap)</button>
         </div>
       </form>
     </div>
@@ -770,13 +897,13 @@
 }
 
 <!-- ============================================================ -->
-<!-- MODAL: LANÇAR LEITURA MENSAL -->
+<!-- MODAL: LANÇAR LEITURA DE CONTADOR -->
 <!-- ============================================================ -->
 @if (isLeituraModalOpen()) {
   <div class="modal-overlay" (click)="closeLeituraModal()">
     <div class="modal-container" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h2>Lançar Leitura de Contador</h2>
+        <h2>Lançamento Mensal de Contador</h2>
         <button class="modal-close-btn" (click)="closeLeituraModal()">&times;</button>
       </div>
 
@@ -784,10 +911,11 @@
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-group full-width">
-              <label class="form-label">Impressora: *</label>
+              <label class="form-label">Impressora / Local de Instalação: *</label>
               <select class="form-select" formControlName="impressoraId">
+                <option value="">Selecione o equipamento...</option>
                 @for (p of printers(); track p.id) {
-                  <option [value]="p.id">#{{ p.itemPedido || p.id }} - {{ p.modelo }} ({{ p.localInstalacao }}) - IP: {{ p.ip }}</option>
+                  <option [value]="p.id">#{{ p.itemPedido || p.id }} - {{ p.secretariaSigla }} – {{ p.localInstalacao }} ({{ p.modelo }})</option>
                 }
               </select>
             </div>
@@ -847,78 +975,162 @@
 }
 
 <!-- ============================================================ -->
-<!-- MODAL: DETALHES / FICHA TÉCNICA DA IMPRESSORA -->
+<!-- MODAL: DETALHES / FICHA TÉCNICA E HISTÓRICO DE CONTADORES -->
 <!-- ============================================================ -->
 @if (isDetailsModalOpen() && selectedPrinter()) {
   <div class="modal-overlay" (click)="closeDetailsModal()">
     <div class="modal-container modal-lg" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h2>Ficha Técnica do Equipamento</h2>
+        <div>
+          <h2>{{ selectedPrinter()?.modelo }}</h2>
+          <span style="font-size: 0.8rem; color: #64748b;">Item #{{ selectedPrinter()?.itemPedido || selectedPrinter()?.id }} | {{ selectedPrinter()?.secretariaSigla }} – {{ selectedPrinter()?.localInstalacao }}</span>
+        </div>
         <button class="modal-close-btn" (click)="closeDetailsModal()">&times;</button>
       </div>
 
+      <div class="modal-tabs">
+        <button class="modal-tab-btn" [class.active]="activeDetailsTab() === 'GERAL'" (click)="activeDetailsTab.set('GERAL')">
+          Ficha Técnica & Alocação
+        </button>
+        <button class="modal-tab-btn" [class.active]="activeDetailsTab() === 'LEITURAS'" (click)="activeDetailsTab.set('LEITURAS')">
+          Histórico de Contadores & Cópias ({{ historicoLeiturasImpressora().length }})
+        </button>
+      </div>
+
       <div class="modal-body">
-        <div class="details-grid">
-          <div class="detail-item">
-            <span class="detail-label">Item do Pedido</span>
-            <span class="detail-value">#{{ selectedPrinter()?.itemPedido || selectedPrinter()?.id }}</span>
+        @if (activeDetailsTab() === 'GERAL') {
+          <div class="details-grid">
+            <div class="detail-item">
+              <span class="detail-label">Item do Pedido</span>
+              <span class="detail-value">#{{ selectedPrinter()?.itemPedido || selectedPrinter()?.id }}</span>
+            </div>
+
+            <div class="detail-item">
+              <span class="detail-label">Fabricante / Modelo</span>
+              <span class="detail-value">{{ selectedPrinter()?.fabricante }} {{ selectedPrinter()?.modelo }}</span>
+            </div>
+
+            <div class="detail-item">
+              <span class="detail-label">Número de Série</span>
+              <span class="detail-value">{{ selectedPrinter()?.numeroSerie || 'Não informado' }}</span>
+            </div>
+
+            <div class="detail-item">
+              <span class="detail-label">Endereço IP</span>
+              <span class="detail-value"><code>{{ selectedPrinter()?.ip || 'Sem IP configurado' }}</code></span>
+            </div>
+
+            <div class="detail-item">
+              <span class="detail-label">Secretaria</span>
+              <span class="detail-value">{{ selectedPrinter()?.secretariaSigla }} - {{ selectedPrinter()?.secretariaNome }}</span>
+            </div>
+
+            <div class="detail-item">
+              <span class="detail-label">Empenho Vinculado</span>
+              <span class="detail-value">
+                @if (selectedPrinter()?.numeroEmpenho) {
+                  <span class="badge-empenho">Emp. {{ selectedPrinter()?.numeroEmpenho }}</span>
+                } @else {
+                  <span class="text-muted">Não vinculado</span>
+                }
+              </span>
+            </div>
+
+            <div class="detail-item">
+              <span class="detail-label">Local de Instalação</span>
+              <span class="detail-value">{{ selectedPrinter()?.localInstalacao }}</span>
+            </div>
+
+            <div class="detail-item">
+              <span class="detail-label">Responsável pelo Setor</span>
+              <span class="detail-value">{{ selectedPrinter()?.responsavel || 'Não informado' }}</span>
+            </div>
+
+            <div class="detail-item">
+              <span class="detail-label">Transformador de Energia</span>
+              <span class="detail-value">{{ selectedPrinter()?.transformador || 'NAO' }}</span>
+            </div>
+
+            <div class="detail-item">
+              <span class="detail-label">Lote Contratual</span>
+              <span class="detail-value">Lote {{ selectedPrinter()?.numeroLote }} ({{ selectedPrinter()?.loteDescricao }})</span>
+            </div>
+
+            <div class="detail-item">
+              <span class="detail-label">Franquia Mensal</span>
+              <span class="detail-value">{{ selectedPrinter()?.franquiaMono | number }} cópias P/B</span>
+            </div>
+
+            <div class="detail-item">
+              <span class="detail-label">Último Contador Conhecido</span>
+              <span class="detail-value"><strong>{{ selectedPrinter()?.ultimoContadorMono | number }}</strong> ({{ selectedPrinter()?.dataUltimaLeitura || '—' }})</span>
+            </div>
+          </div>
+        } @else if (activeDetailsTab() === 'LEITURAS') {
+          <div class="history-toolbar">
+            <span class="history-summary">
+              Registros encontrados: <strong>{{ historicoLeiturasImpressora().length }} medições</strong>
+            </span>
+            <div class="history-actions">
+              <button class="btn btn-secondary btn-sm" (click)="exportarHistoricoImpressoraCSV()">
+                Exportar Histórico (.CSV)
+              </button>
+              <button class="btn btn-primary btn-sm" (click)="openLeituraModal(selectedPrinter()!)">
+                + Lançar Medição
+              </button>
+            </div>
           </div>
 
-          <div class="detail-item">
-            <span class="detail-label">Fabricante / Modelo</span>
-            <span class="detail-value">{{ selectedPrinter()?.fabricante }} {{ selectedPrinter()?.modelo }}</span>
-          </div>
-
-          <div class="detail-item">
-            <span class="detail-label">Número de Série</span>
-            <span class="detail-value">{{ selectedPrinter()?.numeroSerie || 'Não informado' }}</span>
-          </div>
-
-          <div class="detail-item">
-            <span class="detail-label">Endereço IP</span>
-            <span class="detail-value"><code>{{ selectedPrinter()?.ip || 'Sem IP configurado' }}</code></span>
-          </div>
-
-          <div class="detail-item">
-            <span class="detail-label">Secretaria</span>
-            <span class="detail-value">{{ selectedPrinter()?.secretariaSigla }} - {{ selectedPrinter()?.secretariaNome }}</span>
-          </div>
-
-          <div class="detail-item">
-            <span class="detail-label">Local de Instalação</span>
-            <span class="detail-value">{{ selectedPrinter()?.localInstalacao }}</span>
-          </div>
-
-          <div class="detail-item">
-            <span class="detail-label">Responsável pelo Setor</span>
-            <span class="detail-value">{{ selectedPrinter()?.responsavel || 'Não informado' }}</span>
-          </div>
-
-          <div class="detail-item">
-            <span class="detail-label">Transformador de Energia</span>
-            <span class="detail-value">{{ selectedPrinter()?.transformador || 'NAO' }}</span>
-          </div>
-
-          <div class="detail-item">
-            <span class="detail-label">Lote Contratual</span>
-            <span class="detail-value">Lote {{ selectedPrinter()?.numeroLote }} ({{ selectedPrinter()?.loteDescricao }})</span>
-          </div>
-
-          <div class="detail-item">
-            <span class="detail-label">Franquia Mensal</span>
-            <span class="detail-value">{{ selectedPrinter()?.franquiaMono | number }} cópias P/B</span>
-          </div>
-
-          <div class="detail-item">
-            <span class="detail-label">Valor Locação Mensal</span>
-            <span class="detail-value">R$ {{ selectedPrinter()?.valorLocacaoMensal | number:'1.2-2' }}</span>
-          </div>
-
-          <div class="detail-item">
-            <span class="detail-label">Custo Cópia Excedente</span>
-            <span class="detail-value">R$ {{ selectedPrinter()?.valorExcedenteMono | number:'1.4-4' }}</span>
-          </div>
-        </div>
+          @if (loadingHistorico()) {
+            <div style="text-align: center; padding: 2rem; color: #64748b;">Carregando histórico de contadores...</div>
+          } @else {
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Competência</th>
+                    <th>Data Leitura</th>
+                    <th>Contador Anterior</th>
+                    <th>Contador Final</th>
+                    <th>Cópias Produzidas</th>
+                    <th>Franquia</th>
+                    <th>Excedente</th>
+                    <th>Total Faturado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (h of historicoLeiturasImpressora(); track h.id) {
+                    <tr>
+                      <td><strong>{{ (h.mesReferencia < 10 ? '0' : '') + h.mesReferencia }}/{{ h.anoReferencia }}</strong></td>
+                      <td>{{ h.dataLeitura }}</td>
+                      <td>{{ h.leituraMonoAnterior | number }}</td>
+                      <td><strong>{{ h.leituraMonoAtual | number }}</strong></td>
+                      <td><span class="badge-count">{{ h.copiasMono | number }}</span></td>
+                      <td>{{ h.franquiaMonoAplicada | number }}</td>
+                      <td>
+                        @if (h.excedenteMono > 0) {
+                          <span class="text-danger" style="font-weight: 700;">+{{ h.excedenteMono | number }}</span>
+                        } @else {
+                          <span class="text-muted">0</span>
+                        }
+                      </td>
+                      <td><strong>R$ {{ h.valorTotal | number:'1.2-2' }}</strong></td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="8">
+                        <div class="table-empty-state">
+                          <h4>Nenhuma leitura registrada para este equipamento</h4>
+                          <p>Clique em "+ Lançar Medição" para registrar o primeiro contador mensal.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
       </div>
 
       <div class="modal-footer">
@@ -928,7 +1140,67 @@
   </div>
 }
 
-<!-- MODAL CONFIRMAÇÃO EXCLUSÃO -->
+<!-- ============================================================ -->
+<!-- MODAL: CADASTRAR / EDITAR EMPENHO -->
+<!-- ============================================================ -->
+@if (isEmpenhoModalOpen()) {
+  <div class="modal-overlay" (click)="closeEmpenhoModal()">
+    <div class="modal-container" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ isEmpenhoEditMode() ? 'Editar Empenho Orçamentário' : 'Novo Empenho Orçamentário' }}</h2>
+        <button class="modal-close-btn" (click)="closeEmpenhoModal()">&times;</button>
+      </div>
+
+      <form [formGroup]="empenhoForm" (ngSubmit)="salvarEmpenho()">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Número do Empenho: *</label>
+              <input type="text" class="form-control" formControlName="numeroEmpenho" placeholder="Ex: 2625 ou 2516" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Exercício / Ano: *</label>
+              <input type="number" class="form-control" formControlName="ano" />
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label">Secretaria / Órgão: *</label>
+              <select class="form-select" formControlName="secretariaId">
+                <option value="">Selecione a Secretaria...</option>
+                @for (s of secretariats(); track s.id) {
+                  <option [value]="s.id">{{ s.sigla }} - {{ s.nome }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label">Descrição / Objeto do Empenho:</label>
+              <input type="text" class="form-control" formControlName="descricao" placeholder="Ex: Locação de impressoras multifuncionais" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Valor Total Empenhado (R$): *</label>
+              <input type="number" step="0.01" class="form-control" formControlName="valorTotal" placeholder="0.00" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Saldo Disponível (R$):</label>
+              <input type="number" step="0.01" class="form-control" formControlName="saldo" placeholder="0.00" />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeEmpenhoModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">{{ isEmpenhoEditMode() ? 'Atualizar Empenho' : 'Cadastrar Empenho' }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- MODAL CONFIRMAÇÃO EXCLUSÃO IMPRESSORA -->
 <app-confirm-modal
   [isOpen]="isDeleteModalOpen()"
   title="Recolher / Inativar Impressora"
@@ -937,4 +1209,15 @@
   confirmButtonClass="btn-danger"
   (confirmed)="executarExclusao()"
   (cancelled)="closeDeleteModal()">
+</app-confirm-modal>
+
+<!-- MODAL CONFIRMAÇÃO EXCLUSÃO EMPENHO -->
+<app-confirm-modal
+  [isOpen]="isDeleteEmpenhoModalOpen()"
+  title="Inativar Empenho"
+  [message]="'Tem certeza que deseja inativar o empenho ' + empenhoToDelete()?.numeroEmpenho + '?'"
+  confirmText="Sim, inativar"
+  confirmButtonClass="btn-danger"
+  (confirmed)="executarExclusaoEmpenho()"
+  (cancelled)="closeDeleteEmpenhoModal()">
 </app-confirm-modal>
