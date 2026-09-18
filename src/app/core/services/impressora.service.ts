@@ -11,7 +11,10 @@ import {
   EmpenhoImpressao,
   EmpenhoDTO,
   LeituraContador,
-  LeituraContadorDTO
+  LeituraContadorDTO,
+  ExecucaoMensal,
+  EspelhoFatura,
+  BalancoFranquias
 } from '@core/models';
 
 @Injectable({
@@ -104,6 +107,25 @@ export class ImpressoraService {
 
   lancarLeitura(dto: LeituraContadorDTO): Observable<LeituraContador> {
     return this.http.post<LeituraContador>(`${this.apiUrl}/leituras`, dto);
+  }
+
+  getExecucaoMensal(ano: number = 2026): Observable<ExecucaoMensal> {
+    const params = new HttpParams().set('ano', ano.toString());
+    return this.http.get<ExecucaoMensal>(`${this.apiUrl}/empenhos/execucao-mensal`, { params });
+  }
+
+  getEspelhoFatura(empenhoId: number, mes: number = 8, ano: number = 2026): Observable<EspelhoFatura> {
+    const params = new HttpParams()
+      .set('mes', mes.toString())
+      .set('ano', ano.toString());
+    return this.http.get<EspelhoFatura>(`${this.apiUrl}/empenhos/${empenhoId}/espelho-fatura`, { params });
+  }
+
+  getBalancoFranquias(mes: number = 8, ano: number = 2026): Observable<BalancoFranquias> {
+    const params = new HttpParams()
+      .set('mes', mes.toString())
+      .set('ano', ano.toString());
+    return this.http.get<BalancoFranquias>(`${this.apiUrl}/lotes/balanco-franquias`, { params });
   }
 }
 

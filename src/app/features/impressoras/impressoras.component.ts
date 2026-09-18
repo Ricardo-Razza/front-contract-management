@@ -13,7 +13,14 @@ import {
   EmpenhoImpressao,
   EmpenhoDTO,
   LeituraContador,
-  Secretariat
+  Secretariat,
+  ExecucaoMensal,
+  EmpenhoExecucao,
+  EspelhoFatura,
+  ItemFatura,
+  EquipamentoFatura,
+  BalancoFranquias,
+  LoteBalanco
 } from '@core/models';
 
 @Component({
@@ -50,6 +57,25 @@ export class ImpressorasComponent implements OnInit {
   filterLote = signal<string>('');
   filterEmpenho = signal<string>('');
   filterStatus = signal<string>('');
+
+  // Sub-abas e Controle de Faturamento & Empenhos
+  subTabFaturamento = signal<'MATRIZ' | 'ESPELHO' | 'CADASTRO'>('MATRIZ');
+  anoExecucao = signal<number>(2026);
+  execucaoMensal = signal<ExecucaoMensal | null>(null);
+  loadingExecucao = signal<boolean>(false);
+
+  // Espelho da Fatura (Atesto)
+  empenhoSelecionadoEspelho = signal<number | null>(null);
+  mesEspelho = signal<number>(8);
+  anoEspelho = signal<number>(2026);
+  espelhoFatura = signal<EspelhoFatura | null>(null);
+  loadingEspelho = signal<boolean>(false);
+
+  // Balanço de Franquias por Lote
+  balancoFranquias = signal<BalancoFranquias | null>(null);
+  loadingBalanco = signal<boolean>(false);
+  mesBalanco = signal<number>(8);
+  anoBalanco = signal<number>(2026);
 
   // Competência selecionada para leituras
   mesCompetencia = signal<number>(new Date().getMonth() + 1);
@@ -281,6 +307,17 @@ export class ImpressorasComponent implements OnInit {
     this.activeTab.set(tab);
     if (tab === 'LEITURAS' && this.leituras().length === 0) {
       this.carregarLeiturasCompetencia();
+    } else if (tab === 'FATURAMENTO') {
+      if (!this.execucaoMensal()) {
+        this.carregarExecucaoMensal();
+      }
+      if (!this.espelhoFatura() && this.empenhos().length > 0) {
+        this.carregarEspelhoFatura(this.empenhos()[0].id);
+      }
+    } else if (tab === 'LOTES') {
+      if (!this.balancoFranquias()) {
+        this.carregarBalancoFranquias();
+      }
     }
   }
 
@@ -720,5 +757,148 @@ export class ImpressorasComponent implements OnInit {
     ];
     exportToCsv('empenhos_impressao_' + new Date().getFullYear(), columns, list);
     this.toast.success('Empenhos exportados em .CSV com sucesso!');
+  }
+
+  // ==========================================
+  // GESTÃO ORÇAMENTÁRIA & MATRIZ MENSAL
+  // ==========================================
+  carregarExecucaoMensal(ano: number = this.anoExecucao()): void {
+    this.loadingExecucao.set(true);
+    this.anoExecucao.set(ano);
+    this.impressoraService.getExecucaoMensal(ano).subscribe({
+      next: data => {
+        this.execucaoMensal.set(data);
+        this.loadingExecucao.set(false);
+      },
+      error: () => {
+        this.toast.error('Erro ao carregar matriz de execução orçamentária.');
+        this.loadingExecucao.set(false);
+      }
+    });
+  }
+
+  carregarEspelhoFatura(empId?: number, mes: number = this.mesEspelho(), ano: number = this.anoEspelho()): void {
+    const id = empId !== undefined ? empId : this.empenhoSelecionadoEspelho();
+    if (!id) {
+      const primeiro = this.empenhos()[0];
+      if (primeiro) {
+        this.empenhoSelecionadoEspelho.set(primeiro.id);
+        this.carregarEspelhoFatura(primeiro.id, mes, ano);
+      }
+      return;
+    }
+
+    this.loadingEspelho.set(true);
+    this.empenhoSelecionadoEspelho.set(id);
+    this.mesEspelho.set(mes);
+    this.anoEspelho.set(ano);
+
+    this.impressoraService.getEspelhoFatura(id, mes, ano).subscribe({
+      next: fatura => {
+        this.espelhoFatura.set(fatura);
+        this.loadingEspelho.set(false);
+      },
+      error: () => {
+        this.toast.error('Erro ao carregar espelho da fatura para este empenho.');
+        this.loadingEspelho.set(false);
+      }
+    });
+  }
+
+  selecionarEmpenhoParaEspelho(empId: number): void {
+    this.empenhoSelecionadoEspelho.set(empId);
+    this.subTabFaturamento.set('ESPELHO');
+    this.carregarEspelhoFatura(empId, this.mesEspelho(), this.anoEspelho());
+  }
+
+  carregarBalancoFranquias(mes: number = this.mesBalanco(), ano: number = this.anoBalanco()): void {
+    this.loadingBalanco.set(true);
+    this.mesBalanco.set(mes);
+    this.anoBalanco.set(ano);
+
+    this.impressoraService.getBalancoFranquias(mes, ano).subscribe({
+      next: balanco => {
+        this.balancoFranquias.set(balanco);
+        this.loadingBalanco.set(false);
+      },
+      error: () => {
+        this.toast.error('Erro ao carregar balanço de franquias por lote.');
+        this.loadingBalanco.set(false);
+      }
+    });
+  }
+
+  imprimirEspelho(): void {
+    window.print();
+  }
+
+  exportarEspelhoCSV(): void {
+    const fatura = this.espelhoFatura();
+    if (!fatura) return;
+
+    const list = fatura.itens;
+    const columns = [
+      { header: 'Item', accessor: (it: ItemFatura) => it.itemNumero },
+      { header: 'Codigo', accessor: (it: ItemFatura) => it.codigoItem },
+      { header: 'Descricao', accessor: (it: ItemFatura) => it.descricao },
+      { header: 'Unidade', accessor: (it: ItemFatura) => it.unidade },
+      { header: 'Quantidade', accessor: (it: ItemFatura) => it.quantidade },
+      { header: 'Valor Unitario R$', accessor: (it: ItemFatura) => it.valorUnitario.toFixed(3) },
+      { header: 'Subtotal R$', accessor: (it: ItemFatura) => it.valorTotal.toFixed(2) }
+    ];
+    exportToCsv(`espelho_fatura_emp_${fatura.numeroEmpenho}_${fatura.mesReferencia}_${fatura.anoReferencia}`, columns, list);
+    this.toast.success('Espelho de fatura exportado em .CSV com sucesso!');
+  }
+
+  exportarMatrizExecucaoCSV(): void {
+    const exec = this.execucaoMensal();
+    if (!exec) return;
+
+    const list = exec.empenhos;
+    const columns = [
+      { header: 'Empenho', accessor: (e: EmpenhoExecucao) => e.numeroEmpenho },
+      { header: 'Secretaria', accessor: (e: EmpenhoExecucao) => e.secretariaSigla },
+      { header: 'Descricao', accessor: (e: EmpenhoExecucao) => e.descricao || '' },
+      { header: 'Dotacao Anual R$', accessor: (e: EmpenhoExecucao) => e.valorTotalEmpenhado.toFixed(2) },
+      { header: 'Jan R$', accessor: (e: EmpenhoExecucao) => (e.meses[0]?.valorFaturado || 0).toFixed(2) },
+      { header: 'Fev R$', accessor: (e: EmpenhoExecucao) => (e.meses[1]?.valorFaturado || 0).toFixed(2) },
+      { header: 'Mar R$', accessor: (e: EmpenhoExecucao) => (e.meses[2]?.valorFaturado || 0).toFixed(2) },
+      { header: 'Abr R$', accessor: (e: EmpenhoExecucao) => (e.meses[3]?.valorFaturado || 0).toFixed(2) },
+      { header: 'Mai R$', accessor: (e: EmpenhoExecucao) => (e.meses[4]?.valorFaturado || 0).toFixed(2) },
+      { header: 'Jun R$', accessor: (e: EmpenhoExecucao) => (e.meses[5]?.valorFaturado || 0).toFixed(2) },
+      { header: 'Jul R$', accessor: (e: EmpenhoExecucao) => (e.meses[6]?.valorFaturado || 0).toFixed(2) },
+      { header: 'Ago R$', accessor: (e: EmpenhoExecucao) => (e.meses[7]?.valorFaturado || 0).toFixed(2) },
+      { header: 'Set R$', accessor: (e: EmpenhoExecucao) => (e.meses[8]?.valorFaturado || 0).toFixed(2) },
+      { header: 'Out R$', accessor: (e: EmpenhoExecucao) => (e.meses[9]?.valorFaturado || 0).toFixed(2) },
+      { header: 'Nov R$', accessor: (e: EmpenhoExecucao) => (e.meses[10]?.valorFaturado || 0).toFixed(2) },
+      { header: 'Dez R$', accessor: (e: EmpenhoExecucao) => (e.meses[11]?.valorFaturado || 0).toFixed(2) },
+      { header: 'Total Liquidado R$', accessor: (e: EmpenhoExecucao) => e.totalLiquidado.toFixed(2) },
+      { header: 'Saldo Restante R$', accessor: (e: EmpenhoExecucao) => e.saldoRestante.toFixed(2) },
+      { header: '% Consumido', accessor: (e: EmpenhoExecucao) => e.percentualConsumido.toFixed(1) + '%' }
+    ];
+    exportToCsv(`execucao_orcamentaria_empenhos_${exec.ano}`, columns, list);
+    this.toast.success('Matriz de execução orçamentária exportada em .CSV com sucesso!');
+  }
+
+  exportarBalancoFranquiasCSV(): void {
+    const balanco = this.balancoFranquias();
+    if (!balanco) return;
+
+    const list = balanco.lotes;
+    const columns = [
+      { header: 'Lote', accessor: (l: LoteBalanco) => 'Lote 0' + l.numeroLote },
+      { header: 'Descricao', accessor: (l: LoteBalanco) => l.descricao },
+      { header: 'Tipo', accessor: (l: LoteBalanco) => l.tipo },
+      { header: 'Qtd Maquinas', accessor: (l: LoteBalanco) => l.quantidadeEquipamentos },
+      { header: 'Franquia Total Mono', accessor: (l: LoteBalanco) => l.franquiaTotalMono },
+      { header: 'Copias Mono Produzidas', accessor: (l: LoteBalanco) => l.copiasMonoProduzidas },
+      { header: 'Excedente Mono', accessor: (l: LoteBalanco) => l.excedenteMonoTotal },
+      { header: '% Uso Mono', accessor: (l: LoteBalanco) => l.percentualUsoMono.toFixed(1) + '%' },
+      { header: 'Custo Locacao R$', accessor: (l: LoteBalanco) => l.custoFixoLocacao.toFixed(2) },
+      { header: 'Custo Excedente R$', accessor: (l: LoteBalanco) => (l.custoExcedenteMono + l.custoExcedenteColor).toFixed(2) },
+      { header: 'Custo Total R$', accessor: (l: LoteBalanco) => l.custoTotal.toFixed(2) }
+    ];
+    exportToCsv(`balanco_franquias_${balanco.mesReferencia}_${balanco.anoReferencia}`, columns, list);
+    this.toast.success('Balanço de franquias exportado em .CSV com sucesso!');
   }
 }

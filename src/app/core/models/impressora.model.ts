@@ -161,3 +161,126 @@ export interface LeituraContadorDTO {
   origemLeitura?: string;
   observacoes?: string;
 }
+
+export interface ValorMes {
+  mes: number;
+  nomeMes: string;
+  valorFaturado: number;
+  copiasMono: number;
+  copiasColor: number;
+  status: string; // 'REALIZADO' | 'PREVISTO' | 'SEM_FATURAMENTO'
+}
+
+export interface EmpenhoExecucao {
+  empenhoId: number;
+  numeroEmpenho: string;
+  secretariaSigla: string;
+  secretariaNome: string;
+  descricao?: string;
+  valorTotalEmpenhado: number;
+  quantidadeImpressoras: number;
+  meses: ValorMes[];
+  totalLiquidado: number;
+  totalProjetado: number;
+  saldoRestante: number;
+  percentualConsumido: number;
+}
+
+export interface ExecucaoMensal {
+  ano: number;
+  totalGeralEmpenhado: number;
+  totalGeralLiquidado: number;
+  totalGeralProjetado: number;
+  saldoGeralRestante: number;
+  percentualGeralConsumido: number;
+  totaisMensais: ValorMes[];
+  empenhos: EmpenhoExecucao[];
+}
+
+export interface ItemFatura {
+  itemNumero: number;
+  codigoItem: string;
+  descricao: string;
+  unidade: string;
+  quantidade: number;
+  valorUnitario: number;
+  valorTotal: number;
+}
+
+export interface EquipamentoFatura {
+  itemPedido?: number;
+  modelo: string;
+  numeroSerie: string;
+  localInstalacao: string;
+  numeroLote: number;
+  leituraMonoAnterior: number;
+  leituraMonoAtual: number;
+  copiasMono: number;
+  leituraColorAnterior: number;
+  leituraColorAtual: number;
+  copiasColor: number;
+  franquiaMono: number;
+  franquiaColor: number;
+  excedenteMono: number;
+  excedenteColor: number;
+  valorLocacao: number;
+  valorExcedente: number;
+  valorTotal: number;
+}
+
+export interface EspelhoFatura {
+  empenhoId: number;
+  numeroEmpenho: string;
+  ano: number;
+  secretariaNome: string;
+  secretariaSigla: string;
+  contratoNumero: string;
+  mesReferencia: number;
+  anoReferencia: number;
+  competenciaFormatada: string;
+  dataEmissao: string;
+  totalFatura: number;
+  itens: ItemFatura[];
+  equipamentos: EquipamentoFatura[];
+  textoAtesto: string;
+}
+
+export interface LoteBalanco {
+  loteId: number;
+  numeroLote: number;
+  descricao: string;
+  tipo: string;
+  quantidadeEquipamentos: number;
+  franquiaIndividualMono: number;
+  franquiaIndividualColor: number;
+  franquiaTotalMono: number;
+  franquiaTotalColor: number;
+  copiasMonoProduzidas: number;
+  copiasColorProduzidas: number;
+  excedenteMonoTotal: number;
+  excedenteColorTotal: number;
+  percentualUsoMono: number;
+  percentualUsoColor: number;
+  valorLocacaoUnitario: number;
+  valorExcedenteMonoUnitario: number;
+  valorExcedenteColorUnitario: number;
+  custoFixoLocacao: number;
+  custoExcedenteMono: number;
+  custoExcedenteColor: number;
+  custoTotal: number;
+}
+
+export interface BalancoFranquias {
+  mesReferencia: number;
+  anoReferencia: number;
+  competenciaFormatada: string;
+  totalGeralEquipamentos: number;
+  totalGeralCopiasMono: number;
+  totalGeralCopiasColor: number;
+  totalGeralExcedenteMono: number;
+  totalGeralExcedenteColor: number;
+  custoTotalLocacao: number;
+  custoTotalExcedentes: number;
+  custoTotalGeral: number;
+  lotes: LoteBalanco[];
+}

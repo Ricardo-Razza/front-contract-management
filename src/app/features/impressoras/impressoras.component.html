@@ -457,201 +457,647 @@
     }
 
     <!-- ============================================================ -->
-    <!-- TAB 3: FATURAMENTO & EMPENHOS -->
+    <!-- TAB 3: GESTÃO ORÇAMENTÁRIA, MATRIZ MENSAL & ESPELHO DE FATURA -->
     <!-- ============================================================ -->
     @if (activeTab() === 'FATURAMENTO') {
       <div class="faturamento-container">
-        <div class="faturamento-header-box">
-          <div>
-            <h3>Gestão de Empenhos & Espelho de Medição</h3>
-            <p>Acompanhamento das dotações orçamentárias por secretaria e conferência de faturas contratuais</p>
-          </div>
-          <div class="faturamento-totals" style="display: flex; gap: 0.5rem;">
-            <button class="btn btn-secondary btn-sm" (click)="exportarEmpenhosCSV()">
-              Exportar Empenhos (.CSV)
+        <!-- SUB-NAV TOGGLE BAR -->
+        <div class="faturamento-subnav">
+          <div class="subnav-pills">
+            <button type="button" class="subnav-pill" [class.active]="subTabFaturamento() === 'MATRIZ'" (click)="subTabFaturamento.set('MATRIZ')">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="3" y1="9" x2="21" y2="9"></line>
+                <line x1="9" y1="21" x2="9" y2="9"></line>
+              </svg>
+              Matriz de Execução Orçamentária (12 Meses)
             </button>
-            <button class="btn btn-primary btn-sm" (click)="openCreateEmpenhoModal()">
-              + Novo Empenho
+            <button type="button" class="subnav-pill" [class.active]="subTabFaturamento() === 'ESPELHO'" (click)="subTabFaturamento.set('ESPELHO'); carregarEspelhoFatura()">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              Espelho da Nota Fiscal & Atesto de Fatura
+            </button>
+            <button type="button" class="subnav-pill" [class.active]="subTabFaturamento() === 'CADASTRO'" (click)="subTabFaturamento.set('CADASTRO')">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Dotações & Cadastro de Empenhos
             </button>
           </div>
+
+          <div class="subnav-actions">
+            @if (subTabFaturamento() === 'MATRIZ') {
+              <div class="year-selector">
+                <label>Exercício:</label>
+                <select [ngModel]="anoExecucao()" (ngModelChange)="carregarExecucaoMensal($event)">
+                  <option [value]="2026">2026 (Ano Vigente)</option>
+                  <option [value]="2025">2025</option>
+                </select>
+              </div>
+              <button class="btn btn-secondary btn-sm" (click)="exportarMatrizExecucaoCSV()">
+                Exportar Matriz (.CSV)
+              </button>
+            }
+            @if (subTabFaturamento() === 'ESPELHO') {
+              <button class="btn btn-primary btn-sm" (click)="imprimirEspelho()">
+                Imprimir / Salvar Atesto (A4)
+              </button>
+              <button class="btn btn-secondary btn-sm" (click)="exportarEspelhoCSV()">
+                Exportar Itens (.CSV)
+              </button>
+            }
+            @if (subTabFaturamento() === 'CADASTRO') {
+              <button class="btn btn-secondary btn-sm" (click)="exportarEmpenhosCSV()">
+                Exportar Empenhos (.CSV)
+              </button>
+              <button class="btn btn-primary btn-sm" (click)="openCreateEmpenhoModal()">
+                + Novo Empenho
+              </button>
+            }
+          </div>
         </div>
 
-        <!-- EMPENHO KPI CARDS -->
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
-          <div class="empenho-metric-card">
-            <span class="metric-title">Total Empenhado</span>
-            <span class="metric-number">R$ {{ totalEmpenhadoGeral() | number:'1.2-2' }}</span>
-          </div>
-          <div class="empenho-metric-card">
-            <span class="metric-title">Saldo Disponível</span>
-            <span class="metric-number" style="color: #16a34a;">R$ {{ totalSaldoEmpenhos() | number:'1.2-2' }}</span>
-          </div>
-          <div class="empenho-metric-card">
-            <span class="metric-title">Equipamentos Cobertos</span>
-            <span class="metric-number">{{ totalMaquinasEmpenhadas() }} un</span>
-          </div>
-          <div class="empenho-metric-card">
-            <span class="metric-title">Empenhos Ativos</span>
-            <span class="metric-number">{{ empenhos().length }}</span>
-          </div>
-        </div>
+        <!-- ==================================================== -->
+        <!-- SUB-ABA 1: MATRIZ DE EXECUÇÃO ORÇAMENTÁRIA (12 MESES) -->
+        <!-- ==================================================== -->
+        @if (subTabFaturamento() === 'MATRIZ') {
+          <!-- RESUMO ORÇAMENTÁRIO GERAL -->
+          @if (execucaoMensal(); as exec) {
+            <div class="budget-summary-banner">
+              <div class="budget-kpi">
+                <span class="kpi-title">Dotação Total Anual</span>
+                <span class="kpi-value text-blue">R$ {{ exec.totalGeralEmpenhado | number:'1.2-2' }}</span>
+                <span class="kpi-sub">8 Secretarias Municipais</span>
+              </div>
+              <div class="budget-kpi">
+                <span class="kpi-title">Total Liquidado (Realizado)</span>
+                <span class="kpi-value text-green">R$ {{ exec.totalGeralLiquidado | number:'1.2-2' }}</span>
+                <span class="kpi-sub">Medições até Agosto/2026</span>
+              </div>
+              <div class="budget-kpi">
+                <span class="kpi-title">Projeção Anual Completa</span>
+                <span class="kpi-value text-purple">R$ {{ exec.totalGeralProjetado | number:'1.2-2' }}</span>
+                <span class="kpi-sub">Realizado + Fixos Set-Dez</span>
+              </div>
+              <div class="budget-kpi">
+                <span class="kpi-title">Saldo Orçamentário Restante</span>
+                <span class="kpi-value text-amber">R$ {{ exec.saldoGeralRestante | number:'1.2-2' }}</span>
+                <span class="kpi-sub">Saldo contratual disponível</span>
+              </div>
+              <div class="budget-kpi">
+                <span class="kpi-title">Execução Orçamentária</span>
+                <span class="kpi-value">{{ exec.percentualGeralConsumido | number:'1.1-1' }}%</span>
+                <div class="progress-micro" style="margin-top: 0.35rem;">
+                  <div class="bar-track" style="width: 100%;">
+                    <div class="bar-fill" [ngClass]="{'bar-green': exec.percentualGeralConsumido < 75, 'bar-amber': exec.percentualGeralConsumido >= 75 && exec.percentualGeralConsumido < 90, 'bar-red': exec.percentualGeralConsumido >= 90}" [style.width.%]="exec.percentualGeralConsumido > 100 ? 100 : exec.percentualGeralConsumido"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-        <h4 style="margin-bottom: 0.75rem; font-size: 1.05rem; font-weight: 700; color: #1e293b;">Relação de Empenhos Orçamentários</h4>
-        <div class="table-responsive" style="margin-bottom: 2rem;">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Nº Empenho</th>
-                <th>Exercício</th>
-                <th>Secretaria</th>
-                <th>Descrição / Finalidade</th>
-                <th>Valor Empenhado</th>
-                <th>Saldo Restante</th>
-                <th>Máquinas Vinculadas</th>
-                <th>Status</th>
-                <th style="text-align: right;">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (emp of empenhos(); track emp.id) {
+            <!-- MATRIZ DETALHADA POR EMPENHO X MÊS -->
+            <div class="matrix-card">
+              <div class="matrix-header">
+                <div>
+                  <h3>Acompanhamento Orçamentário Mensal por Empenho — Exercício {{ exec.ano }}</h3>
+                  <p style="font-size: 0.8rem; color: #64748b; margin: 3px 0 0 0;">Conferência de despesas liquidadas mês a mês e provisão contratual até o encerramento do exercício</p>
+                </div>
+                <div class="matrix-legend">
+                  <div class="legend-item">
+                    <span class="legend-dot dot-realizado"></span>
+                    <span>Medição Realizada</span>
+                  </div>
+                  <div class="legend-item">
+                    <span class="legend-dot dot-previsto"></span>
+                    <span>Provisão Prevista</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="matrix-table-wrap">
+                <table class="matrix-table">
+                  <thead>
+                    <tr>
+                      <th>Nº Empenho</th>
+                      <th>Secretaria</th>
+                      <th>Qtd</th>
+                      <th>Dotação Anual</th>
+                      <th>Jan</th>
+                      <th>Fev</th>
+                      <th>Mar</th>
+                      <th>Abr</th>
+                      <th>Mai</th>
+                      <th>Jun</th>
+                      <th>Jul</th>
+                      <th>Ago</th>
+                      <th>Set*</th>
+                      <th>Out*</th>
+                      <th>Nov*</th>
+                      <th>Dez*</th>
+                      <th class="col-total">Total Liquidado</th>
+                      <th class="col-total">Saldo Restante</th>
+                      <th class="col-total">% Consumo</th>
+                      <th style="text-align: center;">Atesto</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (emp of exec.empenhos; track emp.empenhoId) {
+                      <tr>
+                        <td class="td-empenho">Emp. {{ emp.numeroEmpenho }}</td>
+                        <td><span class="sec-tag">{{ emp.secretariaSigla }}</span></td>
+                        <td>{{ emp.quantidadeImpressoras }} un</td>
+                        <td><strong>R$ {{ emp.valorTotalEmpenhado | number:'1.2-2' }}</strong></td>
+
+                        <!-- 12 Meses -->
+                        @for (m of emp.meses; track m.mes) {
+                          <td [ngClass]="{'td-realizado': m.status === 'REALIZADO', 'td-previsto': m.status === 'PREVISTO', 'td-vazio': m.status === 'SEM_FATURAMENTO'}">
+                            @if (m.valorFaturado > 0) {
+                              R$ {{ m.valorFaturado | number:'1.2-2' }}
+                            } @else {
+                              —
+                            }
+                          </td>
+                        }
+
+                        <td class="col-total"><strong>R$ {{ emp.totalLiquidado | number:'1.2-2' }}</strong></td>
+                        <td class="col-saldo">R$ {{ emp.saldoRestante | number:'1.2-2' }}</td>
+                        <td class="col-total">
+                          <div class="progress-micro">
+                            <div class="bar-track">
+                              <div class="bar-fill" [ngClass]="{'bar-green': emp.percentualConsumido < 75, 'bar-amber': emp.percentualConsumido >= 75 && emp.percentualConsumido < 90, 'bar-red': emp.percentualConsumido >= 90}" [style.width.%]="emp.percentualConsumido > 100 ? 100 : emp.percentualConsumido"></div>
+                            </div>
+                            <span class="bar-text">{{ emp.percentualConsumido | number:'1.0-0' }}%</span>
+                          </div>
+                        </td>
+                        <td style="text-align: center;">
+                          <button class="btn btn-sm" style="padding: 2px 8px; font-size: 0.72rem; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer; font-weight: 600;" (click)="selecionarEmpenhoParaEspelho(emp.empenhoId)" title="Visualizar espelho e emitir atesto da fatura">
+                            Atesto &rarr;
+                          </button>
+                        </td>
+                      </tr>
+                    }
+
+                    <!-- LINHA DE TOTAIS CONSOLIDADOS DO MUNICÍPIO -->
+                    <tr class="matrix-total-row">
+                      <td colspan="3"><strong>TOTAL CONSOLIDADO PREFEITURA</strong></td>
+                      <td><strong>R$ {{ exec.totalGeralEmpenhado | number:'1.2-2' }}</strong></td>
+                      @for (totMes of exec.totaisMensais; track totMes.mes) {
+                        <td><strong>R$ {{ totMes.valorFaturado | number:'1.2-2' }}</strong></td>
+                      }
+                      <td class="col-total"><strong>R$ {{ exec.totalGeralLiquidado | number:'1.2-2' }}</strong></td>
+                      <td class="col-saldo"><strong>R$ {{ exec.saldoGeralRestante | number:'1.2-2' }}</strong></td>
+                      <td class="col-total"><strong>{{ exec.percentualGeralConsumido | number:'1.1-1' }}%</strong></td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          }
+        }
+
+        <!-- ==================================================== -->
+        <!-- SUB-ABA 2: ESPELHO DA NOTA FISCAL & ATESTO DE FATURA  -->
+        <!-- ==================================================== -->
+        @if (subTabFaturamento() === 'ESPELHO') {
+          <div class="document-view-container">
+            <!-- TOOLBAR DE SELEÇÃO DO ESPELHO -->
+            <div class="doc-toolbar">
+              <div class="doc-filter-group">
+                <div class="doc-filter-item">
+                  <label>Empenho / Secretaria:</label>
+                  <select [ngModel]="empenhoSelecionadoEspelho()" (ngModelChange)="carregarEspelhoFatura($event, mesEspelho(), anoEspelho())">
+                    @for (emp of empenhos(); track emp.id) {
+                      <option [value]="emp.id">Empenho {{ emp.numeroEmpenho }} — {{ emp.secretariaSigla }} ({{ emp.descricao || 'Outsourcing' }})</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="doc-filter-item">
+                  <label>Mês Competência:</label>
+                  <select [ngModel]="mesEspelho()" (ngModelChange)="carregarEspelhoFatura(empenhoSelecionadoEspelho()!, $event, anoEspelho())">
+                    <option [value]="3">Março</option>
+                    <option [value]="4">Abril</option>
+                    <option [value]="5">Maio</option>
+                    <option [value]="6">Junho</option>
+                    <option [value]="7">Julho</option>
+                    <option [value]="8">Agosto</option>
+                    <option [value]="9">Setembro</option>
+                    <option [value]="10">Outubro</option>
+                    <option [value]="11">Novembro</option>
+                    <option [value]="12">Dezembro</option>
+                  </select>
+                </div>
+
+                <div class="doc-filter-item">
+                  <label>Ano:</label>
+                  <select [ngModel]="anoEspelho()" (ngModelChange)="carregarEspelhoFatura(empenhoSelecionadoEspelho()!, mesEspelho(), $event)">
+                    <option [value]="2026">2026</option>
+                    <option [value]="2025">2025</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="doc-actions">
+                <button class="btn btn-primary btn-sm" (click)="imprimirEspelho()">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                  Imprimir Atesto (A4)
+                </button>
+              </div>
+            </div>
+
+            <!-- FOLHA OFICIAL DO DOCUMENTO DE ATESTO -->
+            @if (espelhoFatura(); as fatura) {
+              <div class="doc-sheet">
+                <!-- CABEÇALHO OFICIAL -->
+                <div class="doc-header">
+                  <div class="doc-entity">
+                    <h2>Prefeitura Municipal</h2>
+                    <p>Secretaria Municipal de Administração e Gestão de Contratos</p>
+                    <p style="font-weight: 700; color: #1e293b; margin-top: 3px;">ESPELHO DE LIQUIDAÇÃO E ATESTO DE NOTA FISCAL</p>
+                  </div>
+                  <div class="doc-badge-status">
+                    <span class="badge-official">Documento Oficial</span>
+                    <div class="doc-emissao">Emissão: {{ fatura.dataEmissao }}</div>
+                  </div>
+                </div>
+
+                <!-- QUADRO DE METADADOS DO CONTRATO E EMPENHO -->
+                <table class="doc-meta-table">
+                  <tbody>
+                    <tr>
+                      <td class="meta-label">Órgão / Secretaria:</td>
+                      <td class="meta-val">{{ fatura.secretariaNome }} ({{ fatura.secretariaSigla }})</td>
+                      <td class="meta-label">Nº Contrato Administrativo:</td>
+                      <td class="meta-val">Contrato nº {{ fatura.contratoNumero }}</td>
+                    </tr>
+                    <tr>
+                      <td class="meta-label">Empenho Orçamentário:</td>
+                      <td class="meta-val"><strong>Empenho nº {{ fatura.numeroEmpenho }} / {{ fatura.ano }}</strong></td>
+                      <td class="meta-label">Período de Competência:</td>
+                      <td class="meta-val"><strong>{{ fatura.competenciaFormatada }}</strong></td>
+                    </tr>
+                    <tr>
+                      <td class="meta-label">Objeto da Contratação:</td>
+                      <td class="meta-val" colspan="3">Prestação de serviços de outsourcing de impressão compreendendo cessão de equipamentos, manutenção e fornecimento de insumos e suprimentos</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <!-- TABELA 1: ESPELHO DOS ITENS DA FATURA / PRODUTO -->
+                <div class="doc-section-title">1. Itens da Fatura Mensal (Produtos e Excedentes de Franquia)</div>
+                <table class="doc-items-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 50px;" class="text-center">Item</th>
+                      <th style="width: 100px;">Código</th>
+                      <th>Especificação do Objeto Licitações / Lote</th>
+                      <th style="width: 80px;" class="text-center">Unidade</th>
+                      <th style="width: 100px;" class="text-right">Quantidade</th>
+                      <th style="width: 120px;" class="text-right">Valor Unitário</th>
+                      <th style="width: 130px;" class="text-right">Subtotal R$</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (it of fatura.itens; track it.itemNumero) {
+                      <tr>
+                        <td class="text-center">{{ it.itemNumero }}</td>
+                        <td class="td-code">{{ it.codigoItem }}</td>
+                        <td>{{ it.descricao }}</td>
+                        <td class="text-center">{{ it.unidade }}</td>
+                        <td class="text-right">{{ it.quantidade | number:'1.1-2' }}</td>
+                        <td class="text-right">R$ {{ it.valorUnitario | number:'1.2-3' }}</td>
+                        <td class="text-right"><strong>R$ {{ it.valorTotal | number:'1.2-2' }}</strong></td>
+                      </tr>
+                    }
+                    <tr class="doc-total-row">
+                      <td colspan="6" class="text-right"><strong>VALOR TOTAL DA FATURA DO EMPENHO:</strong></td>
+                      <td class="text-right"><strong>R$ {{ fatura.totalFatura | number:'1.2-2' }}</strong></td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <!-- TABELA 2: RELAÇÃO ANALÍTICA DAS IMPRESSORAS MEDIDAS NO MÊS -->
+                <div class="doc-section-title">2. Relatório Analítico de Leituras e Medição de Contadores</div>
+                <table class="doc-items-table" style="font-size: 0.78rem;">
+                  <thead>
+                    <tr>
+                      <th style="width: 50px;">Item</th>
+                      <th>Modelo Equipamento</th>
+                      <th>Local de Instalação / Setor</th>
+                      <th style="width: 60px;" class="text-center">Lote</th>
+                      <th class="text-right">Leit. Ant.</th>
+                      <th class="text-right">Leit. Atual</th>
+                      <th class="text-right">Cópias P/B</th>
+                      <th class="text-right">Franquia</th>
+                      <th class="text-right">Excedente</th>
+                      <th class="text-right">Locação R$</th>
+                      <th class="text-right">Total R$</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (eq of fatura.equipamentos; track eq.itemPedido) {
+                      <tr>
+                        <td><strong>#{{ eq.itemPedido }}</strong></td>
+                        <td>{{ eq.modelo }}</td>
+                        <td>{{ eq.localInstalacao }}</td>
+                        <td class="text-center">Lote {{ eq.numeroLote }}</td>
+                        <td class="text-right">{{ eq.leituraMonoAnterior | number }}</td>
+                        <td class="text-right">{{ eq.leituraMonoAtual | number }}</td>
+                        <td class="text-right"><strong>{{ eq.copiasMono | number }}</strong></td>
+                        <td class="text-right">{{ eq.franquiaMono | number }}</td>
+                        <td class="text-right" [style.color]="eq.excedenteMono > 0 ? '#dc2626' : '#64748b'">{{ eq.excedenteMono | number }}</td>
+                        <td class="text-right">R$ {{ eq.valorLocacao | number:'1.2-2' }}</td>
+                        <td class="text-right"><strong>R$ {{ eq.valorTotal | number:'1.2-2' }}</strong></td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+
+                <!-- TERMO DE ATESTO DO FISCAL -->
+                <div class="doc-atesto-box">
+                  <h4>Termo de Atesto de Conformidade e Fiscalização Técnica</h4>
+                  <p>{{ fatura.textoAtesto }}</p>
+                </div>
+
+                <!-- ASSINATURAS DO FISCAL E DO ORDENADOR -->
+                <div class="doc-signatures-grid">
+                  <div class="signature-col">
+                    <div class="signature-line"></div>
+                    <div class="signature-name">Fiscal Técnico do Contrato</div>
+                    <div class="signature-role">Comissão de Fiscalização e Gestão de TI</div>
+                  </div>
+                  <div class="signature-col">
+                    <div class="signature-line"></div>
+                    <div class="signature-name">Secretário(a) / Ordenador de Despesa</div>
+                    <div class="signature-role">{{ fatura.secretariaNome }}</div>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- ==================================================== -->
+        <!-- SUB-ABA 3: DOTAÇÕES & CADASTRO DE EMPENHOS           -->
+        <!-- ==================================================== -->
+        @if (subTabFaturamento() === 'CADASTRO') {
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+            <div class="empenho-metric-card">
+              <span class="metric-title">Total Empenhado</span>
+              <span class="metric-number">R$ {{ totalEmpenhadoGeral() | number:'1.2-2' }}</span>
+            </div>
+            <div class="empenho-metric-card">
+              <span class="metric-title">Saldo Disponível</span>
+              <span class="metric-number" style="color: #16a34a;">R$ {{ totalSaldoEmpenhos() | number:'1.2-2' }}</span>
+            </div>
+            <div class="empenho-metric-card">
+              <span class="metric-title">Equipamentos Cobertos</span>
+              <span class="metric-number">{{ totalMaquinasEmpenhadas() }} un</span>
+            </div>
+            <div class="empenho-metric-card">
+              <span class="metric-title">Empenhos Ativos</span>
+              <span class="metric-number">{{ empenhos().length }}</span>
+            </div>
+          </div>
+
+          <h4 style="margin-bottom: 0.75rem; font-size: 1.05rem; font-weight: 700; color: #1e293b;">Relação de Empenhos Orçamentários Cadastrados</h4>
+          <div class="table-responsive" style="margin-bottom: 2rem;">
+            <table class="data-table">
+              <thead>
                 <tr>
-                  <td><strong class="badge-empenho">Emp. {{ emp.numeroEmpenho }}</strong></td>
-                  <td>{{ emp.ano }}</td>
-                  <td><span class="sec-tag">{{ emp.secretariaSigla || '—' }}</span></td>
-                  <td class="td-truncate" [title]="emp.descricao">{{ emp.descricao || 'Outsourcing de Impressão' }}</td>
-                  <td><strong>R$ {{ emp.valorTotal | number:'1.2-2' }}</strong></td>
-                  <td style="color: #16a34a; font-weight: 600;">R$ {{ emp.saldo | number:'1.2-2' }}</td>
-                  <td>
-                    <button class="btn btn-sm" style="padding: 2px 8px; font-size: 0.75rem; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer;" (click)="filtrarPorEmpenhoNoInventario(emp.numeroEmpenho)" title="Filtrar impressoras deste empenho no inventário">
-                      {{ emp.quantidadeImpressoras || 0 }} máquinas &rarr;
-                    </button>
-                  </td>
-                  <td>
-                    <span class="badge-status status-active">
-                      <span class="dot"></span>
-                      {{ emp.ativo ? 'ATIVO' : 'INATIVO' }}
-                    </span>
-                  </td>
-                  <td class="actions-cell">
-                    <button class="btn-action" title="Editar empenho" (click)="openEditEmpenhoModal(emp)">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                    </button>
-                    <button class="btn-action btn-danger" title="Inativar empenho" (click)="confirmarExcluirEmpenho(emp)">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                    </button>
-                  </td>
+                  <th>Nº Empenho</th>
+                  <th>Exercício</th>
+                  <th>Secretaria</th>
+                  <th>Descrição / Finalidade</th>
+                  <th>Valor Empenhado</th>
+                  <th>Saldo Restante</th>
+                  <th>Máquinas Vinculadas</th>
+                  <th>Status</th>
+                  <th style="text-align: right;">Ações</th>
                 </tr>
-              } @empty {
-                <tr>
-                  <td colspan="9">
-                    <div class="table-empty-state">
-                      <h4>Nenhum empenho cadastrado</h4>
-                      <p>Clique em "+ Novo Empenho" para vincular dotações orçamentárias.</p>
-                    </div>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-
-        <h4 style="margin-bottom: 0.75rem; font-size: 1.05rem; font-weight: 700; color: #1e293b;">Espelho Contratual por Lote</h4>
-        <div class="table-responsive">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Lote Contratual</th>
-                <th>Tipo de Cobrança</th>
-                <th>Qtd Máquinas</th>
-                <th>Valor Fixo Unitário</th>
-                <th>Subtotal Locação</th>
-                <th>Páginas Excedentes</th>
-                <th>Valor por Cópia</th>
-                <th>Subtotal Excedente</th>
-                <th>Total do Lote</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><strong>LOTE 01</strong></td>
-                <td>Multifuncional Laser P/B (Pequeno/Médio)</td>
-                <td>142 un</td>
-                <td>R$ 30,00</td>
-                <td>R$ 4.260,00</td>
-                <td>{{ totalExcedenteMes() | number }} un</td>
-                <td>R$ 0,030</td>
-                <td>R$ {{ (totalExcedenteMes() * 0.03) | number:'1.2-2' }}</td>
-                <td><strong>R$ {{ (4260 + (totalExcedenteMes() * 0.03)) | number:'1.2-2' }}</strong></td>
-              </tr>
-              <tr>
-                <td><strong>LOTE 03</strong></td>
-                <td>Multifuncional Laser Policromática Híbrida</td>
-                <td>5 un</td>
-                <td>R$ 204,00</td>
-                <td>R$ 1.020,00</td>
-                <td>0 un</td>
-                <td>R$ 0,040 (PB) / R$ 0,290 (Cor)</td>
-                <td>R$ 0,00</td>
-                <td><strong>R$ 1.020,00</strong></td>
-              </tr>
-              <tr>
-                <td><strong>LOTE 04</strong></td>
-                <td>Impressora Laser Monocromática Simples</td>
-                <td>20 un</td>
-                <td>R$ 26,00</td>
-                <td>R$ 520,00</td>
-                <td>0 un</td>
-                <td>R$ 0,020</td>
-                <td>R$ 0,00</td>
-                <td><strong>R$ 520,00</strong></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                @for (emp of empenhos(); track emp.id) {
+                  <tr>
+                    <td><strong class="badge-empenho">Emp. {{ emp.numeroEmpenho }}</strong></td>
+                    <td>{{ emp.ano }}</td>
+                    <td><span class="sec-tag">{{ emp.secretariaSigla || '—' }}</span></td>
+                    <td class="td-truncate" [title]="emp.descricao">{{ emp.descricao || 'Outsourcing de Impressão' }}</td>
+                    <td><strong>R$ {{ emp.valorTotal | number:'1.2-2' }}</strong></td>
+                    <td style="color: #16a34a; font-weight: 600;">R$ {{ emp.saldo | number:'1.2-2' }}</td>
+                    <td>
+                      <button class="btn btn-sm" style="padding: 2px 8px; font-size: 0.75rem; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer;" (click)="filtrarPorEmpenhoNoInventario(emp.numeroEmpenho)" title="Filtrar impressoras deste empenho no inventário">
+                        {{ emp.quantidadeImpressoras || 0 }} máquinas &rarr;
+                      </button>
+                    </td>
+                    <td>
+                      <span class="badge-status status-active">
+                        <span class="dot"></span>
+                        {{ emp.ativo ? 'ATIVO' : 'INATIVO' }}
+                      </span>
+                    </td>
+                    <td class="actions-cell">
+                      <button class="btn-action" title="Editar empenho" (click)="openEditEmpenhoModal(emp)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      </button>
+                      <button class="btn-action btn-danger" title="Inativar empenho" (click)="confirmarExcluirEmpenho(emp)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                      </button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="9">
+                      <div class="table-empty-state">
+                        <h4>Nenhum empenho cadastrado</h4>
+                        <p>Clique em "+ Novo Empenho" para vincular dotações orçamentárias.</p>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
       </div>
     }
 
     <!-- ============================================================ -->
-    <!-- TAB 4: LOTES CONTRATUAIS -->
+    <!-- TAB 4: LOTES CONTRATUAIS & BALANÇO DE FRANQUIAS             -->
     <!-- ============================================================ -->
     @if (activeTab() === 'LOTES') {
-      <div class="lotes-grid">
-        @for (lote of lotes(); track lote.id) {
-          <div class="lote-card">
-            <div class="lote-card-header">
-              <span class="lote-badge">LOTE 0{{ lote.numeroLote }}</span>
-              <span class="badge-status status-active">{{ lote.tipo }}</span>
+      <div class="lotes-container">
+        <!-- TOOLBAR COM COMPETÊNCIA E EXPORTAÇÃO -->
+        <div class="lotes-toolbar">
+          <div class="toolbar-title">
+            <h3>Balanço Mensal de Franquias Contratuais & Utilização por Lote</h3>
+            <p>Acompanhamento analítico da capacidade contratada, páginas rodadas, excedentes e custo rateado</p>
+          </div>
+          <div class="toolbar-controls">
+            <div class="control-group">
+              <label>Competência:</label>
+              <select [ngModel]="mesBalanco()" (ngModelChange)="carregarBalancoFranquias($event, anoBalanco())">
+                <option [value]="3">Março / 2026</option>
+                <option [value]="4">Abril / 2026</option>
+                <option [value]="5">Maio / 2026</option>
+                <option [value]="6">Junho / 2026</option>
+                <option [value]="7">Julho / 2026</option>
+                <option [value]="8">Agosto / 2026</option>
+              </select>
             </div>
-            <h3>{{ lote.descricao }}</h3>
+            <button class="btn btn-secondary btn-sm" (click)="exportarBalancoFranquiasCSV()">
+              Exportar Balanço (.CSV)
+            </button>
+          </div>
+        </div>
 
-            <div class="lote-specs">
-              <div class="spec-row">
-                <span>Franquia Mensal P/B:</span>
-                <strong>{{ lote.franquiaMono | number }} cópias</strong>
-              </div>
-              @if (lote.franquiaColor > 0) {
-                <div class="spec-row">
-                  <span>Franquia Mensal Cor:</span>
-                  <strong>{{ lote.franquiaColor | number }} cópias</strong>
-                </div>
-              }
-              <div class="spec-row">
-                <span>Valor Locação / Equipamento:</span>
-                <strong>R$ {{ lote.valorLocacaoMensal | number:'1.2-2' }}</strong>
-              </div>
-              <div class="spec-row">
-                <span>Excedente P/B por cópia:</span>
-                <strong>R$ {{ lote.valorExcedenteMono | number:'1.3-3' }}</strong>
-              </div>
-              @if (lote.valorExcedenteColor > 0) {
-                <div class="spec-row">
-                  <span>Excedente Color por cópia:</span>
-                  <strong>R$ {{ lote.valorExcedenteColor | number:'1.3-3' }}</strong>
-                </div>
-              }
+        <!-- CARDS DE TOTALIZAÇÃO DO BALANÇO -->
+        @if (balancoFranquias(); as b) {
+          <div class="budget-summary-banner">
+            <div class="budget-kpi">
+              <span class="kpi-title">Equipamentos no Lote</span>
+              <span class="kpi-value text-blue">{{ b.totalGeralEquipamentos }} un</span>
+              <span class="kpi-sub">5 Lotes Contratuais</span>
+            </div>
+            <div class="budget-kpi">
+              <span class="kpi-title">Páginas Mono Rodadas</span>
+              <span class="kpi-value text-green">{{ b.totalGeralCopiasMono | number }}</span>
+              <span class="kpi-sub">Produção monocromática</span>
+            </div>
+            <div class="budget-kpi">
+              <span class="kpi-title">Páginas Color Rodadas</span>
+              <span class="kpi-value text-purple">{{ b.totalGeralCopiasColor | number }}</span>
+              <span class="kpi-sub">Lote 03 e Lote 05</span>
+            </div>
+            <div class="budget-kpi">
+              <span class="kpi-title">Excedente Total Faturado</span>
+              <span class="kpi-value text-amber">{{ (b.totalGeralExcedenteMono + b.totalGeralExcedenteColor) | number }}</span>
+              <span class="kpi-sub">Acima da franquia do lote</span>
+            </div>
+            <div class="budget-kpi">
+              <span class="kpi-title">Custo Consolidado no Mês</span>
+              <span class="kpi-value">R$ {{ b.custoTotalGeral | number:'1.2-2' }}</span>
+              <span class="kpi-sub">Fixos + Excedentes</span>
+            </div>
+          </div>
+
+          <!-- TABELA DO BALANÇO DE FRANQUIAS POR LOTE -->
+          <div class="matrix-card">
+            <div class="matrix-header">
+              <h3>Balanço Analítico por Lote — Competência {{ b.competenciaFormatada }}</h3>
+              <span style="font-size: 0.8rem; color: #64748b;">Franquia Contratada vs. Produção Realizada</span>
+            </div>
+            <div class="matrix-table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Lote</th>
+                    <th>Descrição do Equipamento</th>
+                    <th>Tipo</th>
+                    <th>Qtd Máquinas</th>
+                    <th>Franquia Individual</th>
+                    <th>Franquia Total Pool</th>
+                    <th>Páginas Rodadas</th>
+                    <th>% Utilização Franquia</th>
+                    <th>Excedente Faturado</th>
+                    <th>Locação Fixa</th>
+                    <th>Custo Excedente</th>
+                    <th>Custo Total Lote</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (lote of b.lotes; track lote.loteId) {
+                    <tr>
+                      <td><span class="lote-badge">Lote 0{{ lote.numeroLote }}</span></td>
+                      <td><strong>{{ lote.descricao }}</strong></td>
+                      <td><span class="badge-status status-active">{{ lote.tipo }}</span></td>
+                      <td>{{ lote.quantidadeEquipamentos }} un</td>
+                      <td>{{ lote.franquiaIndividualMono | number }} un</td>
+                      <td><strong>{{ lote.franquiaTotalMono | number }}</strong></td>
+                      <td><strong>{{ lote.copiasMonoProduzidas | number }}</strong></td>
+                      <td>
+                        <div class="progress-micro">
+                          <div class="bar-track">
+                            <div class="bar-fill" [ngClass]="{'bar-green': lote.percentualUsoMono < 100, 'bar-amber': lote.percentualUsoMono >= 100 && lote.percentualUsoMono < 125, 'bar-red': lote.percentualUsoMono >= 125}" [style.width.%]="lote.percentualUsoMono > 100 ? 100 : lote.percentualUsoMono"></div>
+                          </div>
+                          <span class="bar-text">{{ lote.percentualUsoMono | number:'1.0-0' }}%</span>
+                        </div>
+                      </td>
+                      <td [style.color]="lote.excedenteMonoTotal > 0 ? '#dc2626' : '#64748b'">
+                        <strong>{{ lote.excedenteMonoTotal | number }}</strong>
+                      </td>
+                      <td>R$ {{ lote.custoFixoLocacao | number:'1.2-2' }}</td>
+                      <td [style.color]="(lote.custoExcedenteMono + lote.custoExcedenteColor) > 0 ? '#dc2626' : '#64748b'">
+                        R$ {{ (lote.custoExcedenteMono + lote.custoExcedenteColor) | number:'1.2-2' }}
+                      </td>
+                      <td><strong>R$ {{ lote.custoTotal | number:'1.2-2' }}</strong></td>
+                    </tr>
+                  }
+                  <tr style="background: #f8fafc; font-weight: 700; border-top: 2px solid #cbd5e1;">
+                    <td colspan="3"><strong>TOTAL CONSOLIDADO</strong></td>
+                    <td>{{ b.totalGeralEquipamentos }} un</td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td>{{ b.totalGeralCopiasMono | number }}</td>
+                    <td>—</td>
+                    <td>{{ b.totalGeralExcedenteMono | number }}</td>
+                    <td>R$ {{ b.custoTotalLocacao | number:'1.2-2' }}</td>
+                    <td>R$ {{ b.custoTotalExcedentes | number:'1.2-2' }}</td>
+                    <td style="color: #0f172a; font-size: 0.95rem;"><strong>R$ {{ b.custoTotalGeral | number:'1.2-2' }}</strong></td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         }
+
+        <!-- ESPECIFICAÇÃO DOS LOTES CONTRATUAIS -->
+        <h4 style="margin: 1.5rem 0 0.75rem 0; font-size: 1.1rem; font-weight: 700; color: #1e293b;">Especificações Técnicas e Cláusulas dos 5 Lotes Licitados</h4>
+        <div class="lotes-grid">
+          @for (lote of lotes(); track lote.id) {
+            <div class="lote-card">
+              <div class="lote-card-header">
+                <span class="lote-badge">LOTE 0{{ lote.numeroLote }}</span>
+                <span class="badge-status status-active">{{ lote.tipo }}</span>
+              </div>
+              <h3>{{ lote.descricao }}</h3>
+
+              <div class="lote-specs">
+                <div class="spec-row">
+                  <span>Franquia Mensal P/B:</span>
+                  <strong>{{ lote.franquiaMono | number }} cópias</strong>
+                </div>
+                @if (lote.franquiaColor > 0) {
+                  <div class="spec-row">
+                    <span>Franquia Mensal Cor:</span>
+                    <strong>{{ lote.franquiaColor | number }} cópias</strong>
+                  </div>
+                }
+                <div class="spec-row">
+                  <span>Valor Locação / Equipamento:</span>
+                  <strong>R$ {{ lote.valorLocacaoMensal | number:'1.2-2' }}</strong>
+                </div>
+                <div class="spec-row">
+                  <span>Excedente P/B por cópia:</span>
+                  <strong>R$ {{ lote.valorExcedenteMono | number:'1.3-3' }}</strong>
+                </div>
+                @if (lote.valorExcedenteColor > 0) {
+                  <div class="spec-row">
+                    <span>Excedente Color por cópia:</span>
+                    <strong>R$ {{ lote.valorExcedenteColor | number:'1.3-3' }}</strong>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
       </div>
     }
   </div>

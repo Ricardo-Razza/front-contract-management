@@ -1029,3 +1029,622 @@
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+// ============================================================
+// FATURAMENTO & EMPENHOS SUITE (ORÇAMENTO, MATRIZ E ATESTO)
+// ============================================================
+.faturamento-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.faturamento-subnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  padding: 0.85rem 1.25rem;
+  border-radius: 12px;
+  border: 1px solid $color-border;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  gap: 1rem;
+  flex-wrap: wrap;
+
+  .subnav-pills {
+    display: flex;
+    gap: 0.5rem;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 10px;
+
+    .subnav-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      &:hover {
+        color: #1e293b;
+      }
+
+      &.active {
+        background: #ffffff;
+        color: #2563eb;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      }
+    }
+  }
+
+  .subnav-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    .year-selector, .control-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      label {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #475569;
+      }
+
+      select {
+        padding: 0.45rem 0.85rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #1e293b;
+        background: #ffffff;
+        cursor: pointer;
+
+        &:focus {
+          outline: none;
+          border-color: #2563eb;
+          box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+        }
+      }
+    }
+  }
+}
+
+// Budget Summary Banner
+.budget-summary-banner {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+
+  .budget-kpi {
+    background: #ffffff;
+    border: 1px solid $color-border;
+    border-radius: 12px;
+    padding: 1.15rem 1.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+
+    .kpi-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      display: block;
+      margin-bottom: 0.4rem;
+    }
+
+    .kpi-value {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #0f172a;
+      display: block;
+
+      &.text-green { color: #16a34a; }
+      &.text-blue { color: #2563eb; }
+      &.text-purple { color: #7c3aed; }
+      &.text-amber { color: #d97706; }
+    }
+
+    .kpi-sub {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      margin-top: 0.25rem;
+      display: block;
+    }
+  }
+}
+
+// Matrix Table
+.matrix-card {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid $color-border;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+
+  .matrix-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid $color-border;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fafafa;
+
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0;
+    }
+
+    .matrix-legend {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+
+        .legend-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+        }
+        .dot-realizado { background: #2563eb; }
+        .dot-previsto { background: #94a3b8; }
+      }
+    }
+  }
+
+  .matrix-table-wrap {
+    overflow-x: auto;
+
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      white-space: nowrap;
+
+      th {
+        background: #f8fafc;
+        color: #475569;
+        font-weight: 700;
+        padding: 0.75rem 0.65rem;
+        border-bottom: 2px solid #e2e8f0;
+        text-align: right;
+
+        &:first-child, &:nth-child(2), &:nth-child(3) {
+          text-align: left;
+        }
+
+        &.col-total {
+          background: #f1f5f9;
+          color: #0f172a;
+        }
+      }
+
+      td {
+        padding: 0.65rem 0.65rem;
+        border-bottom: 1px solid #f1f5f9;
+        text-align: right;
+        color: #334155;
+
+        &:first-child, &:nth-child(2), &:nth-child(3) {
+          text-align: left;
+        }
+
+        &.td-empenho {
+          font-weight: 700;
+          color: #1e293b;
+        }
+
+        &.td-realizado {
+          font-weight: 600;
+          color: #1e293b;
+        }
+
+        &.td-previsto {
+          color: #94a3b8;
+          font-style: italic;
+        }
+
+        &.td-vazio {
+          color: #cbd5e1;
+        }
+
+        &.col-total {
+          background: #f8fafc;
+          font-weight: 700;
+          color: #0f172a;
+        }
+
+        &.col-saldo {
+          font-weight: 700;
+          color: #16a34a;
+        }
+      }
+
+      tr:hover td {
+        background: #f8fafc;
+      }
+
+      tr.matrix-total-row {
+        background: #f1f5f9;
+        td {
+          background: #f1f5f9;
+          font-weight: 700;
+          color: #0f172a;
+          border-top: 2px solid #cbd5e1;
+          border-bottom: none;
+        }
+      }
+    }
+  }
+}
+
+// Progress micro-bar inside table
+.progress-micro {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: flex-end;
+
+  .bar-track {
+    width: 65px;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 9999px;
+    overflow: hidden;
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 9999px;
+
+      &.bar-green { background: #16a34a; }
+      &.bar-amber { background: #d97706; }
+      &.bar-red { background: #dc2626; }
+    }
+  }
+
+  .bar-text {
+    font-size: 0.72rem;
+    font-weight: 700;
+    min-width: 32px;
+  }
+}
+
+// DOCUMENT CARD (Official Atesto & Invoice Mirror)
+.document-view-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  .doc-toolbar {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid $color-border;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+
+    .doc-filter-group {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+
+      .doc-filter-item {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+
+        label {
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: #64748b;
+        }
+
+        select {
+          padding: 0.4rem 0.75rem;
+          border: 1px solid #cbd5e1;
+          border-radius: 6px;
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #1e293b;
+        }
+      }
+    }
+
+    .doc-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+  }
+
+  .doc-sheet {
+    background: #ffffff;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    padding: 2.5rem 3rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    color: #0f172a;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+    .doc-header {
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 1.25rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+
+      .doc-entity {
+        h2 {
+          font-size: 1.35rem;
+          font-weight: 800;
+          color: #0f172a;
+          margin: 0 0 0.25rem 0;
+          text-transform: uppercase;
+          letter-spacing: -0.01em;
+        }
+
+        p {
+          font-size: 0.85rem;
+          color: #475569;
+          margin: 0;
+          font-weight: 500;
+        }
+      }
+
+      .doc-badge-status {
+        text-align: right;
+        .badge-official {
+          display: inline-block;
+          background: #f1f5f9;
+          border: 1px solid #94a3b8;
+          color: #0f172a;
+          padding: 4px 12px;
+          border-radius: 4px;
+          font-size: 0.72rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        .doc-emissao {
+          font-size: 0.75rem;
+          color: #64748b;
+          margin-top: 4px;
+        }
+      }
+    }
+
+    .doc-meta-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1.5rem;
+
+      td {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #e2e8f0;
+        font-size: 0.82rem;
+
+        &.meta-label {
+          background: #f8fafc;
+          font-weight: 700;
+          color: #475569;
+          width: 22%;
+        }
+
+        &.meta-val {
+          color: #0f172a;
+          font-weight: 600;
+        }
+      }
+    }
+
+    .doc-section-title {
+      font-size: 0.92rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #0f172a;
+      margin: 1.5rem 0 0.65rem 0;
+      border-left: 4px solid #2563eb;
+      padding-left: 0.5rem;
+    }
+
+    .doc-items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1.5rem;
+      font-size: 0.82rem;
+
+      th {
+        background: #f1f5f9;
+        color: #1e293b;
+        font-weight: 700;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid #cbd5e1;
+        text-align: left;
+
+        &.text-right { text-align: right; }
+        &.text-center { text-align: center; }
+      }
+
+      td {
+        padding: 0.6rem 0.75rem;
+        border: 1px solid #cbd5e1;
+        color: #334155;
+
+        &.text-right { text-align: right; }
+        &.text-center { text-align: center; }
+        &.td-code { font-family: monospace; font-weight: 700; color: #0f172a; }
+      }
+
+      tr.doc-total-row td {
+        background: #f8fafc;
+        font-weight: 800;
+        font-size: 0.9rem;
+        color: #0f172a;
+        border-top: 2px solid #0f172a;
+      }
+    }
+
+    .doc-atesto-box {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 2rem;
+
+      h4 {
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #0f172a;
+        margin: 0 0 0.5rem 0;
+      }
+
+      p {
+        font-size: 0.8rem;
+        color: #334155;
+        line-height: 1.5;
+        margin: 0;
+        text-align: justify;
+      }
+    }
+
+    .doc-signatures-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      margin-top: 3rem;
+      padding-top: 1rem;
+
+      .signature-col {
+        text-align: center;
+
+        .signature-line {
+          border-top: 1px solid #0f172a;
+          margin-bottom: 0.5rem;
+        }
+
+        .signature-name {
+          font-size: 0.82rem;
+          font-weight: 700;
+          color: #0f172a;
+        }
+
+        .signature-role {
+          font-size: 0.75rem;
+          color: #64748b;
+        }
+      }
+    }
+  }
+}
+
+// BALANÇO DE FRANQUIAS POR LOTE (TAB 4)
+.lotes-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  .lotes-toolbar {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid $color-border;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+
+    .toolbar-title {
+      h3 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0 0 0.2rem 0;
+      }
+      p {
+        font-size: 0.82rem;
+        color: #64748b;
+        margin: 0;
+      }
+    }
+
+    .toolbar-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+  }
+}
+
+// Print Styles for official document
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .doc-sheet, .doc-sheet * {
+    visibility: visible;
+  }
+
+  .doc-sheet {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .faturamento-subnav,
+  .doc-toolbar,
+  .nav-tabs,
+  .page-title-group,
+  .metrics-grid,
+  .app-sidebar,
+  .app-header {
+    display: none !important;
+  }
+}
