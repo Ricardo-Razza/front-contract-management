@@ -68,6 +68,11 @@ export class ImpressorasComponent implements OnInit {
   mesesSelecionados = signal<number[]>([8]); // Padrão: Agosto (último mês faturado)
   modoMultiplosMeses = signal<boolean>(false);
   empenhoFiltroNotas = signal<number | null>(null); // null = Todos os 8 empenhos
+  incluirMedicaoImpressao = signal<boolean>(false); // Opcional: omitir ou incluir detalhamento de medições por máquina na impressão
+
+  alternarMedicaoImpressao(): void {
+    this.incluirMedicaoImpressao.update(v => !v);
+  }
 
   notasFiscaisLote = signal<EspelhoFatura[]>([]);
   loadingNotasLote = signal<boolean>(false);
@@ -1293,7 +1298,14 @@ export class ImpressorasComponent implements OnInit {
     if (cards && cards.length > 0) {
       let combinedHtml = '';
       cards.forEach(c => {
-        combinedHtml += c.outerHTML;
+        const clone = c.cloneNode(true) as HTMLElement;
+        if (!this.incluirMedicaoImpressao()) {
+          const medicaoSec = clone.querySelector('.doc-section-equipamentos');
+          if (medicaoSec) {
+            medicaoSec.remove();
+          }
+        }
+        combinedHtml += clone.outerHTML;
       });
       this.imprimirConteudoIsolado(combinedHtml, `Notas Fiscais em Lote - Imbe 2026 (${cards.length} empenhos)`, false);
     } else {
@@ -1304,7 +1316,14 @@ export class ImpressorasComponent implements OnInit {
   imprimirNotaIndividual(numeroEmpenho: string): void {
     const card = document.getElementById('invoice-card-' + numeroEmpenho);
     if (card) {
-      this.imprimirConteudoIsolado(card.outerHTML, `Nota Fiscal Empenho ${numeroEmpenho} - Imbe 2026`, false);
+      const clone = card.cloneNode(true) as HTMLElement;
+      if (!this.incluirMedicaoImpressao()) {
+        const medicaoSec = clone.querySelector('.doc-section-equipamentos');
+        if (medicaoSec) {
+          medicaoSec.remove();
+        }
+      }
+      this.imprimirConteudoIsolado(clone.outerHTML, `Nota Fiscal Empenho ${numeroEmpenho} - Imbe 2026`, false);
     } else {
       this.toast.error('Nota fiscal do empenho ' + numeroEmpenho + ' não encontrada.');
     }

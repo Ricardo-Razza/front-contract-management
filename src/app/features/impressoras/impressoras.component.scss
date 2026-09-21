@@ -269,6 +269,42 @@
   padding: 0.75rem 0;
 }
 
+.print-option-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  user-select: none;
+  background: #f8fafc;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+    color: #0f172a;
+  }
+
+  input[type="checkbox"] {
+    cursor: pointer;
+    width: 15px;
+    height: 15px;
+    accent-color: #2563eb;
+    margin: 0;
+  }
+
+  .toggle-label {
+    line-height: 1;
+    white-space: nowrap;
+  }
+}
+
+
 // ============================================================
 // TOOLBAR: SEARCH & FILTERS
 // ============================================================

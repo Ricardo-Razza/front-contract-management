@@ -172,6 +172,12 @@
           </button>
         } @else if (activeTab() === 'FINANCEIRO') {
           @if (subTabFinanceiro() === 'NOTAS_MENSAIS') {
+            <label class="print-option-toggle" title="Selecione para incluir ou omitir o detalhamento de medições por máquina na folha de impressão">
+              <input type="checkbox"
+                     [checked]="incluirMedicaoImpressao()"
+                     (change)="alternarMedicaoImpressao()">
+              <span class="toggle-label">Incluir medição de equipamentos</span>
+            </label>
             <button class="btn btn-secondary btn-sm" (click)="exportarNotasFiscaisLoteCSV()" title="Exportar faturas em lote em CSV">
               Exportar (.CSV)
             </button>
@@ -591,6 +597,13 @@
                     }
                   </select>
                 </div>
+
+                <label class="print-option-toggle" title="Selecione para incluir ou omitir o detalhamento de medições por máquina na folha impressa">
+                  <input type="checkbox"
+                         [checked]="incluirMedicaoImpressao()"
+                         (change)="alternarMedicaoImpressao()">
+                  <span class="toggle-label">Imprimir Medição de Máquinas</span>
+                </label>
               </div>
             </div>
 
@@ -755,7 +768,7 @@
 
                   <!-- TABELA 2: EQUIPAMENTOS E MEDIÇÕES -->
                   @if (fat.equipamentos && fat.equipamentos.length > 0) {
-                    <div class="doc-section">
+                    <div class="doc-section doc-section-equipamentos" [class.no-print]="!incluirMedicaoImpressao()">
                       <h4>2. Medição de Contadores por Equipamento ({{ fat.equipamentos.length }} Máquinas)</h4>
                       <table class="doc-table table-equipamentos">
                         <thead>
