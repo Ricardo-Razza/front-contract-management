@@ -55,32 +55,30 @@ export class ImpressorasComponent implements OnInit {
   leituras = signal<LeituraContador[]>([]);
 
   // Filtros e Navegação
-  activeTab = signal<'INVENTARIO' | 'LEITURAS' | 'NOTAS_FISCAIS' | 'FATURAMENTO' | 'LOTES'>('INVENTARIO');
+  activeTab = signal<'INVENTARIO' | 'LEITURAS' | 'FINANCEIRO' | 'LOTES'>('INVENTARIO');
   globalSearch = signal<string>('');
   filterSecretaria = signal<string>('');
   filterLote = signal<string>('');
   filterEmpenho = signal<string>('');
   filterStatus = signal<string>('');
 
-  // Notas Fiscais (Consolidado & Emissão em Lote)
-  subTabNotasFiscais = signal<'CONSOLIDADO' | 'LOTE'>('CONSOLIDADO');
-  anoNotasFiscais = signal<number>(2026);
-  mesNotasFiscais = signal<number>(8);
-  notasFiscaisConsolidado = signal<NotasFiscaisConsolidado | null>(null);
-  loadingNotasFiscais = signal<boolean>(false);
+  // Módulo Financeiro & Notas Fiscais Unificado
+  subTabFinanceiro = signal<'NOTAS_MENSAIS' | 'DEMONSTRATIVO_ANUAL' | 'EMPENHOS'>('NOTAS_MENSAIS');
+  anoFinanceiro = signal<number>(2026);
+  mesesSelecionados = signal<number[]>([8]); // Padrão: Agosto (último mês faturado)
+  modoMultiplosMeses = signal<boolean>(false);
+  empenhoFiltroNotas = signal<number | null>(null); // null = Todos os 8 empenhos
+
   notasFiscaisLote = signal<EspelhoFatura[]>([]);
   loadingNotasLote = signal<boolean>(false);
+  notasFiscaisConsolidado = signal<NotasFiscaisConsolidado | null>(null);
+  loadingNotasConsolidado = signal<boolean>(false);
 
-  // Sub-abas e Controle de Faturamento & Empenhos
-  subTabFaturamento = signal<'MATRIZ' | 'ESPELHO' | 'CADASTRO'>('MATRIZ');
-  anoExecucao = signal<number>(2026);
+  // Execução Orçamentária e Dotações
   execucaoMensal = signal<ExecucaoMensal | null>(null);
   loadingExecucao = signal<boolean>(false);
-
-  // Espelho da Fatura (Atesto)
+  anoExecucao = signal<number>(2026);
   empenhoSelecionadoEspelho = signal<number | null>(null);
-  mesEspelho = signal<number>(8);
-  anoEspelho = signal<number>(2026);
   espelhoFatura = signal<EspelhoFatura | null>(null);
   loadingEspelho = signal<boolean>(false);
 
@@ -90,7 +88,7 @@ export class ImpressorasComponent implements OnInit {
   mesBalanco = signal<number>(8);
   anoBalanco = signal<number>(2026);
 
-  // Competência selecionada para leituras
+  // Competência selecionada para medição de contadores
   mesCompetencia = signal<number>(new Date().getMonth() + 1);
   anoCompetencia = signal<number>(new Date().getFullYear());
   termoBuscaLeituras = signal<string>('');
@@ -316,30 +314,37 @@ export class ImpressorasComponent implements OnInit {
     });
   }
 
-  trocarAba(tab: 'INVENTARIO' | 'LEITURAS' | 'NOTAS_FISCAIS' | 'FATURAMENTO' | 'LOTES'): void {
+  trocarAba(tab: 'INVENTARIO' | 'LEITURAS' | 'FINANCEIRO' | 'LOTES'): void {
     this.activeTab.set(tab);
     if (tab === 'LEITURAS' && this.leituras().length === 0) {
       this.carregarLeiturasCompetencia();
-    } else if (tab === 'NOTAS_FISCAIS') {
-      if (this.subTabNotasFiscais() === 'CONSOLIDADO') {
-        if (!this.notasFiscaisConsolidado()) {
-          this.carregarNotasFiscaisConsolidado();
-        }
-      } else {
-        if (this.notasFiscaisLote().length === 0) {
-          this.carregarNotasFiscaisLote();
-        }
-      }
-    } else if (tab === 'FATURAMENTO') {
-      if (!this.execucaoMensal()) {
-        this.carregarExecucaoMensal();
-      }
-      if (!this.espelhoFatura() && this.empenhos().length > 0) {
-        this.carregarEspelhoFatura(this.empenhos()[0].id);
-      }
+    } else if (tab === 'FINANCEIRO') {
+      this.inicializarFinanceiroSeNecessario();
     } else if (tab === 'LOTES') {
       if (!this.balancoFranquias()) {
         this.carregarBalancoFranquias();
+      }
+    }
+  }
+
+  selecionarSubTabFinanceiro(subTab: 'NOTAS_MENSAIS' | 'DEMONSTRATIVO_ANUAL' | 'EMPENHOS'): void {
+    this.subTabFinanceiro.set(subTab);
+    this.inicializarFinanceiroSeNecessario();
+  }
+
+  inicializarFinanceiroSeNecessario(): void {
+    const sub = this.subTabFinanceiro();
+    if (sub === 'NOTAS_MENSAIS') {
+      if (this.notasFiscaisLote().length === 0) {
+        this.carregarNotasFiscaisLote();
+      }
+    } else if (sub === 'DEMONSTRATIVO_ANUAL') {
+      if (!this.notasFiscaisConsolidado()) {
+        this.carregarNotasFiscaisConsolidado();
+      }
+    } else if (sub === 'EMPENHOS') {
+      if (!this.execucaoMensal()) {
+        this.carregarExecucaoMensal();
       }
     }
   }
@@ -800,39 +805,6 @@ export class ImpressorasComponent implements OnInit {
     });
   }
 
-  carregarEspelhoFatura(empId?: number, mes: number = this.mesEspelho(), ano: number = this.anoEspelho()): void {
-    const id = empId !== undefined ? empId : this.empenhoSelecionadoEspelho();
-    if (!id) {
-      const primeiro = this.empenhos()[0];
-      if (primeiro) {
-        this.empenhoSelecionadoEspelho.set(primeiro.id);
-        this.carregarEspelhoFatura(primeiro.id, mes, ano);
-      }
-      return;
-    }
-
-    this.loadingEspelho.set(true);
-    this.empenhoSelecionadoEspelho.set(id);
-    this.mesEspelho.set(mes);
-    this.anoEspelho.set(ano);
-
-    this.impressoraService.getEspelhoFatura(id, mes, ano).subscribe({
-      next: fatura => {
-        this.espelhoFatura.set(fatura);
-        this.loadingEspelho.set(false);
-      },
-      error: () => {
-        this.toast.error('Erro ao carregar espelho da fatura para este empenho.');
-        this.loadingEspelho.set(false);
-      }
-    });
-  }
-
-  selecionarEmpenhoParaEspelho(empId: number): void {
-    this.empenhoSelecionadoEspelho.set(empId);
-    this.subTabFaturamento.set('ESPELHO');
-    this.carregarEspelhoFatura(empId, this.mesEspelho(), this.anoEspelho());
-  }
 
   carregarBalancoFranquias(mes: number = this.mesBalanco(), ano: number = this.anoBalanco()): void {
     this.loadingBalanco.set(true);
@@ -926,51 +898,135 @@ export class ImpressorasComponent implements OnInit {
   }
 
   // ==========================================
-  // NOTAS FISCAIS (CONSOLIDADO & EMISSÃO EM LOTE)
+  // MÓDULO FINANCEIRO & NOTAS FISCAIS
   // ==========================================
-  carregarNotasFiscaisConsolidado(ano: number = this.anoNotasFiscais()): void {
-    this.loadingNotasFiscais.set(true);
-    this.anoNotasFiscais.set(ano);
-    this.impressoraService.getNotasFiscaisConsolidado(ano).subscribe({
-      next: data => {
-        this.notasFiscaisConsolidado.set(data);
-        this.loadingNotasFiscais.set(false);
-      },
-      error: () => {
-        this.toast.error('Erro ao carregar matriz consolidada de notas fiscais.');
-        this.loadingNotasFiscais.set(false);
-      }
-    });
+  readonly mesesLista = [
+    { num: 1, sigla: 'Jan', nome: 'Janeiro' },
+    { num: 2, sigla: 'Fev', nome: 'Fevereiro' },
+    { num: 3, sigla: 'Mar', nome: 'Março' },
+    { num: 4, sigla: 'Abr', nome: 'Abril' },
+    { num: 5, sigla: 'Mai', nome: 'Maio' },
+    { num: 6, sigla: 'Jun', nome: 'Junho' },
+    { num: 7, sigla: 'Jul', nome: 'Julho' },
+    { num: 8, sigla: 'Ago', nome: 'Agosto' },
+    { num: 9, sigla: 'Set', nome: 'Setembro' },
+    { num: 10, sigla: 'Out', nome: 'Outubro' },
+    { num: 11, sigla: 'Nov', nome: 'Novembro' },
+    { num: 12, sigla: 'Dez', nome: 'Dezembro' }
+  ];
+
+  isMesSelecionado(mes: number): boolean {
+    return this.mesesSelecionados().includes(mes);
   }
 
-  carregarNotasFiscaisLote(mes: number = this.mesNotasFiscais(), ano: number = this.anoNotasFiscais()): void {
+  selecionarMes(mes: number): void {
+    if (this.modoMultiplosMeses()) {
+      const atuais = this.mesesSelecionados();
+      if (atuais.includes(mes)) {
+        if (atuais.length > 1) {
+          this.mesesSelecionados.set(atuais.filter(m => m !== mes));
+        }
+      } else {
+        this.mesesSelecionados.set([...atuais, mes].sort((a, b) => a - b));
+      }
+    } else {
+      this.mesesSelecionados.set([mes]);
+    }
+    this.carregarNotasFiscaisLote();
+  }
+
+  selecionarTodosMeses(): void {
+    this.mesesSelecionados.set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    this.carregarNotasFiscaisLote();
+  }
+
+  selecionarMesesFaturados(): void {
+    this.mesesSelecionados.set([1, 2, 3, 4, 5, 6, 7, 8]);
+    this.carregarNotasFiscaisLote();
+  }
+
+  alternarModoMultiplosMeses(): void {
+    this.modoMultiplosMeses.update(v => !v);
+  }
+
+  selecionarFiltroEmpenho(empId: number | null): void {
+    this.empenhoFiltroNotas.set(empId);
+    this.carregarNotasFiscaisLote();
+  }
+
+  carregarNotasFiscaisLote(): void {
     this.loadingNotasLote.set(true);
-    this.mesNotasFiscais.set(mes);
-    this.anoNotasFiscais.set(ano);
-    this.impressoraService.getNotasFiscaisLote(mes, ano).subscribe({
+    const meses = this.mesesSelecionados();
+    const ano = this.anoFinanceiro();
+    const empId = this.empenhoFiltroNotas() || undefined;
+
+    this.impressoraService.getNotasFiscaisLote(meses, undefined, ano, empId).subscribe({
       next: faturas => {
         this.notasFiscaisLote.set(faturas);
         this.loadingNotasLote.set(false);
       },
       error: () => {
-        this.toast.error('Erro ao gerar faturas em lote.');
+        this.toast.error('Erro ao gerar faturas dos empenhos.');
         this.loadingNotasLote.set(false);
       }
     });
   }
 
-  gerarTodasNotasFiscais(mes: number = this.mesNotasFiscais()): void {
-    this.subTabNotasFiscais.set('LOTE');
-    this.carregarNotasFiscaisLote(mes, this.anoNotasFiscais());
+  carregarNotasFiscaisConsolidado(ano: number = this.anoFinanceiro()): void {
+    this.loadingNotasConsolidado.set(true);
+    this.anoFinanceiro.set(ano);
+    this.impressoraService.getNotasFiscaisConsolidado(ano).subscribe({
+      next: data => {
+        this.notasFiscaisConsolidado.set(data);
+        this.loadingNotasConsolidado.set(false);
+      },
+      error: () => {
+        this.toast.error('Erro ao carregar demonstrativo anual consolidado.');
+        this.loadingNotasConsolidado.set(false);
+      }
+    });
   }
 
   imprimirNotasFiscaisLote(): void {
     window.print();
   }
 
-  totalGeralNotasLote = computed(() => {
+  // Métricas computadas do lote de notas fiscais
+  totalFaturadoSelecionado = computed(() => {
     return this.notasFiscaisLote().reduce((acc, f) => acc + (f.totalFatura || 0), 0);
   });
+
+  totalCopiasMonoSelecionadas = computed(() => {
+    return this.notasFiscaisLote().reduce((acc, f) => {
+      return acc + (f.equipamentos?.reduce((s, e) => s + (e.copiasMono || 0), 0) || 0);
+    }, 0);
+  });
+
+  totalCopiasColorSelecionadas = computed(() => {
+    return this.notasFiscaisLote().reduce((acc, f) => {
+      return acc + (f.equipamentos?.reduce((s, e) => s + (e.copiasColor || 0), 0) || 0);
+    }, 0);
+  });
+
+  totalExcedenteMonoSelecionado = computed(() => {
+    return this.notasFiscaisLote().reduce((acc, f) => {
+      return acc + (f.equipamentos?.reduce((s, e) => s + (e.excedenteMono || 0), 0) || 0);
+    }, 0);
+  });
+
+  totalExcedenteColorSelecionado = computed(() => {
+    return this.notasFiscaisLote().reduce((acc, f) => {
+      return acc + (f.equipamentos?.reduce((s, e) => s + (e.excedenteColor || 0), 0) || 0);
+    }, 0);
+  });
+
+  quantidadeNotasGeradas = computed(() => this.notasFiscaisLote().length);
+
+  selecionarEmpenhoParaEspelho(empId: number): void {
+    this.empenhoFiltroNotas.set(empId);
+    this.subTabFinanceiro.set('NOTAS_MENSAIS');
+    this.carregarNotasFiscaisLote();
+  }
 
   exportarNotasFiscaisConsolidadoCSV(): void {
     const cons = this.notasFiscaisConsolidado();
@@ -1048,8 +1104,8 @@ export class ImpressorasComponent implements OnInit {
       { header: 'Total Anual Item', accessor: (r: RowConsolidado) => (r.totalItem || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
     ];
 
-    exportToCsv(`notas_fiscais_consolidado_${cons.ano}`, columns, rows);
-    this.toast.success('Matriz consolidada de notas fiscais exportada em .CSV com sucesso!');
+    exportToCsv(`demonstrativo_anual_consolidado_${cons.ano}`, columns, rows);
+    this.toast.success('Demonstrativo anual consolidado exportado em .CSV com sucesso!');
   }
 
   exportarNotasFiscaisLoteCSV(): void {
@@ -1059,6 +1115,8 @@ export class ImpressorasComponent implements OnInit {
     interface RowLote {
       empenho: string;
       secretaria: string;
+      mesReferencia: number;
+      anoReferencia: number;
       item: number;
       codigo: string;
       descricao: string;
@@ -1074,6 +1132,8 @@ export class ImpressorasComponent implements OnInit {
         rows.push({
           empenho: f.numeroEmpenho,
           secretaria: f.secretariaSigla,
+          mesReferencia: f.mesReferencia,
+          anoReferencia: f.anoReferencia,
           item: it.itemNumero,
           codigo: it.codigoItem,
           descricao: it.descricao,
@@ -1088,6 +1148,8 @@ export class ImpressorasComponent implements OnInit {
     const columns = [
       { header: 'Empenho', accessor: (r: RowLote) => r.empenho },
       { header: 'Secretaria', accessor: (r: RowLote) => r.secretaria },
+      { header: 'Mês', accessor: (r: RowLote) => r.mesReferencia },
+      { header: 'Ano', accessor: (r: RowLote) => r.anoReferencia },
       { header: 'Item', accessor: (r: RowLote) => r.item },
       { header: 'Código', accessor: (r: RowLote) => r.codigo },
       { header: 'Descrição', accessor: (r: RowLote) => r.descricao },
@@ -1097,10 +1159,10 @@ export class ImpressorasComponent implements OnInit {
       { header: 'Subtotal R$', accessor: (r: RowLote) => (r.subtotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
     ];
 
-    const mes = this.mesNotasFiscais();
-    const ano = this.anoNotasFiscais();
-    exportToCsv(`notas_fiscais_lote_todos_empenhos_${mes}_${ano}`, columns, rows);
-    this.toast.success('Notas fiscais em lote exportadas em .CSV com sucesso!');
+    const mesesStr = this.mesesSelecionados().join('-');
+    const ano = this.anoFinanceiro();
+    exportToCsv(`notas_fiscais_meses_${mesesStr}_${ano}`, columns, rows);
+    this.toast.success('Notas fiscais exportadas em .CSV com sucesso!');
   }
 
   somarMesesItem(it: ItemNotaFiscal): number {

@@ -134,10 +134,23 @@ export class ImpressoraService {
     return this.http.get<NotasFiscaisConsolidado>(`${this.apiUrl}/notas-fiscais`, { params });
   }
 
-  getNotasFiscaisLote(mes: number = 8, ano: number = 2026): Observable<EspelhoFatura[]> {
-    const params = new HttpParams()
-      .set('mes', mes.toString())
-      .set('ano', ano.toString());
+  getNotasFiscaisLote(
+    meses?: number[],
+    mes?: number,
+    ano: number = 2026,
+    empenhoId?: number
+  ): Observable<EspelhoFatura[]> {
+    let params = new HttpParams().set('ano', ano.toString());
+    if (meses && meses.length > 0) {
+      params = params.set('meses', meses.join(','));
+    } else if (mes !== undefined && mes !== null) {
+      params = params.set('mes', mes.toString());
+    } else {
+      params = params.set('mes', '8');
+    }
+    if (empenhoId) {
+      params = params.set('empenhoId', empenhoId.toString());
+    }
     return this.http.get<EspelhoFatura[]>(`${this.apiUrl}/notas-fiscais/lote`, { params });
   }
 }
