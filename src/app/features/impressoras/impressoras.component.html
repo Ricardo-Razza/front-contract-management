@@ -182,6 +182,9 @@
             <button class="btn btn-secondary btn-sm" (click)="exportarNotasFiscaisConsolidadoCSV()" title="Exportar matriz consolidada em CSV">
               Exportar Matriz (.CSV)
             </button>
+            <button class="btn btn-primary btn-sm" (click)="imprimirNotasFiscaisLote()" title="Imprimir demonstrativo anual consolidado em A4">
+              Imprimir Matriz (A4)
+            </button>
           } @else if (subTabFinanceiro() === 'EMPENHOS') {
             <button class="btn btn-secondary btn-sm" (click)="exportarEmpenhosCSV()" title="Exportar relação de empenhos">
               Exportar (.CSV)
@@ -659,25 +662,31 @@
           </div>
 
           <!-- DOCUMENTOS / FATURAS EM LOTE -->
-          @if (loadingNotasLote()) {
+          @if (loadingNotasLote() && notasFiscaisLote().length === 0) {
             <div class="tremor-card loading-state">
               <div class="spinner"></div>
               <p>Processando medições e gerando notas fiscais dos empenhos...</p>
             </div>
-          } @else if (notasFiscaisLote().length === 0) {
+          } @else if (!loadingNotasLote() && notasFiscaisLote().length === 0) {
             <div class="tremor-card empty-state">
               <h4>Nenhuma nota fiscal encontrada</h4>
               <p>Não há faturas geradas para o período ou filtros selecionados.</p>
             </div>
           } @else {
-            <div class="faturas-lote-grid">
+            <div class="faturas-lote-grid" [class.is-loading-updating]="loadingNotasLote()">
+              @if (loadingNotasLote()) {
+                <div class="updating-overlay-pill">
+                  <div class="spinner-sm"></div>
+                  <span>Atualizando faturas do período...</span>
+                </div>
+              }
               @for (fat of notasFiscaisLote(); track (fat.numeroEmpenho + '-' + fat.mesReferencia)) {
                 <div class="doc-sheet official-invoice-card">
                   <!-- CABEÇALHO OFICIAL -->
                   <div class="doc-header">
                     <div class="gov-identification">
                       <div class="gov-text">
-                        <h3>PREFEITURA MUNICIPAL DE MARICÁ</h3>
+                        <h3>PREFEITURA MUNICIPAL DE IMBÉ</h3>
                         <p class="gov-sub">{{ fat.secretariaNome }} ({{ fat.secretariaSigla }})</p>
                         <p class="gov-sub">Contrato Administrativo nº {{ fat.contratoNumero || '108/2024' }}</p>
                       </div>
@@ -896,7 +905,7 @@
                   <tfoot>
                     <tr class="footer-prefeitura">
                       <td colspan="6" class="text-right">
-                        <strong>TOTAL CONSOLIDADO PREFEITURA DE MARICÁ:</strong>
+                        <strong>TOTAL CONSOLIDADO PREFEITURA DE IMBÉ:</strong>
                       </td>
                       @for (totPrefeitura of cons.totaisPrefeituraMensais; track $index) {
                         <td class="text-right font-bold footer-mes">
