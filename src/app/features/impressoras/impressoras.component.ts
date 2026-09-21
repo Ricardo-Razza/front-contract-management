@@ -988,8 +988,34 @@ export class ImpressorasComponent implements OnInit {
   }
 
   imprimirNotasFiscaisLote(): void {
-    window.print();
+    if (this.subTabFinanceiro() === 'DEMONSTRATIVO_ANUAL') {
+      document.body.classList.add('print-landscape');
+      document.body.classList.remove('print-single-target');
+      window.print();
+      setTimeout(() => document.body.classList.remove('print-landscape'), 1000);
+    } else {
+      document.body.classList.remove('print-landscape');
+      document.body.classList.remove('print-single-target');
+      window.print();
+    }
   }
+
+  imprimirNotaIndividual(numeroEmpenho: string): void {
+    const el = document.getElementById('invoice-card-' + numeroEmpenho);
+    if (el) {
+      document.body.classList.remove('print-landscape');
+      document.body.classList.add('print-single-target');
+      el.classList.add('is-print-target');
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove('print-single-target');
+        el.classList.remove('is-print-target');
+      }, 1000);
+    } else {
+      window.print();
+    }
+  }
+
 
   // Métricas computadas do lote de notas fiscais
   totalFaturadoSelecionado = computed(() => {
