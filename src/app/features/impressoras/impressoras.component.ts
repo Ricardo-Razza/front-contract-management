@@ -987,34 +987,329 @@ export class ImpressorasComponent implements OnInit {
     });
   }
 
+  private getIsolatedPrintStyles(landscape: boolean): string {
+    return `
+      @page {
+        size: A4 ${landscape ? 'landscape' : 'portrait'};
+        margin: ${landscape ? '8mm 10mm' : '10mm 12mm'};
+      }
+      * {
+        box-sizing: border-box;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background: #ffffff;
+        color: #0f172a;
+        font-size: 8pt;
+        line-height: 1.35;
+      }
+      .no-print {
+        display: none !important;
+        visibility: hidden !important;
+      }
+      .official-invoice-card {
+        display: block;
+        background: #ffffff;
+        border: 1.5px solid #334155;
+        border-radius: 6px;
+        padding: 8mm 10mm;
+        margin: 0 0 12mm 0;
+        page-break-after: always;
+        break-after: page;
+        page-break-inside: auto;
+        break-inside: auto;
+      }
+      .official-invoice-card:last-child {
+        page-break-after: auto;
+        break-after: auto;
+        margin-bottom: 0;
+      }
+      .doc-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        border-bottom: 2px solid #0f172a;
+        padding-bottom: 4mm;
+        margin-bottom: 4mm;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      .gov-text h3 {
+        font-size: 13pt;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0 0 1.5mm 0;
+        letter-spacing: 0.02em;
+      }
+      .gov-text .gov-sub {
+        font-size: 8.5pt;
+        color: #334155;
+        margin: 0.8mm 0;
+        font-weight: 600;
+      }
+      .invoice-meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 1mm;
+      }
+      .invoice-meta .doc-title-badge {
+        background: #0f172a;
+        color: #ffffff;
+        font-size: 7.5pt;
+        font-weight: 800;
+        padding: 1mm 3mm;
+        border-radius: 3px;
+        letter-spacing: 0.04em;
+      }
+      .invoice-meta .meta-row {
+        font-size: 8pt;
+        color: #475569;
+      }
+      .invoice-meta .meta-lbl {
+        margin-right: 2mm;
+      }
+      .invoice-meta .meta-val {
+        color: #0f172a;
+        font-weight: 600;
+      }
+      .invoice-meta .meta-val.highlight {
+        font-weight: 800;
+        color: #1d4ed8;
+      }
+      .contractor-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+        padding: 2.5mm 4mm;
+        font-size: 7.5pt;
+        color: #1e293b;
+        margin-bottom: 4mm;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      .doc-section {
+        margin-bottom: 4mm;
+      }
+      .doc-section h4 {
+        font-size: 8.5pt;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0 0 2mm 0;
+        border-left: 3px solid #2563eb;
+        padding-left: 2.5mm;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      .doc-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 7.5pt;
+      }
+      .doc-table th {
+        background: #f1f5f9;
+        color: #0f172a;
+        font-weight: 700;
+        padding: 1.8mm 2.5mm;
+        border: 1px solid #94a3b8;
+      }
+      .doc-table td {
+        padding: 1.8mm 2.5mm;
+        border: 1px solid #cbd5e1;
+        color: #1e293b;
+      }
+      .doc-table tr {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      .doc-table .row-total td {
+        background: #f8fafc;
+        border-top: 2px solid #0f172a;
+        font-weight: 700;
+      }
+      .doc-table .total-destaque {
+        font-size: 8.5pt;
+        color: #1e40af;
+        font-weight: 800;
+      }
+      .text-center { text-align: center; }
+      .text-right { text-align: right; }
+      .font-bold { font-weight: 700; }
+      .font-semibold { font-weight: 600; }
+      code {
+        font-family: monospace;
+        background: #f1f5f9;
+        padding: 1px 3px;
+        border-radius: 2px;
+      }
+      .atesto-box {
+        margin-top: 4mm;
+        background: #fafaf9;
+        border: 1px dashed #94a3b8;
+        border-radius: 5px;
+        padding: 3.5mm 5mm;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      .atesto-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 1.5mm;
+        font-size: 7pt;
+        font-weight: 800;
+        color: #15803d;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin-bottom: 1.5mm;
+      }
+      .atesto-badge svg { display: none; }
+      .atesto-texto {
+        font-size: 7pt;
+        color: #334155;
+        line-height: 1.35;
+        margin: 0 0 5mm 0;
+      }
+      .atesto-signatures {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12mm;
+      }
+      .signature-line {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .signature-line .line {
+        width: 80%;
+        height: 1px;
+        background: #334155;
+        margin-bottom: 1.5mm;
+      }
+      .signature-line .signer-name {
+        font-size: 7pt;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0;
+      }
+      .signature-line .signer-role {
+        font-size: 6.5pt;
+        color: #475569;
+        margin: 0.5mm 0 0 0;
+      }
+      .consolidado-table-wrapper {
+        display: block;
+        width: 100%;
+      }
+      table.table-consolidado {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 6.5pt;
+      }
+      table.table-consolidado th, table.table-consolidado td {
+        border: 1px solid #cbd5e1;
+        padding: 1.5mm 2mm;
+      }
+      table.table-consolidado th {
+        background: #0f172a;
+        color: #ffffff;
+      }
+      table.table-consolidado tr.row-total td {
+        background: #f1f5f9;
+        font-weight: 700;
+      }
+    `;
+  }
+
+  imprimirConteudoIsolado(htmlContent: string, title: string = 'Documento', landscape: boolean = false): void {
+    const iframe = document.createElement('iframe');
+    iframe.name = 'print-frame-' + Date.now();
+    iframe.style.position = 'fixed';
+    iframe.style.top = '-9999px';
+    iframe.style.left = '-9999px';
+    iframe.style.width = '0px';
+    iframe.style.height = '0px';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document || iframe.contentDocument;
+    if (!doc) {
+      document.body.removeChild(iframe);
+      window.print();
+      return;
+    }
+
+    doc.open();
+    doc.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${title}</title>
+  <style>
+    ${this.getIsolatedPrintStyles(landscape)}
+  </style>
+</head>
+<body>
+  ${htmlContent}
+</body>
+</html>`);
+    doc.close();
+
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (err) {
+        console.error('Falha na impressão isolada, tentando método padrão:', err);
+        window.print();
+      } finally {
+        setTimeout(() => {
+          if (iframe.parentNode) {
+            document.body.removeChild(iframe);
+          }
+        }, 1500);
+      }
+    }, 300);
+  }
+
   imprimirNotasFiscaisLote(): void {
     if (this.subTabFinanceiro() === 'DEMONSTRATIVO_ANUAL') {
-      document.body.classList.add('print-landscape');
-      document.body.classList.remove('print-single-target');
-      window.print();
-      setTimeout(() => document.body.classList.remove('print-landscape'), 1000);
+      const el = document.querySelector('.consolidado-table-wrapper');
+      if (el) {
+        this.imprimirConteudoIsolado(el.outerHTML, 'Demonstrativo Anual Consolidado - Imbe 2026', true);
+      } else {
+        window.print();
+      }
+      return;
+    }
+
+    const cards = document.querySelectorAll('.official-invoice-card');
+    if (cards && cards.length > 0) {
+      let combinedHtml = '';
+      cards.forEach(c => {
+        combinedHtml += c.outerHTML;
+      });
+      this.imprimirConteudoIsolado(combinedHtml, `Notas Fiscais em Lote - Imbe 2026 (${cards.length} empenhos)`, false);
     } else {
-      document.body.classList.remove('print-landscape');
-      document.body.classList.remove('print-single-target');
-      window.print();
+      this.toast.error('Nenhuma nota fiscal disponível para impressão no momento.');
     }
   }
 
   imprimirNotaIndividual(numeroEmpenho: string): void {
-    const el = document.getElementById('invoice-card-' + numeroEmpenho);
-    if (el) {
-      document.body.classList.remove('print-landscape');
-      document.body.classList.add('print-single-target');
-      el.classList.add('is-print-target');
-      window.print();
-      setTimeout(() => {
-        document.body.classList.remove('print-single-target');
-        el.classList.remove('is-print-target');
-      }, 1000);
+    const card = document.getElementById('invoice-card-' + numeroEmpenho);
+    if (card) {
+      this.imprimirConteudoIsolado(card.outerHTML, `Nota Fiscal Empenho ${numeroEmpenho} - Imbe 2026`, false);
     } else {
-      window.print();
+      this.toast.error('Nota fiscal do empenho ' + numeroEmpenho + ' não encontrada.');
     }
   }
+
 
 
   // Métricas computadas do lote de notas fiscais

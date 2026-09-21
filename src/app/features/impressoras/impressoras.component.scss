@@ -197,6 +197,13 @@
   border: 1px solid $color-border;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   overflow: hidden;
+
+  @media print {
+    overflow: visible !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
 }
 
 .card-header-tabs {

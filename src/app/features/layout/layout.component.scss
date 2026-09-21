@@ -44,3 +44,34 @@
   background: #f3f4f6;
   padding: 0;
 }
+
+@media print {
+  :host {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  .btn-hamburger {
+    display: none !important;
+  }
+
+  .app-container {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+  }
+
+  .main-content {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+}
