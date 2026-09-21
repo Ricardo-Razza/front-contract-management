@@ -20,7 +20,11 @@ import {
   ItemFatura,
   EquipamentoFatura,
   BalancoFranquias,
-  LoteBalanco
+  LoteBalanco,
+  NotasFiscaisConsolidado,
+  EmpenhoNotaFiscal,
+  ItemNotaFiscal,
+  MesFatura
 } from '@core/models';
 
 @Component({
@@ -51,12 +55,21 @@ export class ImpressorasComponent implements OnInit {
   leituras = signal<LeituraContador[]>([]);
 
   // Filtros e Navegação
-  activeTab = signal<'INVENTARIO' | 'LEITURAS' | 'FATURAMENTO' | 'LOTES'>('INVENTARIO');
+  activeTab = signal<'INVENTARIO' | 'LEITURAS' | 'NOTAS_FISCAIS' | 'FATURAMENTO' | 'LOTES'>('INVENTARIO');
   globalSearch = signal<string>('');
   filterSecretaria = signal<string>('');
   filterLote = signal<string>('');
   filterEmpenho = signal<string>('');
   filterStatus = signal<string>('');
+
+  // Notas Fiscais (Consolidado & Emissão em Lote)
+  subTabNotasFiscais = signal<'CONSOLIDADO' | 'LOTE'>('CONSOLIDADO');
+  anoNotasFiscais = signal<number>(2026);
+  mesNotasFiscais = signal<number>(8);
+  notasFiscaisConsolidado = signal<NotasFiscaisConsolidado | null>(null);
+  loadingNotasFiscais = signal<boolean>(false);
+  notasFiscaisLote = signal<EspelhoFatura[]>([]);
+  loadingNotasLote = signal<boolean>(false);
 
   // Sub-abas e Controle de Faturamento & Empenhos
   subTabFaturamento = signal<'MATRIZ' | 'ESPELHO' | 'CADASTRO'>('MATRIZ');
@@ -303,10 +316,20 @@ export class ImpressorasComponent implements OnInit {
     });
   }
 
-  trocarAba(tab: 'INVENTARIO' | 'LEITURAS' | 'FATURAMENTO' | 'LOTES'): void {
+  trocarAba(tab: 'INVENTARIO' | 'LEITURAS' | 'NOTAS_FISCAIS' | 'FATURAMENTO' | 'LOTES'): void {
     this.activeTab.set(tab);
     if (tab === 'LEITURAS' && this.leituras().length === 0) {
       this.carregarLeiturasCompetencia();
+    } else if (tab === 'NOTAS_FISCAIS') {
+      if (this.subTabNotasFiscais() === 'CONSOLIDADO') {
+        if (!this.notasFiscaisConsolidado()) {
+          this.carregarNotasFiscaisConsolidado();
+        }
+      } else {
+        if (this.notasFiscaisLote().length === 0) {
+          this.carregarNotasFiscaisLote();
+        }
+      }
     } else if (tab === 'FATURAMENTO') {
       if (!this.execucaoMensal()) {
         this.carregarExecucaoMensal();
@@ -901,4 +924,188 @@ export class ImpressorasComponent implements OnInit {
     exportToCsv(`balanco_franquias_${balanco.mesReferencia}_${balanco.anoReferencia}`, columns, list);
     this.toast.success('Balanço de franquias exportado em .CSV com sucesso!');
   }
+
+  // ==========================================
+  // NOTAS FISCAIS (CONSOLIDADO & EMISSÃO EM LOTE)
+  // ==========================================
+  carregarNotasFiscaisConsolidado(ano: number = this.anoNotasFiscais()): void {
+    this.loadingNotasFiscais.set(true);
+    this.anoNotasFiscais.set(ano);
+    this.impressoraService.getNotasFiscaisConsolidado(ano).subscribe({
+      next: data => {
+        this.notasFiscaisConsolidado.set(data);
+        this.loadingNotasFiscais.set(false);
+      },
+      error: () => {
+        this.toast.error('Erro ao carregar matriz consolidada de notas fiscais.');
+        this.loadingNotasFiscais.set(false);
+      }
+    });
+  }
+
+  carregarNotasFiscaisLote(mes: number = this.mesNotasFiscais(), ano: number = this.anoNotasFiscais()): void {
+    this.loadingNotasLote.set(true);
+    this.mesNotasFiscais.set(mes);
+    this.anoNotasFiscais.set(ano);
+    this.impressoraService.getNotasFiscaisLote(mes, ano).subscribe({
+      next: faturas => {
+        this.notasFiscaisLote.set(faturas);
+        this.loadingNotasLote.set(false);
+      },
+      error: () => {
+        this.toast.error('Erro ao gerar faturas em lote.');
+        this.loadingNotasLote.set(false);
+      }
+    });
+  }
+
+  gerarTodasNotasFiscais(mes: number = this.mesNotasFiscais()): void {
+    this.subTabNotasFiscais.set('LOTE');
+    this.carregarNotasFiscaisLote(mes, this.anoNotasFiscais());
+  }
+
+  imprimirNotasFiscaisLote(): void {
+    window.print();
+  }
+
+  totalGeralNotasLote = computed(() => {
+    return this.notasFiscaisLote().reduce((acc, f) => acc + (f.totalFatura || 0), 0);
+  });
+
+  exportarNotasFiscaisConsolidadoCSV(): void {
+    const cons = this.notasFiscaisConsolidado();
+    if (!cons) return;
+
+    interface RowConsolidado {
+      empenho: string;
+      item: number;
+      codigo: string;
+      descricao: string;
+      unidade: string;
+      valorUnitario: number;
+      jan: number;
+      fev: number;
+      mar: number;
+      abr: number;
+      mai: number;
+      jun: number;
+      jul: number;
+      ago: number;
+      set: number;
+      out: number;
+      nov: number;
+      dez: number;
+      totalItem: number;
+    }
+
+    const rows: RowConsolidado[] = [];
+    for (const emp of cons.empenhos) {
+      for (const it of emp.itens) {
+        const totalItem = it.meses.reduce((sum, m) => sum + (m.valorTotal || 0), 0);
+        rows.push({
+          empenho: emp.titulo,
+          item: it.itemNumero,
+          codigo: it.codigoItem,
+          descricao: it.descricao,
+          unidade: it.unidade,
+          valorUnitario: it.valorUnitario,
+          jan: it.meses[0]?.valorTotal || 0,
+          fev: it.meses[1]?.valorTotal || 0,
+          mar: it.meses[2]?.valorTotal || 0,
+          abr: it.meses[3]?.valorTotal || 0,
+          mai: it.meses[4]?.valorTotal || 0,
+          jun: it.meses[5]?.valorTotal || 0,
+          jul: it.meses[6]?.valorTotal || 0,
+          ago: it.meses[7]?.valorTotal || 0,
+          set: it.meses[8]?.valorTotal || 0,
+          out: it.meses[9]?.valorTotal || 0,
+          nov: it.meses[10]?.valorTotal || 0,
+          dez: it.meses[11]?.valorTotal || 0,
+          totalItem
+        });
+      }
+    }
+
+    const columns = [
+      { header: 'Empenho', accessor: (r: RowConsolidado) => r.empenho },
+      { header: 'Item', accessor: (r: RowConsolidado) => r.item },
+      { header: 'Código', accessor: (r: RowConsolidado) => r.codigo },
+      { header: 'Descrição', accessor: (r: RowConsolidado) => r.descricao },
+      { header: 'Unidade', accessor: (r: RowConsolidado) => r.unidade },
+      { header: 'Valor Unitário', accessor: (r: RowConsolidado) => (r.valorUnitario || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 3 }) },
+      { header: 'Janeiro', accessor: (r: RowConsolidado) => (r.jan || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Fevereiro', accessor: (r: RowConsolidado) => (r.fev || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Março', accessor: (r: RowConsolidado) => (r.mar || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Abril', accessor: (r: RowConsolidado) => (r.abr || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Maio', accessor: (r: RowConsolidado) => (r.mai || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Junho', accessor: (r: RowConsolidado) => (r.jun || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Julho', accessor: (r: RowConsolidado) => (r.jul || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Agosto', accessor: (r: RowConsolidado) => (r.ago || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Setembro', accessor: (r: RowConsolidado) => (r.set || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Outubro', accessor: (r: RowConsolidado) => (r.out || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Novembro', accessor: (r: RowConsolidado) => (r.nov || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Dezembro', accessor: (r: RowConsolidado) => (r.dez || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Total Anual Item', accessor: (r: RowConsolidado) => (r.totalItem || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+    ];
+
+    exportToCsv(`notas_fiscais_consolidado_${cons.ano}`, columns, rows);
+    this.toast.success('Matriz consolidada de notas fiscais exportada em .CSV com sucesso!');
+  }
+
+  exportarNotasFiscaisLoteCSV(): void {
+    const faturas = this.notasFiscaisLote();
+    if (!faturas.length) return;
+
+    interface RowLote {
+      empenho: string;
+      secretaria: string;
+      item: number;
+      codigo: string;
+      descricao: string;
+      unidade: string;
+      quantidade: number;
+      valorUnitario: number;
+      subtotal: number;
+    }
+
+    const rows: RowLote[] = [];
+    for (const f of faturas) {
+      for (const it of f.itens) {
+        rows.push({
+          empenho: f.numeroEmpenho,
+          secretaria: f.secretariaSigla,
+          item: it.itemNumero,
+          codigo: it.codigoItem,
+          descricao: it.descricao,
+          unidade: it.unidade,
+          quantidade: it.quantidade,
+          valorUnitario: it.valorUnitario,
+          subtotal: it.valorTotal
+        });
+      }
+    }
+
+    const columns = [
+      { header: 'Empenho', accessor: (r: RowLote) => r.empenho },
+      { header: 'Secretaria', accessor: (r: RowLote) => r.secretaria },
+      { header: 'Item', accessor: (r: RowLote) => r.item },
+      { header: 'Código', accessor: (r: RowLote) => r.codigo },
+      { header: 'Descrição', accessor: (r: RowLote) => r.descricao },
+      { header: 'Unidade', accessor: (r: RowLote) => r.unidade },
+      { header: 'Quantidade', accessor: (r: RowLote) => (r.quantidade || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) },
+      { header: 'Valor Unitário', accessor: (r: RowLote) => (r.valorUnitario || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 3 }) },
+      { header: 'Subtotal R$', accessor: (r: RowLote) => (r.subtotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+    ];
+
+    const mes = this.mesNotasFiscais();
+    const ano = this.anoNotasFiscais();
+    exportToCsv(`notas_fiscais_lote_todos_empenhos_${mes}_${ano}`, columns, rows);
+    this.toast.success('Notas fiscais em lote exportadas em .CSV com sucesso!');
+  }
+
+  somarMesesItem(it: ItemNotaFiscal): number {
+    if (!it || !it.meses) return 0;
+    return it.meses.reduce((acc, m) => acc + (m.valorTotal || 0), 0);
+  }
 }
+

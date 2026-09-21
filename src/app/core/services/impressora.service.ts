@@ -14,7 +14,8 @@ import {
   LeituraContadorDTO,
   ExecucaoMensal,
   EspelhoFatura,
-  BalancoFranquias
+  BalancoFranquias,
+  NotasFiscaisConsolidado
 } from '@core/models';
 
 @Injectable({
@@ -127,5 +128,18 @@ export class ImpressoraService {
       .set('ano', ano.toString());
     return this.http.get<BalancoFranquias>(`${this.apiUrl}/lotes/balanco-franquias`, { params });
   }
+
+  getNotasFiscaisConsolidado(ano: number = 2026): Observable<NotasFiscaisConsolidado> {
+    const params = new HttpParams().set('ano', ano.toString());
+    return this.http.get<NotasFiscaisConsolidado>(`${this.apiUrl}/notas-fiscais`, { params });
+  }
+
+  getNotasFiscaisLote(mes: number = 8, ano: number = 2026): Observable<EspelhoFatura[]> {
+    const params = new HttpParams()
+      .set('mes', mes.toString())
+      .set('ano', ano.toString());
+    return this.http.get<EspelhoFatura[]>(`${this.apiUrl}/notas-fiscais/lote`, { params });
+  }
 }
+
 

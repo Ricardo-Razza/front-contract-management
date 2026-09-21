@@ -284,3 +284,41 @@ export interface BalancoFranquias {
   custoTotalGeral: number;
   lotes: LoteBalanco[];
 }
+
+export interface MesFatura {
+  mes: number;
+  nomeMes: string;
+  quantidade: number;
+  valorUnitario: number;
+  valorTotal: number;
+}
+
+export interface ItemNotaFiscal {
+  itemNumero: number;
+  codigoItem: string;
+  descricao: string;
+  unidade: string;
+  valorUnitario: number;
+  meses: MesFatura[];
+}
+
+export interface EmpenhoNotaFiscal {
+  empenhoId: number;
+  numeroEmpenho: string;
+  secretariaSigla: string;
+  secretariaNome: string;
+  titulo: string;
+  quantidadeEquipamentos: number;
+  itens: ItemNotaFiscal[];
+  totaisMensais: number[];
+  totalAnual: number;
+}
+
+export interface NotasFiscaisConsolidado {
+  ano: number;
+  competencia: string;
+  empenhos: EmpenhoNotaFiscal[];
+  totaisPrefeituraMensais: number[];
+  totalPrefeituraAnual: number;
+}
+

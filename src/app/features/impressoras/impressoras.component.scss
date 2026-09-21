@@ -1616,35 +1616,96 @@
   }
 }
 
-// Print Styles for official document
+.notas-fiscais-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.batch-invoices-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.batch-header-banner {
+  background: #ffffff;
+  border: 1px solid $color-border;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+
+  .banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .batch-total-box {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    span {
+      font-size: 0.78rem;
+      color: $color-text-muted;
+    }
+    strong {
+      font-size: 1.4rem;
+      color: #1e40af;
+    }
+  }
+}
+
+// Print Styles for official document and batch invoices
 @media print {
   body * {
     visibility: hidden;
   }
 
-  .doc-sheet, .doc-sheet * {
+  .batch-invoices-list,
+  .batch-invoices-list *,
+  .doc-sheet,
+  .doc-sheet * {
     visibility: visible;
   }
 
-  .doc-sheet {
+  .batch-invoices-list {
     position: absolute;
     left: 0;
     top: 0;
     width: 100% !important;
-    max-width: 100% !important;
-    box-shadow: none !important;
-    border: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
   }
 
+  .invoice-batch-sheet {
+    page-break-after: always !important;
+    break-after: page !important;
+    margin-bottom: 0 !important;
+    padding: 1.5rem !important;
+  }
+
+  .doc-sheet {
+    box-shadow: none !important;
+    border: 1px solid #cbd5e1 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .no-print,
   .faturamento-subnav,
   .doc-toolbar,
   .nav-tabs,
+  .card-header-tabs,
   .page-title-group,
   .metrics-grid,
   .app-sidebar,
-  .app-header {
+  .app-header,
+  .header-actions {
     display: none !important;
   }
 }
+
