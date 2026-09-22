@@ -15,7 +15,11 @@ import {
   ExecucaoMensal,
   EspelhoFatura,
   BalancoFranquias,
-  NotasFiscaisConsolidado
+  NotasFiscaisConsolidado,
+  IniciarColetaRequest,
+  ColetaProgresso,
+  ColetaSessao,
+  ColetaItem
 } from '@core/models';
 
 @Injectable({
@@ -152,6 +156,44 @@ export class ImpressoraService {
       params = params.set('empenhoId', empenhoId.toString());
     }
     return this.http.get<EspelhoFatura[]>(`${this.apiUrl}/notas-fiscais/lote`, { params });
+  }
+
+  // ==================== COLETA AUTOMATICA DE CONTADORES ====================
+
+  iniciarColeta(request: IniciarColetaRequest): Observable<ColetaProgresso> {
+    return this.http.post<ColetaProgresso>(`${this.apiUrl}/coletas/iniciar`, request);
+  }
+
+  getColetaAtiva(): Observable<ColetaProgresso | null> {
+    return this.http.get<ColetaProgresso | null>(`${this.apiUrl}/coletas/ativa`);
+  }
+
+  getUltimaColeta(): Observable<ColetaSessao | null> {
+    return this.http.get<ColetaSessao | null>(`${this.apiUrl}/coletas/ultima`);
+  }
+
+  getColetaPorId(id: number): Observable<ColetaSessao> {
+    return this.http.get<ColetaSessao>(`${this.apiUrl}/coletas/${id}`);
+  }
+
+  baixarZipColeta(id: number): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/coletas/${id}/download-zip`, { responseType: 'blob' });
+  }
+
+  getUrlImagemColeta(sessaoId: number, nomeArquivo: string): string {
+    return `${this.apiUrl}/coletas/${sessaoId}/imagem/${encodeURIComponent(nomeArquivo)}`;
+  }
+
+  aplicarLeiturasColeta(id: number): Observable<{ status: string; leiturasGravadas: number; mensagem: string }> {
+    return this.http.post<{ status: string; leiturasGravadas: number; mensagem: string }>(`${this.apiUrl}/coletas/${id}/aplicar-leituras`, {});
+  }
+
+  recoletarFalhas(id: number): Observable<{ status: string; mensagem: string }> {
+    return this.http.post<{ status: string; mensagem: string }>(`${this.apiUrl}/coletas/${id}/recoletar-falhas`, {});
+  }
+
+  recoletarItem(itemId: number): Observable<{ status: string; mensagem: string }> {
+    return this.http.post<{ status: string; mensagem: string }>(`${this.apiUrl}/coletas/itens/${itemId}/recoletar`, {});
   }
 }
 

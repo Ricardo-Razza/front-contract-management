@@ -153,6 +153,14 @@
           </svg>
           Lotes Contratuais
         </button>
+
+        <button class="nav-tab" [class.active]="activeTab() === 'COLETA'" (click)="trocarAba('COLETA')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          Coleta de Contadores
+        </button>
       </div>
 
       <div class="header-actions">
@@ -199,8 +207,17 @@
               + Novo Empenho
             </button>
           }
+        } @else if (activeTab() === 'COLETA') {
+          @if (coletaSessao() && (coletaSessao()?.totalSucesso || 0) > 0) {
+            <button class="btn btn-secondary btn-sm" (click)="baixarZipColeta()" title="Baixar pacote ZIP com todos os comprovantes">
+              Baixar Prints (.ZIP)
+            </button>
+            <button class="btn btn-primary btn-sm" (click)="aplicarLeiturasColeta()" title="Gravar hodômetros nas leituras mensais">
+              Sincronizar Leituras
+            </button>
+          }
         }
-    </div>
+      </div>
 
     <!-- ============================================================ -->
     <!-- TAB 1: INVENTÁRIO DE IMPRESSORAS -->
@@ -1244,6 +1261,281 @@
         </div>
       </div>
     }
+
+    <!-- ============================================================ -->
+    <!-- TAB 5: COLETA AUTOMÁTICA DE CONTADORES                      -->
+    <!-- ============================================================ -->
+    @if (activeTab() === 'COLETA') {
+      <div class="coleta-container">
+        <!-- BARRA DE PARÂMETROS E DISPARO -->
+        <div class="coleta-toolbar-card">
+          <div class="toolbar-title-box">
+            <h3>Automação de Coleta e Comprovação de Contadores</h3>
+            <p>Varredura direta nos IPs das impressoras, captura de prints dos painéis em alta resolução (1600x1400) e extração de hodômetros</p>
+          </div>
+
+          <div class="coleta-form-row">
+            <div class="form-field">
+              <label>Ano de Referência</label>
+              <select class="form-select" [ngModel]="anoColeta()" (ngModelChange)="anoColeta.set($event)">
+                <option [value]="2025">2025</option>
+                <option [value]="2026">2026</option>
+                <option [value]="2027">2027</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label>Mês de Referência</label>
+              <select class="form-select" [ngModel]="mesColeta()" (ngModelChange)="mesColeta.set($event)">
+                <option [value]="1">01 - Janeiro</option>
+                <option [value]="2">02 - Fevereiro</option>
+                <option [value]="3">03 - Março</option>
+                <option [value]="4">04 - Abril</option>
+                <option [value]="5">05 - Maio</option>
+                <option [value]="6">06 - Junho</option>
+                <option [value]="7">07 - Julho</option>
+                <option [value]="8">08 - Agosto</option>
+                <option [value]="9">09 - Setembro</option>
+                <option [value]="10">10 - Outubro</option>
+                <option [value]="11">11 - Novembro</option>
+                <option [value]="12">12 - Dezembro</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label>Secretaria (Opcional)</label>
+              <select class="form-select" [ngModel]="secretariaFiltroColeta()" (ngModelChange)="secretariaFiltroColeta.set($event ? +$event : null)">
+                <option [value]="null">Todas as Secretarias</option>
+                @for (sec of secretariats(); track sec.id) {
+                  <option [value]="sec.id">{{ sec.sigla }} - {{ sec.nome }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label>Empenho (Opcional)</label>
+              <select class="form-select" [ngModel]="empenhoFiltroColeta()" (ngModelChange)="empenhoFiltroColeta.set($event ? +$event : null)">
+                <option [value]="null">Todos os Empenhos</option>
+                @for (emp of empenhos(); track emp.id) {
+                  <option [value]="emp.id">Empenho {{ emp.numeroEmpenho }} ({{ emp.secretariaSigla }})</option>
+                }
+              </select>
+            </div>
+
+            <div class="toolbar-actions-inline">
+              <button class="btn btn-primary btn-run-coleta"
+                      [disabled]="loadingColeta() || coletaAtiva()?.emAndamento"
+                      (click)="iniciarColetaAutomatica()">
+                @if (coletaAtiva()?.emAndamento) {
+                  <span class="spinner-sm"></span> Coletando...
+                } @else {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                  Iniciar Coleta em Lote
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROGRESS BAR DINÂMICA (QUANDO EM ANDAMENTO OU ATIVA) -->
+        @if (coletaAtiva()?.emAndamento) {
+          <div class="progress-banner-card">
+            <div class="progress-info-row">
+              <div class="progress-text-block">
+                <span class="progress-badge">Em Execução</span>
+                <strong>{{ coletaAtiva()?.ultimaMensagem }}</strong>
+              </div>
+              <div class="progress-percentage">
+                {{ coletaAtiva()?.percentual }}%
+              </div>
+            </div>
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" [style.width.%]="coletaAtiva()?.percentual || 0"></div>
+            </div>
+          </div>
+        }
+
+        <!-- CARDS DE MÉTRICAS DA SESSÃO ATUAL / ÚLTIMA -->
+        @if (coletaSessao()) {
+          <div class="coleta-kpis-grid">
+            <div class="kpi-mini-card kpi-total">
+              <span class="kpi-mini-label">Total no Parque</span>
+              <strong class="kpi-mini-val">{{ coletaSessao()?.totalImpressoras }}</strong>
+              <span class="kpi-mini-sub">Máquinas com IP</span>
+            </div>
+
+            <div class="kpi-mini-card kpi-success" (click)="filtroStatusColeta.set('SUCESSO')" role="button" [class.selected]="filtroStatusColeta() === 'SUCESSO'">
+              <span class="kpi-mini-label">Coletadas com Sucesso</span>
+              <strong class="kpi-mini-val text-success">{{ totalItensColetaSucesso() }}</strong>
+              <span class="kpi-mini-sub">Contador e print ok</span>
+            </div>
+
+            <div class="kpi-mini-card kpi-offline" (click)="filtroStatusColeta.set('OFFLINE')" role="button" [class.selected]="filtroStatusColeta() === 'OFFLINE'">
+              <span class="kpi-mini-label">Offline / Desligadas</span>
+              <strong class="kpi-mini-val text-warning">{{ totalItensColetaOffline() }}</strong>
+              <span class="kpi-mini-sub">Timeout de rede (2.5s)</span>
+            </div>
+
+            <div class="kpi-mini-card kpi-actions">
+              <span class="kpi-mini-label">Ações do Lote</span>
+              <div class="kpi-action-buttons">
+                @if ((coletaSessao()?.totalSucesso || 0) > 0) {
+                  <button class="btn btn-secondary btn-sm" (click)="baixarZipColeta()" title="Baixar todas as imagens coletadas em formato .ZIP">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Baixar Prints (.ZIP)
+                  </button>
+                  <button class="btn btn-primary btn-sm" (click)="aplicarLeiturasColeta()" title="Sincronizar hodômetros lidos com a tabela de faturamento">
+                    Gravar no Faturamento
+                  </button>
+                }
+                @if (totalItensColetaOffline() > 0) {
+                  <button class="btn btn-outline-warning btn-sm" (click)="recoletarTodasFalhas()" title="Tentar reconectar apenas às impressoras que estavam offline">
+                    Reconectar Falhas ({{ totalItensColetaOffline() }})
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- BARRA DE FILTROS DA TABELA -->
+          <div class="coleta-table-filter-bar">
+            <div class="filter-pills">
+              <button class="filter-pill" [class.active]="filtroStatusColeta() === 'TODOS'" (click)="filtroStatusColeta.set('TODOS')">
+                Todas ({{ coletaSessao()?.totalImpressoras }})
+              </button>
+              <button class="filter-pill pill-success" [class.active]="filtroStatusColeta() === 'SUCESSO'" (click)="filtroStatusColeta.set('SUCESSO')">
+                Sucesso ({{ totalItensColetaSucesso() }})
+              </button>
+              <button class="filter-pill pill-warning" [class.active]="filtroStatusColeta() === 'OFFLINE'" (click)="filtroStatusColeta.set('OFFLINE')">
+                Offline ({{ totalItensColetaOffline() }})
+              </button>
+              @if (totalItensColetaErro() > 0) {
+                <button class="filter-pill pill-danger" [class.active]="filtroStatusColeta() === 'ERRO'" (click)="filtroStatusColeta.set('ERRO')">
+                  Erro ({{ totalItensColetaErro() }})
+                </button>
+              }
+            </div>
+
+            <div class="search-input-wrapper">
+              <input type="text"
+                     class="form-control form-control-sm"
+                     placeholder="Filtrar por item, IP, modelo, secretaria..."
+                     [ngModel]="termoBuscaColeta()"
+                     (ngModelChange)="termoBuscaColeta.set($event)" />
+            </div>
+          </div>
+
+          <!-- TABELA DE RESULTADOS DA COLETA -->
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 80px;">Item</th>
+                  <th style="width: 140px;">IP na Rede</th>
+                  <th>Equipamento / Modelo</th>
+                  <th>Secretaria & Setor</th>
+                  <th style="width: 140px; text-align: center;">Status</th>
+                  <th style="width: 160px; text-align: right;">Hodômetro Lido</th>
+                  <th style="width: 160px; text-align: center;">Comprovante</th>
+                  <th style="width: 100px; text-align: center;">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of itensColetaFiltrados(); track item.id) {
+                  <tr [class.row-offline]="item.status === 'OFFLINE'" [class.row-success]="item.status === 'SUCESSO'">
+                    <td>
+                      <span class="badge-item">Item {{ item.itemPedido }}</span>
+                    </td>
+                    <td>
+                      <span class="mono-ip">{{ item.ip }}</span>
+                    </td>
+                    <td>
+                      <div class="equip-info">
+                        <strong>{{ item.modelo }}</strong>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="loc-info">
+                        <span class="badge-sec">{{ item.secretariaSigla }}</span>
+                        <span class="loc-name" [title]="item.localInstalacao">{{ item.localInstalacao }}</span>
+                      </div>
+                    </td>
+                    <td style="text-align: center;">
+                      @if (item.status === 'SUCESSO') {
+                        <span class="badge-status status-success" title="Comunicação e captura efetuadas">Online</span>
+                      } @else if (item.status === 'OFFLINE') {
+                        <span class="badge-status status-offline" [title]="item.mensagem">Offline</span>
+                      } @else if (item.status === 'PENDENTE') {
+                        <span class="badge-status status-pending">Aguardando...</span>
+                      } @else {
+                        <span class="badge-status status-error" [title]="item.mensagem">Falha</span>
+                      }
+                    </td>
+                    <td style="text-align: right;">
+                      @if (item.contadorTotal) {
+                        <div class="hodometro-block">
+                          <strong class="hodo-total">{{ item.contadorTotal | number }}</strong>
+                          @if (item.contadorColor) {
+                            <span class="hodo-sub text-purple">Cor: {{ item.contadorColor | number }}</span>
+                          }
+                        </div>
+                      } @else {
+                        <span class="text-muted">—</span>
+                      }
+                    </td>
+                    <td style="text-align: center;">
+                      @if (item.status === 'SUCESSO' && item.nomeArquivo) {
+                        <button class="btn-thumb-preview" (click)="abrirModalPrint(item)" title="Clique para abrir comprovante em tamanho real">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                          </svg>
+                          Ver Print
+                        </button>
+                      } @else {
+                        <span class="text-muted" style="font-size: 0.8rem;">Sem print</span>
+                      }
+                    </td>
+                    <td style="text-align: center;">
+                      <button class="btn btn-icon-sm" (click)="recoletarItem(item)" title="Tentar reconectar novamente a este IP">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="1 4 1 10 7 10"></polyline>
+                          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="8" class="text-center py-4 text-muted">
+                      Nenhum equipamento encontrado para o filtro selecionado.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <!-- ESTADO VAZIO: NENHUMA COLETA EXECUTADA AINDA -->
+          <div class="empty-coleta-card">
+            <div class="empty-icon-wrap">
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <h4>Nenhuma sessão de coleta executada ainda</h4>
+            <p>Selecione a competência desejada acima e clique em <strong>"Iniciar Coleta em Lote"</strong> para varrer as 147 impressoras na rede municipal.</p>
+          </div>
+        }
+      </div>
+    }
   </div>
 </div>
 
@@ -1830,3 +2122,63 @@
   (confirmed)="executarExclusaoEmpenho()"
   (cancelled)="closeDeleteEmpenhoModal()">
 </app-confirm-modal>
+
+<!-- ============================================================ -->
+<!-- MODAL: VISUALIZADOR DE PRINT DO CONTADOR (LIGHTBOX)          -->
+<!-- ============================================================ -->
+@if (modalPrintAberto() && printSelecionado()) {
+  <div class="modal-overlay" (click)="fecharModalPrint()">
+    <div class="modal-container modal-xl print-view-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="header-info">
+          <h2>Comprovante de Leitura - Item {{ printSelecionado()?.itemPedido }} ({{ printSelecionado()?.ip }})</h2>
+          <span class="sub-info">{{ printSelecionado()?.modelo }} &bull; {{ printSelecionado()?.secretariaSigla }} - {{ printSelecionado()?.localInstalacao }}</span>
+        </div>
+        <div class="header-actions">
+          <a [href]="getUrlImagemColeta(printSelecionado()!)" target="_blank" class="btn btn-secondary btn-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="10" y1="14" x2="21" y2="3"></line>
+            </svg>
+            Abrir em Nova Aba
+          </a>
+          <button class="modal-close-btn" (click)="fecharModalPrint()">&times;</button>
+        </div>
+      </div>
+      <div class="modal-body print-modal-body">
+        <div class="print-stats-bar">
+          <div class="stat-pill">
+            <span class="lbl">Contador Geral:</span>
+            <strong>{{ printSelecionado()?.contadorTotal || 'Não extraído' }}</strong>
+          </div>
+          @if (printSelecionado()?.copiasPrint) {
+            <div class="stat-pill">
+              <span class="lbl">Impressão:</span>
+              <strong>{{ printSelecionado()?.copiasPrint }}</strong>
+            </div>
+          }
+          @if (printSelecionado()?.copiasCopiador) {
+            <div class="stat-pill">
+              <span class="lbl">Cópia:</span>
+              <strong>{{ printSelecionado()?.copiasCopiador }}</strong>
+            </div>
+          }
+          @if (printSelecionado()?.copiasScanner) {
+            <div class="stat-pill">
+              <span class="lbl">Scanner:</span>
+              <strong>{{ printSelecionado()?.copiasScanner }}</strong>
+            </div>
+          }
+          <div class="stat-pill">
+            <span class="lbl">Arquivo:</span>
+            <code>{{ printSelecionado()?.nomeArquivo }}</code>
+          </div>
+        </div>
+        <div class="image-wrapper">
+          <img [src]="getUrlImagemColeta(printSelecionado()!)" alt="Print do Painel da Impressora" class="full-print-img" />
+        </div>
+      </div>
+    </div>
+  </div>
+}

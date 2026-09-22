@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ImpressoraService } from '@core/services/impressora.service';
@@ -24,7 +24,11 @@ import {
   NotasFiscaisConsolidado,
   EmpenhoNotaFiscal,
   ItemNotaFiscal,
-  MesFatura
+  MesFatura,
+  IniciarColetaRequest,
+  ColetaProgresso,
+  ColetaSessao,
+  ColetaItem
 } from '@core/models';
 
 @Component({
@@ -40,7 +44,7 @@ import {
   templateUrl: './impressoras.component.html',
   styleUrls: ['./impressoras.component.scss']
 })
-export class ImpressorasComponent implements OnInit {
+export class ImpressorasComponent implements OnInit, OnDestroy {
   private impressoraService = inject(ImpressoraService);
   private secretariaService = inject(SecretariaService);
   private toast = inject(ToastService);
@@ -55,7 +59,7 @@ export class ImpressorasComponent implements OnInit {
   leituras = signal<LeituraContador[]>([]);
 
   // Filtros e Navegação
-  activeTab = signal<'INVENTARIO' | 'LEITURAS' | 'FINANCEIRO' | 'LOTES'>('INVENTARIO');
+  activeTab = signal<'INVENTARIO' | 'LEITURAS' | 'FINANCEIRO' | 'LOTES' | 'COLETA'>('INVENTARIO');
   globalSearch = signal<string>('');
   filterSecretaria = signal<string>('');
   filterLote = signal<string>('');
@@ -126,6 +130,21 @@ export class ImpressorasComponent implements OnInit {
   selectedEmpenho = signal<EmpenhoImpressao | null>(null);
   isDeleteEmpenhoModalOpen = signal<boolean>(false);
   empenhoToDelete = signal<EmpenhoImpressao | null>(null);
+
+  // ==================== ESTADOS DA COLETA AUTOMÁTICA ====================
+  coletaAtiva = signal<ColetaProgresso | null>(null);
+  coletaSessao = signal<ColetaSessao | null>(null);
+  loadingColeta = signal<boolean>(false);
+  pollingColetaInterval: any = null;
+  anoColeta = signal<number>(2026);
+  mesColeta = signal<number>(8);
+  secretariaFiltroColeta = signal<number | null>(null);
+  empenhoFiltroColeta = signal<number | null>(null);
+  filtroStatusColeta = signal<'TODOS' | 'SUCESSO' | 'OFFLINE' | 'ERRO'>('TODOS');
+  termoBuscaColeta = signal<string>('');
+
+  modalPrintAberto = signal<boolean>(false);
+  printSelecionado = signal<ColetaItem | null>(null);
 
   // Formulários
   form: FormGroup = this.fb.group({
@@ -271,6 +290,46 @@ export class ImpressorasComponent implements OnInit {
   totalSaldoEmpenhos = computed(() => this.empenhos().reduce((sum, e) => sum + (e.saldo || 0), 0));
   totalMaquinasEmpenhadas = computed(() => this.empenhos().reduce((sum, e) => sum + (e.quantidadeImpressoras || 0), 0));
 
+  // Métricas e Filtragem da Coleta Automática
+  itensColetaFiltrados = computed(() => {
+    const sessao = this.coletaSessao();
+    if (!sessao || !sessao.itens) return [];
+    let list = sessao.itens;
+
+    const statusFiltro = this.filtroStatusColeta();
+    if (statusFiltro !== 'TODOS') {
+      list = list.filter(i => i.status === statusFiltro);
+    }
+
+    const search = this.termoBuscaColeta().toLowerCase().trim();
+    if (search) {
+      list = list.filter(i =>
+        (i.modelo && i.modelo.toLowerCase().includes(search)) ||
+        (i.ip && i.ip.toLowerCase().includes(search)) ||
+        (i.localInstalacao && i.localInstalacao.toLowerCase().includes(search)) ||
+        (i.secretariaSigla && i.secretariaSigla.toLowerCase().includes(search)) ||
+        (i.itemPedido && i.itemPedido.toString().includes(search))
+      );
+    }
+
+    return list;
+  });
+
+  totalItensColetaSucesso = computed(() => {
+    const s = this.coletaSessao();
+    return s?.itens?.filter(i => i.status === 'SUCESSO').length || 0;
+  });
+
+  totalItensColetaOffline = computed(() => {
+    const s = this.coletaSessao();
+    return s?.itens?.filter(i => i.status === 'OFFLINE').length || 0;
+  });
+
+  totalItensColetaErro = computed(() => {
+    const s = this.coletaSessao();
+    return s?.itens?.filter(i => i.status === 'ERRO').length || 0;
+  });
+
   ngOnInit(): void {
     this.carregarDados();
   }
@@ -319,7 +378,7 @@ export class ImpressorasComponent implements OnInit {
     });
   }
 
-  trocarAba(tab: 'INVENTARIO' | 'LEITURAS' | 'FINANCEIRO' | 'LOTES'): void {
+  trocarAba(tab: 'INVENTARIO' | 'LEITURAS' | 'FINANCEIRO' | 'LOTES' | 'COLETA'): void {
     this.activeTab.set(tab);
     if (tab === 'LEITURAS' && this.leituras().length === 0) {
       this.carregarLeiturasCompetencia();
@@ -329,6 +388,8 @@ export class ImpressorasComponent implements OnInit {
       if (!this.balancoFranquias()) {
         this.carregarBalancoFranquias();
       }
+    } else if (tab === 'COLETA') {
+      this.carregarDadosColeta();
     }
   }
 
@@ -1508,6 +1569,208 @@ export class ImpressorasComponent implements OnInit {
   somarMesesItem(it: ItemNotaFiscal): number {
     if (!it || !it.meses) return 0;
     return it.meses.reduce((acc, m) => acc + (m.valorTotal || 0), 0);
+  }
+
+  // ==================== METODOS DA COLETA AUTOMATICA ====================
+
+  ngOnDestroy(): void {
+    this.pararPollingColeta();
+  }
+
+  carregarDadosColeta(): void {
+    this.verificarColetaAtivaOuUltima();
+  }
+
+  verificarColetaAtivaOuUltima(): void {
+    this.impressoraService.getColetaAtiva().subscribe({
+      next: (progresso) => {
+        if (progresso && progresso.emAndamento) {
+          this.coletaAtiva.set(progresso);
+          this.iniciarPollingColeta();
+          this.carregarSessaoColeta(progresso.sessaoId, false);
+        } else {
+          this.carregarUltimaSessaoColeta();
+        }
+      },
+      error: () => {
+        this.carregarUltimaSessaoColeta();
+      }
+    });
+  }
+
+  carregarUltimaSessaoColeta(): void {
+    this.impressoraService.getUltimaColeta().subscribe({
+      next: (sessao) => {
+        if (sessao) this.coletaSessao.set(sessao);
+      }
+    });
+  }
+
+  iniciarColetaAutomatica(): void {
+    if (this.coletaAtiva()?.emAndamento) {
+      this.toast.info('Já existe uma sessão de coleta em andamento.');
+      return;
+    }
+
+    const req: IniciarColetaRequest = {
+      ano: this.anoColeta(),
+      mes: this.mesColeta(),
+      empenhoId: this.empenhoFiltroColeta() || undefined,
+      secretariaId: this.secretariaFiltroColeta() || undefined
+    };
+
+    this.loadingColeta.set(true);
+    this.impressoraService.iniciarColeta(req).subscribe({
+      next: (progresso) => {
+        this.coletaAtiva.set(progresso);
+        this.toast.success('Coleta de contadores iniciada em segundo plano!');
+        this.iniciarPollingColeta();
+        this.carregarSessaoColeta(progresso.sessaoId, false);
+        this.loadingColeta.set(false);
+      },
+      error: (err) => {
+        this.toast.error('Erro ao iniciar coleta: ' + (err.error?.message || err.message));
+        this.loadingColeta.set(false);
+      }
+    });
+  }
+
+  iniciarPollingColeta(): void {
+    this.pararPollingColeta();
+    this.pollingColetaInterval = setInterval(() => {
+      this.impressoraService.getColetaAtiva().subscribe({
+        next: (progresso) => {
+          if (progresso && progresso.emAndamento) {
+            this.coletaAtiva.set(progresso);
+            if (progresso.sessaoId) {
+              this.carregarSessaoColeta(progresso.sessaoId, false);
+            }
+          } else {
+            this.pararPollingColeta();
+            this.coletaAtiva.set(null);
+            this.toast.success('Coleta automática de contadores concluída!');
+            this.carregarUltimaSessaoColeta();
+          }
+        },
+        error: () => {
+          this.pararPollingColeta();
+        }
+      });
+    }, 2500);
+  }
+
+  pararPollingColeta(): void {
+    if (this.pollingColetaInterval) {
+      clearInterval(this.pollingColetaInterval);
+      this.pollingColetaInterval = null;
+    }
+  }
+
+  carregarSessaoColeta(id: number, showLoading = true): void {
+    if (showLoading) this.loadingColeta.set(true);
+    this.impressoraService.getColetaPorId(id).subscribe({
+      next: (sessao) => {
+        this.coletaSessao.set(sessao);
+        if (showLoading) this.loadingColeta.set(false);
+      },
+      error: (err) => {
+        if (showLoading) {
+          this.toast.error('Erro ao carregar detalhes da coleta: ' + err.message);
+          this.loadingColeta.set(false);
+        }
+      }
+    });
+  }
+
+  baixarZipColeta(): void {
+    const sessao = this.coletaSessao();
+    if (!sessao) return;
+
+    this.toast.info('Preparando download do pacote de prints...');
+    this.impressoraService.baixarZipColeta(sessao.id).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `contadores_${sessao.anoReferencia}_${String(sessao.mesReferencia).padStart(2, '0')}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        this.toast.success('Pacote de prints baixado com sucesso!');
+      },
+      error: (err) => {
+        this.toast.error('Erro ao baixar arquivo ZIP: ' + err.message);
+      }
+    });
+  }
+
+  aplicarLeiturasColeta(): void {
+    const sessao = this.coletaSessao();
+    if (!sessao) return;
+
+    this.loadingColeta.set(true);
+    this.impressoraService.aplicarLeiturasColeta(sessao.id).subscribe({
+      next: (res) => {
+        this.toast.success(res.mensagem);
+        this.loadingColeta.set(false);
+        this.carregarLeiturasCompetencia();
+      },
+      error: (err) => {
+        this.toast.error('Erro ao sincronizar leituras: ' + (err.error?.message || err.message));
+        this.loadingColeta.set(false);
+      }
+    });
+  }
+
+  recoletarItem(item: ColetaItem): void {
+    if (!item || !item.id) return;
+    this.toast.info(`Tentando reconectar ao IP ${item.ip}...`);
+    item.status = 'PENDENTE';
+    this.impressoraService.recoletarItem(item.id).subscribe({
+      next: () => {
+        this.toast.success(`Coleta disparada para o equipamento ${item.itemPedido}!`);
+        setTimeout(() => {
+          if (this.coletaSessao()) {
+            this.carregarSessaoColeta(this.coletaSessao()!.id, false);
+          }
+        }, 3500);
+      },
+      error: (err) => {
+        this.toast.error('Erro ao recoletar equipamento: ' + err.message);
+      }
+    });
+  }
+
+  recoletarTodasFalhas(): void {
+    const sessao = this.coletaSessao();
+    if (!sessao) return;
+
+    this.toast.info('Tentando reconectar a todos os equipamentos offline...');
+    this.impressoraService.recoletarFalhas(sessao.id).subscribe({
+      next: (res) => {
+        this.toast.success(res.mensagem);
+        this.iniciarPollingColeta();
+      },
+      error: (err) => {
+        this.toast.error('Erro ao reconectar falhas: ' + err.message);
+      }
+    });
+  }
+
+  abrirModalPrint(item: ColetaItem): void {
+    this.printSelecionado.set(item);
+    this.modalPrintAberto.set(true);
+  }
+
+  fecharModalPrint(): void {
+    this.modalPrintAberto.set(false);
+    this.printSelecionado.set(null);
+  }
+
+  getUrlImagemColeta(item: ColetaItem): string {
+    if (!item || !item.sessaoId || !item.nomeArquivo) return '';
+    return this.impressoraService.getUrlImagemColeta(item.sessaoId, item.nomeArquivo);
   }
 }
 

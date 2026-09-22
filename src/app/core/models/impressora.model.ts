@@ -322,3 +322,62 @@ export interface NotasFiscaisConsolidado {
   totalPrefeituraAnual: number;
 }
 
+export interface IniciarColetaRequest {
+  ano: number;
+  mes: number;
+  empenhoId?: number;
+  secretariaId?: number;
+}
+
+export interface ColetaProgresso {
+  sessaoId: number;
+  status: string;
+  anoReferencia: number;
+  mesReferencia: number;
+  total: number;
+  processadas: number;
+  sucessos: number;
+  falhas: number;
+  percentual: number;
+  dataInicio: string;
+  dataFim?: string;
+  emAndamento: boolean;
+  ultimaMensagem: string;
+}
+
+export interface ColetaItem {
+  id: number;
+  sessaoId: number;
+  impressoraId?: number;
+  itemPedido?: number;
+  ip: string;
+  modelo: string;
+  secretariaSigla?: string;
+  localInstalacao?: string;
+  status: 'SUCESSO' | 'OFFLINE' | 'ERRO' | 'PENDENTE';
+  mensagem?: string;
+  nomeArquivo?: string;
+  urlImagem?: string;
+  contadorTotal?: number;
+  contadorMono?: number;
+  contadorColor?: number;
+  copiasPrint?: number;
+  copiasCopiador?: number;
+  copiasScanner?: number;
+  dataColeta?: string;
+}
+
+export interface ColetaSessao {
+  id: number;
+  anoReferencia: number;
+  mesReferencia: number;
+  dataInicio: string;
+  dataFim?: string;
+  status: string;
+  totalImpressoras: number;
+  totalSucesso: number;
+  totalFalhas: number;
+  diretorioPrints?: string;
+  urlDownloadZip?: string;
+  itens: ColetaItem[];
+}
