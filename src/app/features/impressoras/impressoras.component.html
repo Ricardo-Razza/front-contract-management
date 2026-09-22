@@ -1339,6 +1339,21 @@
           </div>
         </div>
 
+        <!-- BANNER INFORMATIVO SOBRE DISPOSITIVOS COMPATÍVEIS -->
+        <div class="coleta-info-banner">
+          <div class="info-banner-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span><strong>84 equipamentos aptos</strong> para varredura e print de contadores via rede IP (bypass de certificados ativo).</span>
+          </div>
+          <div class="info-banner-sub">
+            Equipamentos <strong>Pantum</strong> (sem suporte a leitura externa de contador por IP), da <strong>Rede Andrius</strong> e conectados via <strong>USB</strong> demandam anotação presencial/manual e foram desconsiderados do robô de varredura.
+          </div>
+        </div>
+
         <!-- PROGRESS BAR DINÂMICA (QUANDO EM ANDAMENTO OU ATIVA) -->
         @if (coletaAtiva()?.emAndamento) {
           <div class="progress-banner-card">
@@ -1531,7 +1546,7 @@
               </svg>
             </div>
             <h4>Nenhuma sessão de coleta executada ainda</h4>
-            <p>Selecione a competência desejada acima e clique em <strong>"Iniciar Coleta em Lote"</strong> para varrer as 147 impressoras na rede municipal.</p>
+            <p>Selecione a competência desejada acima e clique em <strong>"Iniciar Coleta em Lote"</strong> para varrer as impressoras compatíveis com IP na rede municipal.</p>
           </div>
         }
       </div>
