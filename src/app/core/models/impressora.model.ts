@@ -86,6 +86,7 @@ export interface ImpressoraDTO {
   ip?: string;
   secretariaId: number;
   empenhoId?: number;
+  localInstalacaoId?: number;
   localInstalacao: string;
   endereco?: string;
   responsavel?: string;
@@ -96,8 +97,9 @@ export interface ImpressoraDTO {
 }
 
 export interface TrocaLocalDTO {
+  localInstalacaoId?: number;
   novaSecretariaId: number;
-  novoLocalInstalacao: string;
+  novoLocalInstalacao?: string;
   novoEndereco?: string;
   novoResponsavel?: string;
   novoIp?: string;
@@ -106,6 +108,28 @@ export interface TrocaLocalDTO {
   contadorAtualMono?: number;
   contadorAtualColor?: number;
   motivo?: string;
+}
+
+export interface LocalInstalacao {
+  id: number;
+  nome: string;
+  secretariaId: number;
+  secretariaNome?: string;
+  secretariaSigla?: string;
+  endereco?: string;
+  responsavel?: string;
+  telefone?: string;
+  ativo: boolean;
+  quantidadeImpressorasAtivas?: number;
+}
+
+export interface LocalInstalacaoDTO {
+  nome: string;
+  secretariaId: number;
+  endereco?: string;
+  responsavel?: string;
+  telefone?: string;
+  ativo?: boolean;
 }
 
 export interface SubstituicaoImpressoraDTO {

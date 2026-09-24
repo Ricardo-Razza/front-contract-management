@@ -165,6 +165,14 @@
           </svg>
           Coleta de Contadores
         </button>
+
+        <button class="nav-tab" [class.active]="activeTab() === 'LOCAIS'" (click)="trocarAba('LOCAIS')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          Locais de Instalacao
+        </button>
       </div>
 
       <div class="header-actions">
@@ -220,6 +228,10 @@
               Sincronizar Leituras
             </button>
           }
+        } @else if (activeTab() === 'LOCAIS') {
+          <button class="btn btn-primary btn-sm" (click)="abrirModalNovoLocal()">
+            + Novo Local
+          </button>
         }
       </div>
 
@@ -1661,6 +1673,133 @@
         }
       </div>
     }
+
+    <!-- ============================================================ -->
+    <!-- TAB 6: LOCAIS DE INSTALAÇÃO                                  -->
+    <!-- ============================================================ -->
+    @if (activeTab() === 'LOCAIS') {
+      <div class="tab-module-banner banner-locais">
+        <div class="banner-left">
+          <div class="banner-icon icon-sky">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+          </div>
+          <div class="banner-text">
+            <div class="banner-title-row">
+              <h2>Locais de Instalacao & Setores</h2>
+              <span class="banner-badge badge-sky">{{ totalLocais() | number }} locais cadastrados</span>
+            </div>
+            <p>Gerenciamento de unidades municipais, escolas, postos de saude e setores onde os equipamentos sao alocados e remanejados</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-header-toolbar">
+        <div class="search-box">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text"
+                 placeholder="Buscar por nome do local, endereco, responsavel ou secretaria..."
+                 [value]="buscaLocais()"
+                 (input)="buscaLocais.set($any($event.target).value)" />
+        </div>
+
+        <div class="filters-row">
+          <select class="form-select select-sm"
+                  [value]="filtroSecretariaLocais()"
+                  (change)="filtroSecretariaLocais.set($any($event.target).value)">
+            <option value="">Todas as Secretarias</option>
+            @for (sec of secretariats(); track sec.id) {
+              <option [value]="sec.sigla">{{ sec.sigla }} - {{ sec.nome }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nome da Unidade / Local</th>
+              <th>Secretaria</th>
+              <th>Endereco</th>
+              <th>Responsavel</th>
+              <th>Telefone</th>
+              <th style="text-align: center;">Impressoras Ativas</th>
+              <th style="text-align: center;">Status</th>
+              <th style="text-align: right;">Acoes</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (loc of filteredLocais(); track loc.id) {
+              <tr>
+                <td>
+                  <strong>{{ loc.nome }}</strong>
+                </td>
+                <td>
+                  <span class="badge-empenho">{{ loc.secretariaSigla || 'SEC' }}</span>
+                  <span style="font-size: 0.85rem; color: #475569; margin-left: 0.35rem;">{{ loc.secretariaNome }}</span>
+                </td>
+                <td>
+                  <span style="font-size: 0.85rem;">{{ loc.endereco || '—' }}</span>
+                </td>
+                <td>
+                  <span style="font-size: 0.85rem;">{{ loc.responsavel || '—' }}</span>
+                </td>
+                <td>
+                  <span style="font-size: 0.85rem;">{{ loc.telefone || '—' }}</span>
+                </td>
+                <td style="text-align: center;">
+                  <span class="sub-chip chip-blue" style="font-weight: 600;">
+                    {{ loc.quantidadeImpressorasAtivas || 0 }} equip.
+                  </span>
+                </td>
+                <td style="text-align: center;">
+                  @if (loc.ativo) {
+                    <span class="badge-status status-active">
+                      <span class="dot"></span> Ativo
+                    </span>
+                  } @else {
+                    <span class="badge-status status-error">Inativo</span>
+                  }
+                </td>
+                <td class="actions-cell">
+                  <button class="btn-action" title="Editar local" (click)="abrirModalEditarLocal(loc)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+                  <button class="btn-action btn-danger" title="Inativar local" (click)="excluirLocal(loc.id)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="8">
+                  <div class="table-empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                      <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    <h4>Nenhum local de instalacao encontrado</h4>
+                    <p>Cadastre unidades e setores para facilitar a alocacao e remanejamento das impressoras.</p>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
   </div>
 </div>
 
@@ -1729,7 +1868,7 @@
 
             <div class="form-group">
               <label class="form-label">Secretaria de Lotação: *</label>
-              <select class="form-select" formControlName="secretariaId">
+              <select class="form-select" formControlName="secretariaId" (change)="onSecretariaMudouCadastro($any($event.target).value)">
                 <option value="">Selecione uma secretaria...</option>
                 @for (sec of secretariats(); track sec.id) {
                   <option [value]="sec.id">{{ sec.sigla }} - {{ sec.nome }}</option>
@@ -1743,6 +1882,19 @@
                 <option value="">Nenhum empenho vinculado</option>
                 @for (emp of empenhos(); track emp.id) {
                   <option [value]="emp.id">Empenho {{ emp.numeroEmpenho }} ({{ emp.secretariaSigla }})</option>
+                }
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <label class="form-label" style="margin-bottom: 0;">Local Cadastrado:</label>
+                <button type="button" class="btn-link-action" (click)="abrirModalNovoLocal()">+ Cadastrar Novo Local</button>
+              </div>
+              <select class="form-select" formControlName="localInstalacaoId" (change)="onLocalSelecionadoCadastro($any($event.target).value)">
+                <option value="">Selecione um local pré-cadastrado...</option>
+                @for (loc of locaisFiltradosParaCadastro(); track loc.id) {
+                  <option [value]="loc.id">{{ loc.nome }} ({{ loc.secretariaSigla }})</option>
                 }
               </select>
             </div>
@@ -1815,7 +1967,7 @@
           <div class="form-grid">
             <div class="form-group full-width">
               <label class="form-label">Nova Secretaria: *</label>
-              <select class="form-select" formControlName="novaSecretariaId">
+              <select class="form-select" formControlName="novaSecretariaId" (change)="onSecretariaMudouRemanejar($any($event.target).value)">
                 @for (sec of secretariats(); track sec.id) {
                   <option [value]="sec.id">{{ sec.sigla }} - {{ sec.nome }}</option>
                 }
@@ -1823,8 +1975,26 @@
             </div>
 
             <div class="form-group full-width">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <label class="form-label" style="margin-bottom: 0;">Selecionar Local Cadastrado:</label>
+                <button type="button" class="btn-link-action" (click)="abrirModalNovoLocal()">+ Cadastrar Novo Local</button>
+              </div>
+              <select class="form-select" formControlName="localInstalacaoId" (change)="onLocalSelecionadoRemanejar($any($event.target).value)">
+                <option value="">Selecione um local pré-cadastrado...</option>
+                @for (loc of locaisFiltradosParaRemanejo(); track loc.id) {
+                  <option [value]="loc.id">{{ loc.nome }} ({{ loc.secretariaSigla }})</option>
+                }
+              </select>
+            </div>
+
+            <div class="form-group full-width">
               <label class="form-label">Novo Local / Setor de Instalação: *</label>
               <input type="text" class="form-control" formControlName="novoLocalInstalacao" placeholder="Ex: SMED – EMEF Estado de Santa Catarina" />
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label">Novo Endereço:</label>
+              <input type="text" class="form-control" formControlName="novoEndereco" placeholder="Endereço ou prédio da nova unidade" />
             </div>
 
             <div class="form-group">
@@ -2304,6 +2474,61 @@
           <img [src]="getUrlImagemColeta(printSelecionado()!)" alt="Print do Painel da Impressora" class="full-print-img" />
         </div>
       </div>
+    </div>
+  </div>
+}
+
+<!-- ============================================================ -->
+<!-- MODAL: CADASTRAR / EDITAR LOCAL DE INSTALAÇÃO                -->
+<!-- ============================================================ -->
+@if (isLocalModalOpen()) {
+  <div class="modal-overlay" (click)="fecharModalLocal()">
+    <div class="modal-container" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ editingLocal() ? 'Editar Local de Instalação' : 'Cadastrar Local de Instalação' }}</h2>
+        <button class="modal-close-btn" (click)="fecharModalLocal()">&times;</button>
+      </div>
+
+      <form [formGroup]="localForm" (ngSubmit)="salvarLocal()">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label class="form-label">Nome da Unidade / Local / Setor: *</label>
+              <input type="text" class="form-control" formControlName="nome" placeholder="Ex: EMEF Estado de Santa Catarina, USF Centro II" />
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label">Secretaria de Vinculação: *</label>
+              <select class="form-select" formControlName="secretariaId">
+                <option value="">Selecione uma secretaria...</option>
+                @for (sec of secretariats(); track sec.id) {
+                  <option [value]="sec.id">{{ sec.sigla }} - {{ sec.nome }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label">Endereço Completo / Prédio:</label>
+              <input type="text" class="form-control" formControlName="endereco" placeholder="Ex: Rua das Flores, 123 - Centro" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Responsável pela Unidade:</label>
+              <input type="text" class="form-control" formControlName="responsavel" placeholder="Ex: Maria da Silva" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Telefone de Contato:</label>
+              <input type="text" class="form-control" formControlName="telefone" placeholder="Ex: (51) 3590-0000" />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="fecharModalLocal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">{{ editingLocal() ? 'Atualizar Local' : 'Salvar Local' }}</button>
+        </div>
+      </form>
     </div>
   </div>
 }

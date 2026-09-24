@@ -29,8 +29,11 @@ import {
   IniciarColetaRequest,
   ColetaProgresso,
   ColetaSessao,
-  ColetaItem
+  ColetaItem,
+  LocalInstalacao,
+  LocalInstalacaoDTO
 } from '@core/models';
+import { LocalInstalacaoService } from '@core/services/local-instalacao.service';
 
 @Component({
   selector: 'app-impressoras',
@@ -49,6 +52,7 @@ import {
 export class ImpressorasComponent implements OnInit, OnDestroy {
   private impressoraService = inject(ImpressoraService);
   private secretariaService = inject(SecretariaService);
+  private localInstalacaoService = inject(LocalInstalacaoService);
   private toast = inject(ToastService);
   private fb = inject(FormBuilder);
 
@@ -60,8 +64,16 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   empenhos = signal<EmpenhoImpressao[]>([]);
   leituras = signal<LeituraContador[]>([]);
 
+  // Estados do CRUD de Locais de Instalação
+  locais = signal<LocalInstalacao[]>([]);
+  loadingLocais = signal<boolean>(false);
+  filtroSecretariaLocais = signal<string>('');
+  buscaLocais = signal<string>('');
+  isLocalModalOpen = signal<boolean>(false);
+  editingLocal = signal<LocalInstalacao | null>(null);
+
   // Filtros e Navegação
-  activeTab = signal<'INVENTARIO' | 'LEITURAS' | 'FINANCEIRO' | 'LOTES' | 'COLETA'>('INVENTARIO');
+  activeTab = signal<'INVENTARIO' | 'LEITURAS' | 'FINANCEIRO' | 'LOTES' | 'COLETA' | 'LOCAIS'>('INVENTARIO');
   globalSearch = signal<string>('');
   filterSecretaria = signal<string>('');
   filterLote = signal<string>('');
@@ -164,6 +176,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     ip: [''],
     secretariaId: ['', Validators.required],
     empenhoId: [''],
+    localInstalacaoId: [''],
     localInstalacao: ['', Validators.required],
     endereco: [''],
     responsavel: [''],
@@ -174,6 +187,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   });
 
   remanejarForm: FormGroup = this.fb.group({
+    localInstalacaoId: [''],
     novaSecretariaId: ['', Validators.required],
     novoLocalInstalacao: ['', Validators.required],
     novoEndereco: [''],
@@ -184,6 +198,15 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     contadorAtualMono: [0, Validators.required],
     contadorAtualColor: [0],
     motivo: ['Remanejamento de setor']
+  });
+
+  localForm: FormGroup = this.fb.group({
+    nome: ['', Validators.required],
+    secretariaId: ['', Validators.required],
+    endereco: [''],
+    responsavel: [''],
+    telefone: [''],
+    ativo: [true]
   });
 
   substituirForm: FormGroup = this.fb.group({
@@ -337,6 +360,38 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     return s?.itens?.filter(i => i.status === 'ERRO').length || 0;
   });
 
+  // Métricas e Filtragem do CRUD de Locais de Instalação
+  totalLocais = computed(() => this.locais().length);
+  filteredLocais = computed(() => {
+    let list = this.locais();
+    const busca = this.buscaLocais().toLowerCase().trim();
+    if (busca) {
+      list = list.filter(l =>
+        (l.nome && l.nome.toLowerCase().includes(busca)) ||
+        (l.endereco && l.endereco.toLowerCase().includes(busca)) ||
+        (l.responsavel && l.responsavel.toLowerCase().includes(busca)) ||
+        (l.secretariaSigla && l.secretariaSigla.toLowerCase().includes(busca)) ||
+        (l.secretariaNome && l.secretariaNome.toLowerCase().includes(busca))
+      );
+    }
+    if (this.filtroSecretariaLocais()) {
+      list = list.filter(l => l.secretariaSigla === this.filtroSecretariaLocais());
+    }
+    return list;
+  });
+
+  locaisFiltradosParaRemanejo = computed(() => {
+    const secId = this.remanejarForm?.get('novaSecretariaId')?.value;
+    if (!secId) return this.locais();
+    return this.locais().filter(l => l.secretariaId === Number(secId));
+  });
+
+  locaisFiltradosParaCadastro = computed(() => {
+    const secId = this.form?.get('secretariaId')?.value;
+    if (!secId) return this.locais();
+    return this.locais().filter(l => l.secretariaId === Number(secId));
+  });
+
   ngOnInit(): void {
     this.carregarDados();
   }
@@ -356,6 +411,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
     this.carregarEmpenhos();
     this.carregarImpressoras();
+    this.carregarLocais();
   }
 
   carregarEmpenhos(): void {
@@ -378,6 +434,131 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     });
   }
 
+  carregarLocais(): void {
+    this.loadingLocais.set(true);
+    this.localInstalacaoService.getAll().subscribe({
+      next: data => {
+        this.locais.set(data);
+        this.loadingLocais.set(false);
+      },
+      error: () => {
+        this.loadingLocais.set(false);
+        this.toast.error('Erro ao carregar locais de instalação.');
+      }
+    });
+  }
+
+  abrirModalNovoLocal(): void {
+    this.editingLocal.set(null);
+    this.localForm.reset({
+      nome: '',
+      secretariaId: this.secretariats().length > 0 ? this.secretariats()[0].id : '',
+      endereco: '',
+      responsavel: '',
+      telefone: '',
+      ativo: true
+    });
+    this.isLocalModalOpen.set(true);
+  }
+
+  abrirModalEditarLocal(local: LocalInstalacao): void {
+    this.editingLocal.set(local);
+    this.localForm.reset({
+      nome: local.nome,
+      secretariaId: local.secretariaId,
+      endereco: local.endereco || '',
+      responsavel: local.responsavel || '',
+      telefone: local.telefone || '',
+      ativo: local.ativo
+    });
+    this.isLocalModalOpen.set(true);
+  }
+
+  fecharModalLocal(): void {
+    this.isLocalModalOpen.set(false);
+    this.editingLocal.set(null);
+  }
+
+  salvarLocal(): void {
+    if (this.localForm.invalid) {
+      this.localForm.markAllAsTouched();
+      this.toast.error('Preencha os campos obrigatórios do local.');
+      return;
+    }
+
+    const val = this.localForm.value;
+    const editing = this.editingLocal();
+
+    if (editing) {
+      this.localInstalacaoService.update(editing.id, val).subscribe({
+        next: () => {
+          this.toast.success('Local de instalação atualizado com sucesso!');
+          this.fecharModalLocal();
+          this.carregarLocais();
+        },
+        error: () => this.toast.error('Erro ao atualizar local de instalação.')
+      });
+    } else {
+      this.localInstalacaoService.create(val).subscribe({
+        next: () => {
+          this.toast.success('Local de instalação cadastrado com sucesso!');
+          this.fecharModalLocal();
+          this.carregarLocais();
+        },
+        error: () => this.toast.error('Erro ao cadastrar local de instalação.')
+      });
+    }
+  }
+
+  excluirLocal(id: number): void {
+    if (!confirm('Deseja realmente inativar este local de instalação?')) return;
+    this.localInstalacaoService.delete(id).subscribe({
+      next: () => {
+        this.toast.success('Local inativado com sucesso!');
+        this.carregarLocais();
+      },
+      error: () => this.toast.error('Erro ao inativar local.')
+    });
+  }
+
+  onLocalSelecionadoRemanejar(localId: any): void {
+    if (!localId) return;
+    const loc = this.locais().find(l => l.id === Number(localId));
+    if (loc) {
+      this.remanejarForm.patchValue({
+        localInstalacaoId: loc.id,
+        novaSecretariaId: loc.secretariaId,
+        novoLocalInstalacao: loc.nome,
+        novoEndereco: loc.endereco || '',
+        novoResponsavel: loc.responsavel || ''
+      });
+    }
+  }
+
+  onSecretariaMudouRemanejar(secretariaId: any): void {
+    const secId = Number(secretariaId);
+    this.remanejarForm.patchValue({ novaSecretariaId: secId, localInstalacaoId: '' });
+  }
+
+  onLocalSelecionadoCadastro(localId: any): void {
+    if (!localId) return;
+    const loc = this.locais().find(l => l.id === Number(localId));
+    if (loc) {
+      this.form.patchValue({
+        localInstalacaoId: loc.id,
+        secretariaId: loc.secretariaId,
+        localInstalacao: loc.nome,
+        endereco: loc.endereco || '',
+        responsavel: loc.responsavel || ''
+      });
+    }
+  }
+
+  onSecretariaMudouCadastro(secretariaId: any): void {
+    const secId = Number(secretariaId);
+    this.form.patchValue({ secretariaId: secId, localInstalacaoId: '' });
+  }
+
   carregarLeiturasCompetencia(): void {
     this.impressoraService.getLeituras(this.mesCompetencia(), this.anoCompetencia()).subscribe({
       next: list => this.leituras.set(list),
@@ -385,7 +566,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     });
   }
 
-  trocarAba(tab: 'INVENTARIO' | 'LEITURAS' | 'FINANCEIRO' | 'LOTES' | 'COLETA'): void {
+  trocarAba(tab: 'INVENTARIO' | 'LEITURAS' | 'FINANCEIRO' | 'LOTES' | 'COLETA' | 'LOCAIS'): void {
     this.activeTab.set(tab);
     if (tab === 'LEITURAS' && this.leituras().length === 0) {
       this.carregarLeiturasCompetencia();
@@ -397,6 +578,8 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       }
     } else if (tab === 'COLETA') {
       this.carregarDadosColeta();
+    } else if (tab === 'LOCAIS') {
+      this.carregarLocais();
     }
   }
 
@@ -436,6 +619,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       contadorInicialColor: 0,
       secretariaId: '',
       empenhoId: '',
+      localInstalacaoId: '',
       modelo: '',
       localInstalacao: '',
       endereco: '',
@@ -450,6 +634,12 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   openEditModal(p: Impressora): void {
     this.isEditMode.set(true);
     this.selectedPrinter.set(p);
+
+    const localCorrespondente = this.locais().find(l =>
+      l.secretariaId === p.secretariaId &&
+      l.nome.toLowerCase().trim() === (p.localInstalacao || '').toLowerCase().trim()
+    );
+
     this.form.patchValue({
       itemPedido: p.itemPedido,
       numeroSerie: p.numeroSerie,
@@ -460,6 +650,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       ip: p.ip,
       secretariaId: p.secretariaId,
       empenhoId: p.empenhoId,
+      localInstalacaoId: localCorrespondente ? localCorrespondente.id : '',
       localInstalacao: p.localInstalacao,
       endereco: p.endereco,
       responsavel: p.responsavel,
@@ -483,7 +674,15 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const payload = this.form.value;
+    const payload = { ...this.form.value };
+    if (!payload.localInstalacao && payload.localInstalacaoId) {
+      const loc = this.locais().find(l => l.id === Number(payload.localInstalacaoId));
+      if (loc) {
+        payload.localInstalacao = loc.nome;
+        if (!payload.endereco) payload.endereco = loc.endereco;
+        if (!payload.responsavel) payload.responsavel = loc.responsavel;
+      }
+    }
 
     if (this.isEditMode() && this.selectedPrinter()) {
       this.impressoraService.update(this.selectedPrinter()!.id, payload).subscribe({
@@ -491,6 +690,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
           this.toast.success('Equipamento atualizado com sucesso!');
           this.closeModal();
           this.carregarImpressoras();
+          this.carregarLocais();
         },
         error: () => this.toast.error('Erro ao atualizar impressora.')
       });
@@ -500,6 +700,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
           this.toast.success('Equipamento cadastrado com sucesso!');
           this.closeModal();
           this.carregarImpressoras();
+          this.carregarLocais();
         },
         error: () => this.toast.error('Erro ao cadastrar impressora.')
       });
@@ -509,7 +710,14 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   // Modal Remanejar de Local
   openRemanejarModal(p: Impressora): void {
     this.selectedPrinter.set(p);
+
+    const localCorrespondente = this.locais().find(l =>
+      l.secretariaId === p.secretariaId &&
+      l.nome.toLowerCase().trim() === (p.localInstalacao || '').toLowerCase().trim()
+    );
+
     this.remanejarForm.reset({
+      localInstalacaoId: localCorrespondente ? localCorrespondente.id : '',
       novaSecretariaId: p.secretariaId,
       novoLocalInstalacao: p.localInstalacao,
       novoEndereco: p.endereco,
@@ -532,15 +740,26 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   salvarRemanejamento(): void {
     if (this.remanejarForm.invalid || !this.selectedPrinter()) {
       this.remanejarForm.markAllAsTouched();
-      this.toast.error('Preencha os campos de remanejamento.');
+      this.toast.error('Preencha os campos obrigatórios do remanejamento.');
       return;
     }
 
-    this.impressoraService.remanejarLocal(this.selectedPrinter()!.id, this.remanejarForm.value).subscribe({
+    const val = { ...this.remanejarForm.value };
+    if (!val.novoLocalInstalacao && val.localInstalacaoId) {
+      const loc = this.locais().find(l => l.id === Number(val.localInstalacaoId));
+      if (loc) {
+        val.novoLocalInstalacao = loc.nome;
+        if (!val.novoEndereco) val.novoEndereco = loc.endereco;
+        if (!val.novoResponsavel) val.novoResponsavel = loc.responsavel;
+      }
+    }
+
+    this.impressoraService.remanejarLocal(this.selectedPrinter()!.id, val).subscribe({
       next: () => {
         this.toast.success('Impressora remanejada com histórico registrado!');
         this.closeRemanejarModal();
         this.carregarImpressoras();
+        this.carregarLocais();
       },
       error: () => this.toast.error('Erro ao remanejar impressora.')
     });
