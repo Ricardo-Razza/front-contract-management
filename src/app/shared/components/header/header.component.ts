@@ -10,7 +10,7 @@ import { CommonModule } from '@angular/common';
     <header class="app-header">
       <div class="header-left">
         <div class="breadcrumb">
-          <span class="breadcrumb-item">Sistema ARP</span>
+          <span class="system-badge">Sistema ARP</span>
           <span class="separator">/</span>
           <span class="breadcrumb-item active">{{ title }}</span>
         </div>
@@ -23,7 +23,8 @@ import { CommonModule } from '@angular/common';
     .app-header {
       height: $header-height;
       background-color: #ffffff;
-      border-bottom: 1px solid $color-border;
+      border-bottom: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
       padding: 0 2rem 0 5rem;
       display: flex;
       align-items: center;
@@ -36,17 +37,30 @@ import { CommonModule } from '@angular/common';
     .breadcrumb {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      font-size: 0.8125rem;
-      color: $color-text-muted;
+      gap: 0.65rem;
+      font-size: 0.875rem;
+
+      .system-badge {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        background: #f1f5f9;
+        color: #475569;
+        padding: 3px 8px;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
+      }
 
       .separator {
-        color: $color-border-dark;
+        color: #94a3b8;
+        font-weight: 400;
       }
 
       .active {
-        color: $color-secondary;
-        font-weight: 600;
+        color: #0f172a;
+        font-weight: 700;
+        font-size: 0.925rem;
       }
     }
   `]

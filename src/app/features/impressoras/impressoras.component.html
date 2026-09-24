@@ -1,11 +1,15 @@
+<app-header title="Outsourcing de Impressoras"></app-header>
+
 <div class="page-content">
   <!-- CABEÇALHO -->
   <div class="page-title-group">
     <div class="title-with-badge">
-      <h1>Gestão de Outsourcing de Impressoras</h1>
+      <div>
+        <h1>Gestão de Outsourcing de Impressoras</h1>
+        <p>Controle patrimonial, alocações por secretaria, franquias, medições de contadores e empenhos orçamentários</p>
+      </div>
       <span class="badge-total">{{ totalImpressoras() | number }} equipamentos</span>
     </div>
-    <p>Controle patrimonial, alocações por secretaria, franquias, medições de contadores e empenhos orçamentários</p>
   </div>
 
   <!-- KPI CARDS (Centered Executive Cards) -->
@@ -223,6 +227,25 @@
     <!-- TAB 1: INVENTÁRIO DE IMPRESSORAS -->
     <!-- ============================================================ -->
     @if (activeTab() === 'INVENTARIO') {
+      <div class="tab-module-banner banner-inventario">
+        <div class="banner-left">
+          <div class="banner-icon icon-blue">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+          </div>
+          <div class="banner-text">
+            <div class="banner-title-row">
+              <h2>Inventário Geral de Impressoras</h2>
+              <span class="banner-badge badge-blue">{{ totalImpressoras() | number }} equipamentos cadastrados</span>
+            </div>
+            <p>Parque completo de impressoras e multifuncionais alocadas nas secretarias municipais com IPs, modelos e números de série</p>
+          </div>
+        </div>
+      </div>
+
       <div class="table-header-toolbar">
         <div class="search-box">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -387,6 +410,23 @@
     <!-- TAB 2: MEDIÇÃO MENSAL & CONTADORES -->
     <!-- ============================================================ -->
     @if (activeTab() === 'LEITURAS') {
+      <div class="tab-module-banner banner-leituras">
+        <div class="banner-left">
+          <div class="banner-icon icon-green">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 20v-6M6 20V10M18 20V4"></path>
+            </svg>
+          </div>
+          <div class="banner-text">
+            <div class="banner-title-row">
+              <h2>Medição Mensal & Contadores</h2>
+              <span class="banner-badge badge-green">Competência {{ nomeMesCompetencia() }}</span>
+            </div>
+            <p>Lançamento de leituras mensais, apuração de hodômetros, franquias contratuais e páginas excedentes</p>
+          </div>
+        </div>
+      </div>
+
       <div class="table-header-toolbar">
         <div class="search-box" style="max-width: 280px;">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -500,6 +540,25 @@
     <!-- ============================================================ -->
     @if (activeTab() === 'FINANCEIRO') {
       <div class="financeiro-container">
+        <!-- CABEÇALHO DO MÓDULO: FINANCEIRO -->
+        <div class="tab-module-banner banner-financeiro">
+          <div class="banner-left">
+            <div class="banner-icon icon-purple">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
+            <div class="banner-text">
+              <div class="banner-title-row">
+                <h2>Notas Fiscais & Financeiro de Outsourcing</h2>
+                <span class="banner-badge badge-purple">Gestão Orçamentária</span>
+              </div>
+              <p>Espelhos mensais de faturamento por secretaria, matriz consolidada de 12 meses e empenhos vinculados</p>
+            </div>
+          </div>
+        </div>
+
         <!-- SUBNAV SEGMENTED CONTROL (TREMOR / CHAKRA UI STYLE) -->
         <div class="fin-subnav-toolbar">
           <div class="fin-segmented-control" role="tablist">
@@ -1095,12 +1154,27 @@
     <!-- ============================================================ -->
     @if (activeTab() === 'LOTES') {
       <div class="lotes-container">
+        <!-- CABEÇALHO DO MÓDULO: LOTES -->
+        <div class="tab-module-banner banner-lotes">
+          <div class="banner-left">
+            <div class="banner-icon icon-orange">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+            </div>
+            <div class="banner-text">
+              <div class="banner-title-row">
+                <h2>Balanço Mensal de Franquias & Lotes</h2>
+                <span class="banner-badge badge-orange">Controle de Franquias</span>
+              </div>
+              <p>Acompanhamento analítico da capacidade contratada, páginas rodadas, excedentes e custo rateado por lote</p>
+            </div>
+          </div>
+        </div>
+
         <!-- TOOLBAR COM COMPETÊNCIA E EXPORTAÇÃO -->
         <div class="lotes-toolbar">
-          <div class="toolbar-title">
-            <h3>Balanço Mensal de Franquias Contratuais & Utilização por Lote</h3>
-            <p>Acompanhamento analítico da capacidade contratada, páginas rodadas, excedentes e custo rateado</p>
-          </div>
           <div class="toolbar-controls">
             <div class="control-group">
               <label>Competência:</label>
@@ -1267,13 +1341,27 @@
     <!-- ============================================================ -->
     @if (activeTab() === 'COLETA') {
       <div class="coleta-container">
+        <!-- CABEÇALHO DO MÓDULO: COLETA -->
+        <div class="tab-module-banner banner-coleta">
+          <div class="banner-left">
+            <div class="banner-icon icon-teal">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <div class="banner-text">
+              <div class="banner-title-row">
+                <h2>Automação de Coleta & Comprovação</h2>
+                <span class="banner-badge badge-teal">Auditoria de Painéis</span>
+              </div>
+              <p>Varredura direta nos IPs das impressoras, captura de prints dos painéis em alta resolução e extração de hodômetros</p>
+            </div>
+          </div>
+        </div>
+
         <!-- BARRA DE PARÂMETROS E DISPARO -->
         <div class="coleta-toolbar-card">
-          <div class="toolbar-title-box">
-            <h3>Automação de Coleta e Comprovação de Contadores</h3>
-            <p>Varredura direta nos IPs das impressoras, captura de prints dos painéis em alta resolução (1600x1400) e extração de hodômetros</p>
-          </div>
-
           <div class="coleta-form-row">
             <div class="form-field">
               <label>Ano de Referência</label>

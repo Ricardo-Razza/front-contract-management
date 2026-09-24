@@ -6,6 +6,7 @@ import { SecretariaService } from '@core/services/secretaria.service';
 import { ToastService } from '@core/services/toast.service';
 import { ConfirmModalComponent } from '@shared/components/confirm-modal/confirm-modal.component';
 import { PaginationComponent } from '@shared/components/pagination/pagination.component';
+import { HeaderComponent } from '@shared/components/header/header.component';
 import { exportToCsv } from '@core/utils/export.utils';
 import {
   Impressora,
@@ -39,7 +40,8 @@ import {
     FormsModule,
     ReactiveFormsModule,
     PaginationComponent,
-    ConfirmModalComponent
+    ConfirmModalComponent,
+    HeaderComponent
   ],
   templateUrl: './impressoras.component.html',
   styleUrls: ['./impressoras.component.scss']
@@ -100,6 +102,11 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   // Competência selecionada para medição de contadores
   mesCompetencia = signal<number>(new Date().getMonth() + 1);
   anoCompetencia = signal<number>(new Date().getFullYear());
+  nomeMesCompetencia = computed(() => {
+    const meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const m = this.mesCompetencia();
+    return (meses[m] || 'Mês ' + m) + ' / ' + this.anoCompetencia();
+  });
   termoBuscaLeituras = signal<string>('');
   filtroSecretariaLeituras = signal<string>('');
 

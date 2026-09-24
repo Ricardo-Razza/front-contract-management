@@ -48,29 +48,32 @@
   background: #f1f5f9;
   padding: 4px;
   border-radius: 12px;
+  border: 1px solid #e2e8f0;
 
   .tab-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 0.45rem 0.85rem;
+    padding: 0.5rem 0.95rem;
     border-radius: 8px;
     border: none;
     background: transparent;
-    font-size: 0.825rem;
+    font-size: 0.85rem;
     font-weight: 600;
-    color: #64748b;
+    color: #334155;
     cursor: pointer;
     transition: all 0.18s ease;
 
     &:hover {
       color: #0f172a;
+      background: rgba(255, 255, 255, 0.6);
     }
 
     &.active {
-      background: #ffffff;
-      color: #2563eb;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      background: #1e40af;
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(30, 64, 175, 0.25);
     }
 
     .tab-badge {
@@ -83,8 +86,8 @@
     }
 
     &.active .tab-badge {
-      background: #dbeafe;
-      color: #1d4ed8;
+      background: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
     }
   }
 }

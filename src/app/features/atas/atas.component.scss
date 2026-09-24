@@ -8,29 +8,12 @@
 }
 
 // ===== TÍTULO =====
-.page-title-group {
-  margin-bottom: 1.5rem;
-}
-
 .title-with-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 1rem;
-
-  h1 {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: $color-secondary;
-    margin-bottom: 0.25rem;
-  }
-
-  p {
-    color: $color-text-muted;
-    font-size: 0.875rem;
-    margin: 0;
-  }
 }
 
 .btn {
@@ -514,12 +497,6 @@
   box-sizing: border-box;
 }
 
-/* Se o título da página estiver dentro do page-content, ele precisa de um padding interno */
-.page-title-group {
-  padding: 1.5rem 1.5rem 0 1.5rem;
-  /* Dá um respiro no título, sem afetar a tabela */
-  background: #f3f4f6;
-}
 
 // ===== SORTABLE HEADERS =====
 .col-sortable {

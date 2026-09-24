@@ -6,29 +6,12 @@
   margin: 0 0.5rem;
 }
 
-.page-title-group {
-  margin-bottom: 1.5rem;
-}
-
 .title-with-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 1rem;
-
-  h1 {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: $color-secondary;
-    margin-bottom: 0.25rem;
-  }
-
-  p {
-    color: $color-text-muted;
-    font-size: 0.875rem;
-    margin: 0;
-  }
 }
 
 .btn {
@@ -436,11 +419,6 @@
   padding: 0 !important;
   margin: 0 !important;
   box-sizing: border-box;
-}
-
-.page-title-group {
-  padding: 1.5rem 1.5rem 0 1.5rem;
-  background: #f3f4f6;
 }
 
 .col-sortable {
