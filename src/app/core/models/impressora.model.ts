@@ -226,6 +226,8 @@ export interface EquipamentoFatura {
   valorLocacao: number;
   valorExcedente: number;
   valorTotal: number;
+  origemLeitura?: string;
+  observacoes?: string;
 }
 
 export interface EspelhoFatura {

@@ -501,7 +501,12 @@
                 <td><strong>#{{ l.itemPedido || l.impressoraId }}</strong></td>
                 <td><span class="sec-tag">{{ l.secretariaSigla || '—' }}</span></td>
                 <td class="td-truncate" [title]="l.localInstalacao">{{ l.localInstalacao }}</td>
-                <td>{{ l.impressoraModelo }}</td>
+                <td>
+                  {{ l.impressoraModelo }}
+                  @if (l.origemLeitura === 'SWAP_RETIRADA') {
+                    <span class="badge-swap-tag" [title]="l.observacoes || 'Retirada por substituição'">Retirada (Swap)</span>
+                  }
+                </td>
                 <td><code>{{ l.impressoraIp || '—' }}</code></td>
                 <td>{{ l.leituraMonoAnterior | number }}</td>
                 <td><strong>{{ l.leituraMonoAtual | number }}</strong></td>
@@ -514,9 +519,21 @@
                     <span class="text-muted">0</span>
                   }
                 </td>
-                <td>R$ {{ l.valorLocacao | number:'1.2-2' }}</td>
+                <td>
+                  @if (l.origemLeitura === 'SWAP_RETIRADA') {
+                    <span class="text-muted" title="Valor consolidado no equipamento substituto">R$ 0,00</span>
+                  } @else {
+                    R$ {{ l.valorLocacao | number:'1.2-2' }}
+                  }
+                </td>
                 <td>R$ {{ l.valorExcedenteMono | number:'1.2-2' }}</td>
-                <td><strong>R$ {{ l.valorTotal | number:'1.2-2' }}</strong></td>
+                <td>
+                  @if (l.origemLeitura === 'SWAP_RETIRADA') {
+                    <span class="text-muted" title="Valor consolidado no equipamento substituto">R$ 0,00</span>
+                  } @else {
+                    <strong>R$ {{ l.valorTotal | number:'1.2-2' }}</strong>
+                  }
+                </td>
               </tr>
             } @empty {
               <tr>
@@ -862,10 +879,15 @@
                           </tr>
                         </thead>
                         <tbody>
-                          @for (eq of fat.equipamentos; track eq.itemPedido) {
+                          @for (eq of fat.equipamentos; track (eq.numeroSerie || $index)) {
                             <tr>
                               <td class="text-center font-semibold">{{ eq.itemPedido || '-' }}</td>
-                              <td>{{ eq.modelo }}</td>
+                              <td>
+                                {{ eq.modelo }}
+                                @if (eq.origemLeitura === 'SWAP_RETIRADA') {
+                                  <span class="badge-swap-tag" [title]="eq.observacoes || 'Retirada por substituição'">Retirada (Swap)</span>
+                                }
+                              </td>
                               <td class="local-cell">{{ eq.localInstalacao }}</td>
                               <td class="text-center">L{{ eq.numeroLote }}</td>
                               <td class="text-right">{{ eq.leituraMonoAnterior | number }}</td>
