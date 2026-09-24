@@ -34,4 +34,8 @@ export class LocalInstalacaoService {
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
+
+  sincronizar(): Observable<LocalInstalacao[]> {
+    return this.http.post<LocalInstalacao[]>(`${this.apiUrl}/sincronizar`, {});
+  }
 }

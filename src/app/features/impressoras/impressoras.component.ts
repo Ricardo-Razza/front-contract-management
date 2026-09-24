@@ -162,6 +162,13 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   filtroStatusColeta = signal<'TODOS' | 'SUCESSO' | 'OFFLINE' | 'ERRO'>('TODOS');
   termoBuscaColeta = signal<string>('');
 
+  // Modal de cadastro/edição: navegação e busca
+  activeModalStep = signal<number>(1);
+  termoBuscaLocalModal = signal<string>('');
+  termoBuscaLocalRemanejo = signal<string>('');
+  secretariaSelecionadaCadastro = signal<number | null>(null);
+  secretariaSelecionadaRemanejo = signal<number | null>(null);
+
   modalPrintAberto = signal<boolean>(false);
   printSelecionado = signal<ColetaItem | null>(null);
 
@@ -380,16 +387,139 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     return list;
   });
 
+  // Lista completa e unificada de TODOS os locais existentes (CRUD + inventário de impressoras)
+  todosLocaisDisponiveis = computed(() => {
+    const mapa = new Map<string, LocalInstalacao>();
+
+    // 1. Locais cadastrados no banco via CRUD
+    for (const l of this.locais()) {
+      if (l.nome && l.nome.trim()) {
+        const chave = `${(l.secretariaId || 0)}_${l.nome.toLowerCase().trim()}`;
+        mapa.set(chave, { ...l, nome: l.nome.trim() });
+      }
+    }
+
+    // 2. Locais existentes do inventário de impressoras já carregado
+    let pseudoId = -1;
+    for (const p of this.printers()) {
+      if (p.localInstalacao && p.localInstalacao.trim()) {
+        const chave = `${(p.secretariaId || 0)}_${p.localInstalacao.toLowerCase().trim()}`;
+        if (!mapa.has(chave)) {
+          mapa.set(chave, {
+            id: pseudoId--,
+            nome: p.localInstalacao.trim(),
+            secretariaId: p.secretariaId || 0,
+            secretariaNome: p.secretariaNome || '',
+            secretariaSigla: p.secretariaSigla || '',
+            endereco: p.endereco || '',
+            responsavel: p.responsavel || '',
+            ativo: true,
+            quantidadeImpressorasAtivas: 1
+          });
+        }
+      }
+    }
+
+    return Array.from(mapa.values()).sort((a, b) => {
+      const siglaA = a.secretariaSigla || '';
+      const siglaB = b.secretariaSigla || '';
+      if (siglaA !== siglaB) return siglaA.localeCompare(siglaB);
+      return a.nome.localeCompare(b.nome);
+    });
+  });
+
+  // Agrupamento por Secretaria para exibição limpa e estruturada
+  locaisAgrupadosPorSecretaria = computed(() => {
+    let lista = this.todosLocaisDisponiveis();
+    const busca = this.termoBuscaLocalModal().toLowerCase().trim();
+
+    if (busca) {
+      lista = lista.filter(l =>
+        l.nome.toLowerCase().includes(busca) ||
+        (l.secretariaSigla && l.secretariaSigla.toLowerCase().includes(busca)) ||
+        (l.secretariaNome && l.secretariaNome.toLowerCase().includes(busca)) ||
+        (l.endereco && l.endereco.toLowerCase().includes(busca))
+      );
+    }
+
+    const grupos = new Map<string, { secretariaId: number; secretariaSigla: string; secretariaNome: string; locais: LocalInstalacao[] }>();
+
+    for (const loc of lista) {
+      const sigla = loc.secretariaSigla || 'GERAL';
+      if (!grupos.has(sigla)) {
+        grupos.set(sigla, {
+          secretariaId: loc.secretariaId || 0,
+          secretariaSigla: sigla,
+          secretariaNome: loc.secretariaNome || sigla,
+          locais: []
+        });
+      }
+      grupos.get(sigla)!.locais.push(loc);
+    }
+
+    const secSelId = this.secretariaSelecionadaCadastro();
+    const resultado = Array.from(grupos.values());
+
+    resultado.sort((a, b) => {
+      if (secSelId && a.secretariaId === secSelId) return -1;
+      if (secSelId && b.secretariaId === secSelId) return 1;
+      return a.secretariaSigla.localeCompare(b.secretariaSigla);
+    });
+
+    return resultado;
+  });
+
+  // Agrupamento para Remanejamento
+  locaisAgrupadosRemanejo = computed(() => {
+    let lista = this.todosLocaisDisponiveis();
+    const busca = this.termoBuscaLocalRemanejo().toLowerCase().trim();
+
+    if (busca) {
+      lista = lista.filter(l =>
+        l.nome.toLowerCase().includes(busca) ||
+        (l.secretariaSigla && l.secretariaSigla.toLowerCase().includes(busca)) ||
+        (l.secretariaNome && l.secretariaNome.toLowerCase().includes(busca)) ||
+        (l.endereco && l.endereco.toLowerCase().includes(busca))
+      );
+    }
+
+    const grupos = new Map<string, { secretariaId: number; secretariaSigla: string; secretariaNome: string; locais: LocalInstalacao[] }>();
+
+    for (const loc of lista) {
+      const sigla = loc.secretariaSigla || 'GERAL';
+      if (!grupos.has(sigla)) {
+        grupos.set(sigla, {
+          secretariaId: loc.secretariaId || 0,
+          secretariaSigla: sigla,
+          secretariaNome: loc.secretariaNome || sigla,
+          locais: []
+        });
+      }
+      grupos.get(sigla)!.locais.push(loc);
+    }
+
+    const secSelId = this.secretariaSelecionadaRemanejo();
+    const resultado = Array.from(grupos.values());
+
+    resultado.sort((a, b) => {
+      if (secSelId && a.secretariaId === secSelId) return -1;
+      if (secSelId && b.secretariaId === secSelId) return 1;
+      return a.secretariaSigla.localeCompare(b.secretariaSigla);
+    });
+
+    return resultado;
+  });
+
   locaisFiltradosParaRemanejo = computed(() => {
-    const secId = this.remanejarForm?.get('novaSecretariaId')?.value;
-    if (!secId) return this.locais();
-    return this.locais().filter(l => l.secretariaId === Number(secId));
+    const secId = this.secretariaSelecionadaRemanejo();
+    if (!secId) return this.todosLocaisDisponiveis();
+    return this.todosLocaisDisponiveis().filter(l => l.secretariaId === Number(secId));
   });
 
   locaisFiltradosParaCadastro = computed(() => {
-    const secId = this.form?.get('secretariaId')?.value;
-    if (!secId) return this.locais();
-    return this.locais().filter(l => l.secretariaId === Number(secId));
+    const secId = this.secretariaSelecionadaCadastro();
+    if (!secId) return this.todosLocaisDisponiveis();
+    return this.todosLocaisDisponiveis().filter(l => l.secretariaId === Number(secId));
   });
 
   ngOnInit(): void {
@@ -521,42 +651,84 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     });
   }
 
-  onLocalSelecionadoRemanejar(localId: any): void {
-    if (!localId) return;
-    const loc = this.locais().find(l => l.id === Number(localId));
-    if (loc) {
-      this.remanejarForm.patchValue({
-        localInstalacaoId: loc.id,
-        novaSecretariaId: loc.secretariaId,
-        novoLocalInstalacao: loc.nome,
-        novoEndereco: loc.endereco || '',
-        novoResponsavel: loc.responsavel || ''
-      });
+  definirPassoModal(passo: number): void {
+    if (passo >= 1 && passo <= 4) {
+      this.activeModalStep.set(passo);
     }
   }
 
-  onSecretariaMudouRemanejar(secretariaId: any): void {
-    const secId = Number(secretariaId);
-    this.remanejarForm.patchValue({ novaSecretariaId: secId, localInstalacaoId: '' });
+  proximoPassoModal(): void {
+    if (this.activeModalStep() < 4) {
+      this.activeModalStep.update(v => v + 1);
+    }
   }
 
-  onLocalSelecionadoCadastro(localId: any): void {
-    if (!localId) return;
-    const loc = this.locais().find(l => l.id === Number(localId));
+  passoAnteriorModal(): void {
+    if (this.activeModalStep() > 1) {
+      this.activeModalStep.update(v => v - 1);
+    }
+  }
+
+  getNomeSecretaria(secId: any): string {
+    if (!secId) return 'Não informada';
+    const sec = this.secretariats().find(s => s.id === Number(secId));
+    return sec ? `${sec.sigla} - ${sec.nome}` : 'Secretaria #' + secId;
+  }
+
+  onLocalSelecionadoCadastro(valor: any): void {
+    if (!valor) return;
+    const texto = String(valor).trim().toLowerCase();
+    const loc = this.todosLocaisDisponiveis().find(l =>
+      l.nome.toLowerCase().trim() === texto ||
+      String(l.id) === String(valor)
+    );
+
     if (loc) {
       this.form.patchValue({
-        localInstalacaoId: loc.id,
-        secretariaId: loc.secretariaId,
         localInstalacao: loc.nome,
-        endereco: loc.endereco || '',
-        responsavel: loc.responsavel || ''
+        localInstalacaoId: (loc.id && loc.id > 0) ? loc.id : '',
+        secretariaId: loc.secretariaId || this.form.get('secretariaId')?.value,
+        endereco: loc.endereco || this.form.get('endereco')?.value || '',
+        responsavel: loc.responsavel || this.form.get('responsavel')?.value || ''
       });
+      if (loc.secretariaId) {
+        this.secretariaSelecionadaCadastro.set(loc.secretariaId);
+      }
     }
   }
 
   onSecretariaMudouCadastro(secretariaId: any): void {
     const secId = Number(secretariaId);
-    this.form.patchValue({ secretariaId: secId, localInstalacaoId: '' });
+    this.secretariaSelecionadaCadastro.set(secId || null);
+    this.form.patchValue({ secretariaId: secId || '' });
+  }
+
+  onLocalSelecionadoRemanejar(valor: any): void {
+    if (!valor) return;
+    const texto = String(valor).trim().toLowerCase();
+    const loc = this.todosLocaisDisponiveis().find(l =>
+      l.nome.toLowerCase().trim() === texto ||
+      String(l.id) === String(valor)
+    );
+
+    if (loc) {
+      this.remanejarForm.patchValue({
+        novoLocalInstalacao: loc.nome,
+        localInstalacaoId: (loc.id && loc.id > 0) ? loc.id : '',
+        novaSecretariaId: loc.secretariaId || this.remanejarForm.get('novaSecretariaId')?.value,
+        novoEndereco: loc.endereco || this.remanejarForm.get('novoEndereco')?.value || '',
+        novoResponsavel: loc.responsavel || this.remanejarForm.get('novoResponsavel')?.value || ''
+      });
+      if (loc.secretariaId) {
+        this.secretariaSelecionadaRemanejo.set(loc.secretariaId);
+      }
+    }
+  }
+
+  onSecretariaMudouRemanejar(secretariaId: any): void {
+    const secId = Number(secretariaId);
+    this.secretariaSelecionadaRemanejo.set(secId || null);
+    this.remanejarForm.patchValue({ novaSecretariaId: secId || '' });
   }
 
   carregarLeiturasCompetencia(): void {
@@ -609,6 +781,9 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   openCreateModal(): void {
     this.isEditMode.set(false);
     this.selectedPrinter.set(null);
+    this.activeModalStep.set(1);
+    this.termoBuscaLocalModal.set('');
+    this.secretariaSelecionadaCadastro.set(null);
     this.form.reset({
       fabricante: 'Ricoh',
       tipoImpressao: 'MONO',
@@ -634,8 +809,11 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   openEditModal(p: Impressora): void {
     this.isEditMode.set(true);
     this.selectedPrinter.set(p);
+    this.activeModalStep.set(1);
+    this.termoBuscaLocalModal.set('');
+    this.secretariaSelecionadaCadastro.set(p.secretariaId || null);
 
-    const localCorrespondente = this.locais().find(l =>
+    const localCorrespondente = this.todosLocaisDisponiveis().find(l =>
       l.secretariaId === p.secretariaId &&
       l.nome.toLowerCase().trim() === (p.localInstalacao || '').toLowerCase().trim()
     );
@@ -650,7 +828,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       ip: p.ip,
       secretariaId: p.secretariaId,
       empenhoId: p.empenhoId,
-      localInstalacaoId: localCorrespondente ? localCorrespondente.id : '',
+      localInstalacaoId: (localCorrespondente && localCorrespondente.id && localCorrespondente.id > 0) ? localCorrespondente.id : '',
       localInstalacao: p.localInstalacao,
       endereco: p.endereco,
       responsavel: p.responsavel,
@@ -665,18 +843,31 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   closeModal(): void {
     this.isModalOpen.set(false);
     this.selectedPrinter.set(null);
+    this.activeModalStep.set(1);
   }
 
   salvarImpressora(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.toast.error('Preencha os campos obrigatórios.');
+      // Redireciona para o passo que contém o erro
+      if (this.form.get('modelo')?.invalid || this.form.get('fabricante')?.invalid || this.form.get('tipoImpressao')?.invalid) {
+        this.activeModalStep.set(1);
+        this.toast.error('Preencha os campos obrigatórios do equipamento (Modelo, Fabricante).');
+      } else if (this.form.get('secretariaId')?.invalid || this.form.get('localInstalacao')?.invalid) {
+        this.activeModalStep.set(2);
+        this.toast.error('Informe a Secretaria e o Local de Instalação.');
+      } else if (this.form.get('loteId')?.invalid || this.form.get('dataInstalacao')?.invalid) {
+        this.activeModalStep.set(3);
+        this.toast.error('Informe o Lote e a Data de Instalação.');
+      } else {
+        this.toast.error('Preencha todos os campos obrigatórios.');
+      }
       return;
     }
 
     const payload = { ...this.form.value };
     if (!payload.localInstalacao && payload.localInstalacaoId) {
-      const loc = this.locais().find(l => l.id === Number(payload.localInstalacaoId));
+      const loc = this.todosLocaisDisponiveis().find(l => String(l.id) === String(payload.localInstalacaoId));
       if (loc) {
         payload.localInstalacao = loc.nome;
         if (!payload.endereco) payload.endereco = loc.endereco;
@@ -710,14 +901,16 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   // Modal Remanejar de Local
   openRemanejarModal(p: Impressora): void {
     this.selectedPrinter.set(p);
+    this.termoBuscaLocalRemanejo.set('');
+    this.secretariaSelecionadaRemanejo.set(p.secretariaId || null);
 
-    const localCorrespondente = this.locais().find(l =>
+    const localCorrespondente = this.todosLocaisDisponiveis().find(l =>
       l.secretariaId === p.secretariaId &&
       l.nome.toLowerCase().trim() === (p.localInstalacao || '').toLowerCase().trim()
     );
 
     this.remanejarForm.reset({
-      localInstalacaoId: localCorrespondente ? localCorrespondente.id : '',
+      localInstalacaoId: (localCorrespondente && localCorrespondente.id && localCorrespondente.id > 0) ? localCorrespondente.id : '',
       novaSecretariaId: p.secretariaId,
       novoLocalInstalacao: p.localInstalacao,
       novoEndereco: p.endereco,

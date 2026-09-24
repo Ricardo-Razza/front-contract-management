@@ -1808,138 +1808,334 @@
 <!-- ============================================================ -->
 @if (isModalOpen()) {
   <div class="modal-overlay" (click)="closeModal()">
-    <div class="modal-container modal-lg" (click)="$event.stopPropagation()">
+    <div class="modal-container modal-wizard" (click)="$event.stopPropagation()">
+      <!-- CABEÇALHO DO MODAL -->
       <div class="modal-header">
-        <h2>{{ isEditMode() ? 'Editar Equipamento' : 'Cadastrar Nova Impressora' }}</h2>
+        <div class="modal-header-info">
+          <h2>{{ isEditMode() ? 'Editar Equipamento' : 'Cadastrar Nova Impressora' }}</h2>
+          <p class="modal-subtitle">Controle de patrimônio, alocação setorial e dados de contratação</p>
+        </div>
         <button class="modal-close-btn" (click)="closeModal()">&times;</button>
       </div>
 
+      <!-- BARRA DE NAVEGAÇÃO ENTRE ETAPAS / PASSOS -->
+      <div class="modal-steps-nav">
+        <button type="button" class="step-nav-btn" [class.active]="activeModalStep() === 1" (click)="definirPassoModal(1)">
+          <span class="step-num">1</span>
+          <span class="step-text">
+            <strong class="step-title">Equipamento</strong>
+            <small class="step-desc">Modelo e Fabricante</small>
+          </span>
+        </button>
+
+        <button type="button" class="step-nav-btn" [class.active]="activeModalStep() === 2" (click)="definirPassoModal(2)">
+          <span class="step-num">2</span>
+          <span class="step-text">
+            <strong class="step-title">Localização</strong>
+            <small class="step-desc">Secretaria e Setor</small>
+          </span>
+        </button>
+
+        <button type="button" class="step-nav-btn" [class.active]="activeModalStep() === 3" (click)="definirPassoModal(3)">
+          <span class="step-num">3</span>
+          <span class="step-text">
+            <strong class="step-title">Rede & Contrato</strong>
+            <small class="step-desc">IP, Lote e Empenho</small>
+          </span>
+        </button>
+
+        <button type="button" class="step-nav-btn" [class.active]="activeModalStep() === 4" (click)="definirPassoModal(4)">
+          <span class="step-num">4</span>
+          <span class="step-text">
+            <strong class="step-title">Contadores</strong>
+            <small class="step-desc">Hodômetro Inicial</small>
+          </span>
+        </button>
+      </div>
+
       <form [formGroup]="form" (ngSubmit)="salvarImpressora()">
-        <div class="modal-body">
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">Item do Pedido / Nº Ordem: *</label>
-              <input type="number" class="form-control" formControlName="itemPedido" placeholder="Ex: 85" />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Número de Série (S/N):</label>
-              <input type="text" class="form-control" formControlName="numeroSerie" placeholder="Ex: W933M400123" />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Fabricante: *</label>
-              <select class="form-select" formControlName="fabricante">
-                <option value="Ricoh">Ricoh</option>
-                <option value="Samsung">Samsung</option>
-                <option value="HP">HP</option>
-                <option value="Pantum">Pantum</option>
-                <option value="Lexmark">Lexmark</option>
-                <option value="Brother">Brother</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Modelo: *</label>
-              <input type="text" class="form-control" formControlName="modelo" placeholder="Ex: Ricoh M320F, MP C2003" />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Tipo de Impressão: *</label>
-              <select class="form-select" formControlName="tipoImpressao">
-                <option value="MONO">Monocromática (P/B)</option>
-                <option value="COLOR">Policromática (Colorida)</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Lote Contratual: *</label>
-              <select class="form-select" formControlName="loteId">
-                @for (lote of lotes(); track lote.id) {
-                  <option [value]="lote.id">Lote {{ lote.numeroLote }} - {{ lote.descricao }}</option>
-                }
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Endereço IP na Rede Local:</label>
-              <input type="text" class="form-control" formControlName="ip" placeholder="Ex: 192.168.17.18" />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Secretaria de Lotação: *</label>
-              <select class="form-select" formControlName="secretariaId" (change)="onSecretariaMudouCadastro($any($event.target).value)">
-                <option value="">Selecione uma secretaria...</option>
-                @for (sec of secretariats(); track sec.id) {
-                  <option [value]="sec.id">{{ sec.sigla }} - {{ sec.nome }}</option>
-                }
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Empenho Vinculado:</label>
-              <select class="form-select" formControlName="empenhoId">
-                <option value="">Nenhum empenho vinculado</option>
-                @for (emp of empenhos(); track emp.id) {
-                  <option [value]="emp.id">Empenho {{ emp.numeroEmpenho }} ({{ emp.secretariaSigla }})</option>
-                }
-              </select>
-            </div>
-
-            <div class="form-group full-width">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-                <label class="form-label" style="margin-bottom: 0;">Local Cadastrado:</label>
-                <button type="button" class="btn-link-action" (click)="abrirModalNovoLocal()">+ Cadastrar Novo Local</button>
+        <div class="modal-body wizard-body">
+          <!-- ETAPA 1: DADOS DO EQUIPAMENTO -->
+          @if (activeModalStep() === 1) {
+            <div class="step-panel animate-fade-in">
+              <div class="panel-section-header">
+                <h3>Identificação do Equipamento</h3>
+                <p>Especifique os dados técnicos do hardware e numeração de controle patrimonial</p>
               </div>
-              <select class="form-select" formControlName="localInstalacaoId" (change)="onLocalSelecionadoCadastro($any($event.target).value)">
-                <option value="">Selecione um local pré-cadastrado...</option>
-                @for (loc of locaisFiltradosParaCadastro(); track loc.id) {
-                  <option [value]="loc.id">{{ loc.nome }} ({{ loc.secretariaSigla }})</option>
-                }
-              </select>
-            </div>
 
-            <div class="form-group full-width">
-              <label class="form-label">Local de Instalação / Sala / Setor: *</label>
-              <input type="text" class="form-control" formControlName="localInstalacao" placeholder="Ex: SMS – USF Centro II – Consultório Dentista" />
-            </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Item do Pedido / Nº Ordem: *</label>
+                  <input type="number" class="form-control" formControlName="itemPedido" placeholder="Ex: 85" />
+                </div>
 
-            <div class="form-group">
-              <label class="form-label">Endereço / Prédio:</label>
-              <input type="text" class="form-control" formControlName="endereco" placeholder="Ex: Rua Central, 100" />
-            </div>
+                <div class="form-group">
+                  <label class="form-label">Número de Série (S/N):</label>
+                  <input type="text" class="form-control" formControlName="numeroSerie" placeholder="Ex: W933M400123" />
+                </div>
 
-            <div class="form-group">
-              <label class="form-label">Responsável pelo Setor:</label>
-              <input type="text" class="form-control" formControlName="responsavel" placeholder="Nome do servidor" />
-            </div>
+                <div class="form-group">
+                  <label class="form-label">Fabricante: *</label>
+                  <select class="form-select" formControlName="fabricante">
+                    <option value="Ricoh">Ricoh</option>
+                    <option value="Samsung">Samsung</option>
+                    <option value="HP">HP</option>
+                    <option value="Pantum">Pantum</option>
+                    <option value="Lexmark">Lexmark</option>
+                    <option value="Brother">Brother</option>
+                  </select>
+                </div>
 
-            <div class="form-group">
-              <label class="form-label">Transformador / Estabilizador:</label>
-              <select class="form-select" formControlName="transformador">
-                <option value="NAO">Não</option>
-                <option value="SIM">Sim (Transformador 110V/220V)</option>
-                <option value="NOBREAK">Nobreak</option>
-              </select>
-            </div>
+                <div class="form-group">
+                  <label class="form-label">Modelo: *</label>
+                  <input type="text" class="form-control" formControlName="modelo" placeholder="Ex: Ricoh M320F, MP C2003" />
+                </div>
 
-            <div class="form-group">
-              <label class="form-label">Data de Instalação: *</label>
-              <input type="date" class="form-control" formControlName="dataInstalacao" />
-            </div>
+                <div class="form-group full-width">
+                  <label class="form-label">Tipo de Impressão: *</label>
+                  <div class="radio-card-group">
+                    <label class="radio-card" [class.selected]="form.get('tipoImpressao')?.value === 'MONO'">
+                      <input type="radio" formControlName="tipoImpressao" value="MONO" />
+                      <div class="radio-card-content">
+                        <strong>Monocromática (P/B)</strong>
+                        <span>Impressão em escala de cinza padrão corporativo</span>
+                      </div>
+                    </label>
 
-            @if (!isEditMode()) {
-              <div class="form-group">
-                <label class="form-label">Contador Inicial Mono:</label>
-                <input type="number" class="form-control" formControlName="contadorInicialMono" />
+                    <label class="radio-card" [class.selected]="form.get('tipoImpressao')?.value === 'COLOR'">
+                      <input type="radio" formControlName="tipoImpressao" value="COLOR" />
+                      <div class="radio-card-content">
+                        <strong>Policromática (Colorida)</strong>
+                        <span>Equipamento híbrido com contador preto e colorido</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
               </div>
-            }
-          </div>
+            </div>
+          }
+
+          <!-- ETAPA 2: LOCALIZAÇÃO & LOTAÇÃO -->
+          @if (activeModalStep() === 2) {
+            <div class="step-panel animate-fade-in">
+              <div class="panel-section-header">
+                <h3>Lotação e Unidade de Instalação</h3>
+                <p>Selecione um dos locais já existentes na rede municipal ou especifique uma nova sala/setor</p>
+              </div>
+
+              <!-- CARD DE SELEÇÃO RÁPIDA DE LOCAL EXISTENTE -->
+              <div class="fast-location-card">
+                <div class="fast-location-header">
+                  <div class="title-wrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                      <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    <strong>Selecionar Local Existente na Rede Municipal</strong>
+                    <span class="count-tag">{{ todosLocaisDisponiveis().length }} locais</span>
+                  </div>
+                  <button type="button" class="btn-link-action" (click)="abrirModalNovoLocal()">+ Cadastrar Novo Local</button>
+                </div>
+
+                <div class="location-pickers-row">
+                  <div class="picker-search">
+                    <input type="text"
+                           class="form-control"
+                           placeholder="Buscar local por nome, bairro ou secretaria..."
+                           [value]="termoBuscaLocalModal()"
+                           (input)="termoBuscaLocalModal.set($any($event.target).value)" />
+                  </div>
+
+                  <div class="picker-select">
+                    <select class="form-select select-featured" (change)="onLocalSelecionadoCadastro($any($event.target).value)">
+                      <option value="">-- Clique para escolher um local existente na lista --</option>
+                      @for (grupo of locaisAgrupadosPorSecretaria(); track grupo.secretariaSigla) {
+                        <optgroup [label]="grupo.secretariaSigla + ' — ' + grupo.secretariaNome + ' (' + grupo.locais.length + ' locais)'">
+                          @for (loc of grupo.locais; track loc.nome) {
+                            <option [value]="loc.nome">{{ loc.nome }}</option>
+                          }
+                        </optgroup>
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                @if (form.get('localInstalacao')?.value) {
+                  <div class="selected-location-pill">
+                    <span class="pill-label">Local Vinculado:</span>
+                    <strong>{{ form.get('localInstalacao')?.value }}</strong>
+                    @if (form.get('endereco')?.value) {
+                      <span class="pill-divider">•</span>
+                      <span>{{ form.get('endereco')?.value }}</span>
+                    }
+                  </div>
+                }
+              </div>
+
+              <!-- CAMPOS COMPLEMENTARES -->
+              <div class="form-grid">
+                <div class="form-group full-width">
+                  <label class="form-label">Secretaria de Lotação: *</label>
+                  <select class="form-select" formControlName="secretariaId" (change)="onSecretariaMudouCadastro($any($event.target).value)">
+                    <option value="">Selecione uma secretaria...</option>
+                    @for (sec of secretariats(); track sec.id) {
+                      <option [value]="sec.id">{{ sec.sigla }} - {{ sec.nome }}</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="form-group full-width">
+                  <label class="form-label">Local de Instalação / Sala / Setor: *</label>
+                  <input type="text" class="form-control" formControlName="localInstalacao" placeholder="Ex: SMS – USF Centro II – Consultório Dentista" />
+                  <small class="form-hint">Você pode complementar o nome da sala, bloco ou andar específico.</small>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Endereço / Prédio:</label>
+                  <input type="text" class="form-control" formControlName="endereco" placeholder="Ex: Rua Central, 100" />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Responsável pelo Setor:</label>
+                  <input type="text" class="form-control" formControlName="responsavel" placeholder="Nome do servidor responsável" />
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- ETAPA 3: REDE & CONTRATO -->
+          @if (activeModalStep() === 3) {
+            <div class="step-panel animate-fade-in">
+              <div class="panel-section-header">
+                <h3>Vínculo Contratual e Conectividade</h3>
+                <p>Parâmetros de rede para coleta automática e vínculo com dotação/empenho</p>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Lote Contratual: *</label>
+                  <select class="form-select" formControlName="loteId">
+                    @for (lote of lotes(); track lote.id) {
+                      <option [value]="lote.id">Lote {{ lote.numeroLote }} - {{ lote.descricao }}</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Endereço IP na Rede Local:</label>
+                  <input type="text" class="form-control" formControlName="ip" placeholder="Ex: 192.168.17.18" />
+                  <small class="form-hint">Permite varredura direta e print automático do painel</small>
+                </div>
+
+                <div class="form-group full-width">
+                  <label class="form-label">Empenho Vinculado:</label>
+                  <select class="form-select" formControlName="empenhoId">
+                    <option value="">Nenhum empenho vinculado</option>
+                    @for (emp of empenhos(); track emp.id) {
+                      <option [value]="emp.id">Empenho {{ emp.numeroEmpenho }} ({{ emp.secretariaSigla }} - {{ emp.ano }})</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Transformador / Proteção Elétrica:</label>
+                  <select class="form-select" formControlName="transformador">
+                    <option value="NAO">Não</option>
+                    <option value="SIM">Sim (Transformador 110V/220V)</option>
+                    <option value="NOBREAK">Nobreak</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Data de Instalação: *</label>
+                  <input type="date" class="form-control" formControlName="dataInstalacao" />
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- ETAPA 4: CONTADORES & RESUMO -->
+          @if (activeModalStep() === 4) {
+            <div class="step-panel animate-fade-in">
+              <div class="panel-section-header">
+                <h3>Hodômetro Inicial & Revisão</h3>
+                <p>Leituras no momento da entrega técnica e conferência dos dados cadastrados</p>
+              </div>
+
+              @if (!isEditMode()) {
+                <div class="form-grid" style="margin-bottom: 1.5rem;">
+                  <div class="form-group">
+                    <label class="form-label">Contador Inicial Monocromático (P/B):</label>
+                    <input type="number" class="form-control" formControlName="contadorInicialMono" placeholder="0" />
+                  </div>
+
+                  @if (form.get('tipoImpressao')?.value === 'COLOR') {
+                    <div class="form-group">
+                      <label class="form-label">Contador Inicial Colorido (Cor):</label>
+                      <input type="number" class="form-control" formControlName="contadorInicialColor" placeholder="0" />
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- CARD DE RESUMO VISUAL -->
+              <div class="summary-review-card">
+                <div class="summary-review-header">
+                  <strong>Resumo da Impressora</strong>
+                  <span class="badge-status status-active">Pronto para Salvar</span>
+                </div>
+                <div class="summary-review-grid">
+                  <div class="review-item">
+                    <span class="label">Modelo:</span>
+                    <strong>{{ form.get('modelo')?.value || 'Não informado' }}</strong>
+                  </div>
+                  <div class="review-item">
+                    <span class="label">Fabricante / Tipo:</span>
+                    <strong>{{ form.get('fabricante')?.value }} ({{ form.get('tipoImpressao')?.value }})</strong>
+                  </div>
+                  <div class="review-item">
+                    <span class="label">Secretaria:</span>
+                    <strong>{{ getNomeSecretaria(form.get('secretariaId')?.value) }}</strong>
+                  </div>
+                  <div class="review-item">
+                    <span class="label">Local / Setor:</span>
+                    <strong>{{ form.get('localInstalacao')?.value || 'Não informado' }}</strong>
+                  </div>
+                  <div class="review-item">
+                    <span class="label">Endereço IP:</span>
+                    <strong>{{ form.get('ip')?.value || 'Sem IP configurado' }}</strong>
+                  </div>
+                  <div class="review-item">
+                    <span class="label">Data de Instalação:</span>
+                    <strong>{{ form.get('dataInstalacao')?.value | date:'dd/MM/yyyy' }}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
         </div>
 
-        <div class="modal-footer">
+        <!-- RODAPÉ DE NAVEGAÇÃO -->
+        <div class="modal-footer wizard-footer">
           <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">{{ isEditMode() ? 'Atualizar Equipamento' : 'Salvar Equipamento' }}</button>
+
+          <div class="wizard-actions-right">
+            @if (activeModalStep() > 1) {
+              <button type="button" class="btn btn-secondary" (click)="passoAnteriorModal()">
+                &larr; Voltar
+              </button>
+            }
+
+            @if (activeModalStep() < 4) {
+              <button type="button" class="btn btn-primary" (click)="proximoPassoModal()">
+                Avançar &rarr;
+              </button>
+            }
+
+            <button type="submit" class="btn btn-success-action">
+              {{ isEditMode() ? 'Salvar Alterações' : 'Concluir Cadastro' }}
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -1947,26 +2143,89 @@
 }
 
 <!-- ============================================================ -->
-<!-- MODAL: REMANEJAR DE LOCAL -->
+<!-- MODAL: REMANEJAR DE LOCAL                                    -->
 <!-- ============================================================ -->
 @if (isRemanejarModalOpen() && selectedPrinter()) {
   <div class="modal-overlay" (click)="closeRemanejarModal()">
-    <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-container modal-wizard" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h2>Remanejar Equipamento de Setor</h2>
+        <div class="modal-header-info">
+          <h2>Remanejar Equipamento de Setor</h2>
+          <p class="modal-subtitle">Transferência patrimonial, novo local e registro de hodômetro</p>
+        </div>
         <button class="modal-close-btn" (click)="closeRemanejarModal()">&times;</button>
       </div>
 
       <form [formGroup]="remanejarForm" (ngSubmit)="salvarRemanejamento()">
-        <div class="modal-body">
-          <p class="form-desc">
-            Equipamento: <strong>{{ selectedPrinter()?.modelo }}</strong> (IP: {{ selectedPrinter()?.ip || 'N/A' }})<br />
-            Local Atual: <strong>{{ selectedPrinter()?.secretariaSigla }} - {{ selectedPrinter()?.localInstalacao }}</strong>
-          </p>
+        <div class="modal-body wizard-body">
+          <!-- CARD DE DETALHES DO EQUIPAMENTO ATUAL -->
+          <div class="equipment-current-banner">
+            <div class="equip-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+              </svg>
+            </div>
+            <div class="equip-details">
+              <strong>{{ selectedPrinter()?.modelo }}</strong> (S/N: {{ selectedPrinter()?.numeroSerie || 'N/A' }} &bull; IP: {{ selectedPrinter()?.ip || 'N/A' }})
+              <span class="equip-sub">Lotação Atual: <em>{{ selectedPrinter()?.secretariaSigla }} — {{ selectedPrinter()?.localInstalacao }}</em></span>
+            </div>
+          </div>
 
+          <!-- SELEÇÃO RÁPIDA DE LOCAL EXISTENTE -->
+          <div class="fast-location-card">
+            <div class="fast-location-header">
+              <div class="title-wrap">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                <strong>Selecionar Destino entre Locais Existentes</strong>
+                <span class="count-tag">{{ todosLocaisDisponiveis().length }} locais</span>
+              </div>
+              <button type="button" class="btn-link-action" (click)="abrirModalNovoLocal()">+ Cadastrar Novo Local</button>
+            </div>
+
+            <div class="location-pickers-row">
+              <div class="picker-search">
+                <input type="text"
+                       class="form-control"
+                       placeholder="Buscar local por nome ou secretaria..."
+                       [value]="termoBuscaLocalRemanejo()"
+                       (input)="termoBuscaLocalRemanejo.set($any($event.target).value)" />
+              </div>
+
+              <div class="picker-select">
+                <select class="form-select select-featured" (change)="onLocalSelecionadoRemanejar($any($event.target).value)">
+                  <option value="">-- Escolha um local existente na lista da rede municipal --</option>
+                  @for (grupo of locaisAgrupadosRemanejo(); track grupo.secretariaSigla) {
+                    <optgroup [label]="grupo.secretariaSigla + ' — ' + grupo.secretariaNome + ' (' + grupo.locais.length + ' locais)'">
+                      @for (loc of grupo.locais; track loc.nome) {
+                        <option [value]="loc.nome">{{ loc.nome }}</option>
+                      }
+                    </optgroup>
+                  }
+                </select>
+              </div>
+            </div>
+
+            @if (remanejarForm.get('novoLocalInstalacao')?.value) {
+              <div class="selected-location-pill">
+                <span class="pill-label">Destino Selecionado:</span>
+                <strong>{{ remanejarForm.get('novoLocalInstalacao')?.value }}</strong>
+                @if (remanejarForm.get('novoEndereco')?.value) {
+                  <span class="pill-divider">•</span>
+                  <span>{{ remanejarForm.get('novoEndereco')?.value }}</span>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- FORMULÁRIO DE REMANEJAMENTO -->
           <div class="form-grid">
             <div class="form-group full-width">
-              <label class="form-label">Nova Secretaria: *</label>
+              <label class="form-label">Nova Secretaria de Destino: *</label>
               <select class="form-select" formControlName="novaSecretariaId" (change)="onSecretariaMudouRemanejar($any($event.target).value)">
                 @for (sec of secretariats(); track sec.id) {
                   <option [value]="sec.id">{{ sec.sigla }} - {{ sec.nome }}</option>
@@ -1975,20 +2234,7 @@
             </div>
 
             <div class="form-group full-width">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-                <label class="form-label" style="margin-bottom: 0;">Selecionar Local Cadastrado:</label>
-                <button type="button" class="btn-link-action" (click)="abrirModalNovoLocal()">+ Cadastrar Novo Local</button>
-              </div>
-              <select class="form-select" formControlName="localInstalacaoId" (change)="onLocalSelecionadoRemanejar($any($event.target).value)">
-                <option value="">Selecione um local pré-cadastrado...</option>
-                @for (loc of locaisFiltradosParaRemanejo(); track loc.id) {
-                  <option [value]="loc.id">{{ loc.nome }} ({{ loc.secretariaSigla }})</option>
-                }
-              </select>
-            </div>
-
-            <div class="form-group full-width">
-              <label class="form-label">Novo Local / Setor de Instalação: *</label>
+              <label class="form-label">Novo Local / Setor / Sala de Instalação: *</label>
               <input type="text" class="form-control" formControlName="novoLocalInstalacao" placeholder="Ex: SMED – EMEF Estado de Santa Catarina" />
             </div>
 
@@ -1998,12 +2244,12 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Novo IP:</label>
+              <label class="form-label">Novo IP na Rede Local:</label>
               <input type="text" class="form-control" formControlName="novoIp" placeholder="Ex: 192.168.10.15" />
             </div>
 
             <div class="form-group">
-              <label class="form-label">Novo Responsável:</label>
+              <label class="form-label">Novo Responsável pelo Setor:</label>
               <input type="text" class="form-control" formControlName="novoResponsavel" placeholder="Servidor responsável" />
             </div>
 
@@ -2013,7 +2259,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Contador no Momento da Troca: *</label>
+              <label class="form-label">Contador no Momento da Troca (Mono): *</label>
               <input type="number" class="form-control" formControlName="contadorAtualMono" />
             </div>
 
