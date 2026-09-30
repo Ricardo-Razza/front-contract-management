@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
-import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PaginationComponent } from '@shared';
+import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PaginationComponent, OrderEquipePipe } from '@shared';
 import { EquipeService, AtaService, ServidorService, LookupService, ToastService, ContratoService } from '@core/services';
 import { ContractTeam, Agreement, Contract, Servant, LookupItem } from '@core/models';
 import { includesNormalized, matchesSearch } from '@core/utils';
@@ -18,7 +18,8 @@ type TipoVinculo = 'ATA' | 'CONTRATO';
     HeaderComponent,
     ConfirmModalComponent,
     LoadingSkeletonComponent,
-    PaginationComponent
+    PaginationComponent,
+    OrderEquipePipe
   ],
   templateUrl: './equipes.component.html',
   styleUrls: ['./equipes.component.scss'],
@@ -36,7 +37,8 @@ export class EquipesComponent implements OnInit {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
-    if (!this.elRef.nativeElement.contains(event.target)) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.custom-select-wrapper')) {
       this.ataDropdownOpen.set(false);
       this.contratoDropdownOpen.set(false);
       this.openServidorDropdownIndex.set(null);
@@ -166,6 +168,15 @@ export class EquipesComponent implements OnInit {
   get membrosArray(): FormArray {
     return this.form.get('membros') as FormArray;
   }
+
+  isFormValid = computed(() => {
+    if (this.form.invalid) return false;
+    const tipo = this.tipoVinculo();
+    if (tipo === 'ATA' && !this.form.get('ataId')?.value) return false;
+    if (tipo === 'CONTRATO' && !this.form.get('contratoId')?.value) return false;
+    if (this.membrosArray.length === 0) return false;
+    return true;
+  });
 
   toggleAtaDropdown(): void {
     this.ataDropdownOpen.update(v => !v);
@@ -389,6 +400,15 @@ export class EquipesComponent implements OnInit {
         this.servants().find(s => s.id === m.servidorId) ?? null
       );
       this.selectedServants.set(servArr);
+    } else if (team.servidor) {
+      // Suporte para equipes legadas com servidor único
+      const serv = this.servants().find(s => s.nome.toLowerCase() === team.servidor?.toLowerCase());
+      const func = this.funcoesList().find(f =>
+        (f.nome && team.funcao && f.nome.toLowerCase() === team.funcao.toLowerCase()) ||
+        (f.funcao && team.funcao && f.funcao.toLowerCase() === team.funcao.toLowerCase())
+      );
+      this.addMembro(serv ? serv.id : '', func ? func.id : '');
+      this.selectedServants.set([serv ?? null]);
     } else {
       this.addMembro();
     }

@@ -302,7 +302,7 @@
               <div class="contratado-name">{{ contrato.nomeContratado || '-' }}</div>
             </td>
             <td class="text-center col-portaria">{{ contrato.portariaDesignacao || '-' }}</td>
-            <td class="text-center col-data-designacao">{{ contrato.dataDesignacao | date:'dd/MM/yyyy' }}</td>
+            <td class="text-center col-data-designacao">{{ contrato.dataDesignacao ? formatDatePtBr(contrato.dataDesignacao) : '-' }}</td>
             <td class="col-equipe">
               @if (contrato.equipe && contrato.equipe.length > 0) {
               <div class="equipe-list">
@@ -346,6 +346,15 @@
                     stroke-width="2" width="18" height="18">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
+                <button class="btn-icon btn-icon-danger" title="Excluir Contrato" (click)="promptDelete(contrato)">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" width="18" height="18">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
                   </svg>
                 </button>
               </div>
@@ -619,9 +628,9 @@
           </div>
         </div>
         <div class="timeline-dates">
-          <span>Início: <strong>{{ selectedContratoForDetails()?.dataInicio | date:'dd/MM/yyyy' }}</strong></span>
+          <span>Início: <strong>{{ formatDatePtBr(selectedContratoForDetails()?.dataInicio) }}</strong></span>
           <span>Decorrido: <strong>{{ getVigenciaPercent(selectedContratoForDetails()?.dataInicio, selectedContratoForDetails()?.dataFim) }}%</strong></span>
-          <span>Término: <strong>{{ selectedContratoForDetails()?.dataFim | date:'dd/MM/yyyy' }}</strong></span>
+          <span>Término: <strong>{{ formatDatePtBr(selectedContratoForDetails()?.dataFim) }}</strong></span>
         </div>
       </div>
 
@@ -697,7 +706,7 @@
         </div>
         <div class="detail-item">
           <label>Data da Designação</label>
-          <span>{{ selectedContratoForDetails()?.dataDesignacao | date:'dd/MM/yyyy' }}</span>
+          <span>{{ selectedContratoForDetails()?.dataDesignacao ? formatDatePtBr(selectedContratoForDetails()?.dataDesignacao) : '-' }}</span>
         </div>
       </div>
 

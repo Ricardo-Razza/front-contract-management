@@ -79,6 +79,7 @@
 
 .data-table {
   width: 100%;
+  min-width: 1450px;
   border-collapse: collapse;
   font-size: 0.8125rem;
 
@@ -136,7 +137,7 @@
 .col-portaria { width: 100px; min-width: 90px; }
 .col-data-designacao { width: 120px; min-width: 110px; }
 .col-equipe { min-width: 200px; max-width: 350px; }
-.col-acoes { width: 50px; min-width: 50px; }
+.col-acoes { width: 96px; min-width: 96px; }
 
 // ===== ESTILOS CORRIGIDOS PARA OBSERVAÇÃO =====
 .col-observacao {
@@ -411,14 +412,6 @@
   .filters-grid { grid-template-columns: 1fr; }
   .title-with-actions { flex-direction: column; align-items: stretch; }
   .page-content { padding: 1rem; }
-}
-
-.page-content {
-  width: 100%;
-  max-width: 100% !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  box-sizing: border-box;
 }
 
 .col-sortable {
@@ -777,3 +770,37 @@
     }
   }
 }
+
+.fill-vigencia-ok {
+  background: linear-gradient(90deg, #10b981, #059669) !important;
+}
+.fill-vigencia-warning {
+  background: linear-gradient(90deg, #f59e0b, #d97706) !important;
+}
+.fill-vigencia-critical {
+  background: linear-gradient(90deg, #ef4444, #dc2626) !important;
+}
+.fill-vigencia-expired {
+  background: linear-gradient(90deg, #64748b, #475569) !important;
+}
+
+.vigencia-ok {
+  background: #ecfdf5 !important;
+  color: #065f46 !important;
+  border: 1px solid #a7f3d0 !important;
+}
+.vigencia-warning {
+  background: #fffbeb !important;
+  color: #92400e !important;
+  border: 1px solid #fde68a !important;
+}
+.vigencia-critical {
+  background: #fef2f2 !important;
+  color: #991b1b !important;
+  border: 1px solid #fecaca !important;
+}
+.vigencia-expired {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border: 1px solid #cbd5e1 !important;
+}

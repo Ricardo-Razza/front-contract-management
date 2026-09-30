@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -26,7 +26,7 @@ import { CommonModule } from '@angular/common';
           <div class="page-buttons">
             <button
               class="page-btn nav-btn"
-              [disabled]="currentPage === 1"
+              [disabled]="safeCurrentPage <= 1"
               (click)="goToPage(1)"
               title="Primeira página"
             >
@@ -38,8 +38,8 @@ import { CommonModule } from '@angular/common';
 
             <button
               class="page-btn nav-btn"
-              [disabled]="currentPage === 1"
-              (click)="goToPage(currentPage - 1)"
+              [disabled]="safeCurrentPage <= 1"
+              (click)="goToPage(safeCurrentPage - 1)"
               title="Página anterior"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -50,7 +50,7 @@ import { CommonModule } from '@angular/common';
             @for (page of visiblePages; track page) {
               <button
                 class="page-btn"
-                [class.active]="page === currentPage"
+                [class.active]="page === safeCurrentPage"
                 (click)="goToPage(page)"
               >
                 {{ page }}
@@ -59,8 +59,8 @@ import { CommonModule } from '@angular/common';
 
             <button
               class="page-btn nav-btn"
-              [disabled]="currentPage === totalPages"
-              (click)="goToPage(currentPage + 1)"
+              [disabled]="safeCurrentPage >= totalPages"
+              (click)="goToPage(safeCurrentPage + 1)"
               title="Próxima página"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -70,7 +70,7 @@ import { CommonModule } from '@angular/common';
 
             <button
               class="page-btn nav-btn"
-              [disabled]="currentPage === totalPages"
+              [disabled]="safeCurrentPage >= totalPages"
               (click)="goToPage(totalPages)"
               title="Última página"
             >
@@ -199,7 +199,7 @@ import { CommonModule } from '@angular/common';
     }
   `]
 })
-export class PaginationComponent {
+export class PaginationComponent implements OnChanges {
   @Input() totalItems: number = 0;
   @Input() currentPage: number = 1;
   @Input() pageSize: number = 10;
@@ -208,22 +208,35 @@ export class PaginationComponent {
   @Output() pageChange = new EventEmitter<number>();
   @Output() pageSizeChange = new EventEmitter<number>();
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if ((changes['totalItems'] || changes['pageSize']) && this.totalItems > 0) {
+      if (this.currentPage > this.totalPages) {
+        this.pageChange.emit(this.totalPages);
+      }
+    }
+  }
+
   get totalPages(): number {
-    return Math.max(1, Math.ceil(this.totalItems / this.pageSize));
+    return Math.max(1, Math.ceil(this.totalItems / (this.pageSize || 10)));
+  }
+
+  get safeCurrentPage(): number {
+    return Math.min(Math.max(1, this.currentPage), this.totalPages);
   }
 
   get startIndex(): number {
     if (this.totalItems === 0) return 0;
-    return (this.currentPage - 1) * this.pageSize + 1;
+    return (this.safeCurrentPage - 1) * this.pageSize + 1;
   }
 
   get endIndex(): number {
-    return Math.min(this.currentPage * this.pageSize, this.totalItems);
+    if (this.totalItems === 0) return 0;
+    return Math.min(this.safeCurrentPage * this.pageSize, this.totalItems);
   }
 
   get visiblePages(): number[] {
     const total = this.totalPages;
-    const current = this.currentPage;
+    const current = this.safeCurrentPage;
     const delta = 2;
     const range: number[] = [];
 

@@ -20,6 +20,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/servidores/servidores.component').then(m => m.ServidoresComponent)
       },
       {
+        path: 'ferias',
+        loadComponent: () => import('./features/ferias/ferias.component').then(m => m.FeriasComponent)
+      },
+      {
         path: 'atas',
         loadComponent: () => import('./features/atas/atas.component').then(m => m.AtasComponent)
       },

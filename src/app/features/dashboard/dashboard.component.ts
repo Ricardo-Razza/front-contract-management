@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { HeaderComponent, LoadingSkeletonComponent } from '@shared';
 import { SecretariaService, ServidorService, AtaService, ContratoService, EquipeService } from '@core/services';
 import { Agreement, Contract } from '@core/models';
+import { parseDateSafe } from '@core/utils';
 import { forkJoin, catchError, of } from 'rxjs';
 
 export interface ExpirandoItem {
@@ -53,16 +54,16 @@ export class DashboardComponent implements OnInit {
   totalContracts = computed(() => this.contracts().length);
   totalAgreements = computed(() => this.agreements().length);
 
-  activeContractsCount = computed(() => this.contracts().filter(c => c.situacao !== 'DESATIVADO').length);
-  inactiveContractsCount = computed(() => this.contracts().filter(c => c.situacao === 'DESATIVADO').length);
+  activeContractsCount = computed(() => this.contracts().filter(c => c.situacao?.toUpperCase() !== 'DESATIVADO').length);
+  inactiveContractsCount = computed(() => this.contracts().filter(c => c.situacao?.toUpperCase() === 'DESATIVADO').length);
 
-  activeAgreementsCount = computed(() => this.agreements().filter(a => a.situacao !== 'DESATIVADO').length);
-  inactiveAgreementsCount = computed(() => this.agreements().filter(a => a.situacao === 'DESATIVADO').length);
+  activeAgreementsCount = computed(() => this.agreements().filter(a => a.situacao?.toUpperCase() !== 'DESATIVADO').length);
+  inactiveAgreementsCount = computed(() => this.agreements().filter(a => a.situacao?.toUpperCase() === 'DESATIVADO').length);
 
   // Lista dos 5 contratos mais recentes
   recentContracts = computed(() => {
     return [...this.contracts()]
-      .filter(c => c.situacao !== 'DESATIVADO')
+      .filter(c => c.situacao?.toUpperCase() !== 'DESATIVADO')
       .sort((a, b) => b.id - a.id)
       .slice(0, 5);
   });
@@ -70,7 +71,7 @@ export class DashboardComponent implements OnInit {
   // Lista das 5 atas mais recentes
   recentAgreements = computed(() => {
     return [...this.agreements()]
-      .filter(a => a.situacao !== 'DESATIVADO')
+      .filter(a => a.situacao?.toUpperCase() !== 'DESATIVADO')
       .sort((a, b) => b.id - a.id)
       .slice(0, 5);
   });
@@ -85,7 +86,8 @@ export class DashboardComponent implements OnInit {
     // Processa Contratos
     this.contracts().forEach(c => {
       if (!c.dataFim) return;
-      const end = new Date(c.dataFim);
+      const end = parseDateSafe(c.dataFim);
+      if (!end) return;
       end.setHours(0, 0, 0, 0);
       const diffTime = end.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -124,7 +126,8 @@ export class DashboardComponent implements OnInit {
     // Processa Atas
     this.agreements().forEach(a => {
       if (!a.dataFim) return;
-      const end = new Date(a.dataFim);
+      const end = parseDateSafe(a.dataFim);
+      if (!end) return;
       end.setHours(0, 0, 0, 0);
       const diffTime = end.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -181,8 +184,8 @@ export class DashboardComponent implements OnInit {
 
     this.contracts().forEach(c => {
       if (c.dataInicio) {
-        const d = new Date(c.dataInicio);
-        if (d.getFullYear() === currentYear) {
+        const d = parseDateSafe(c.dataInicio);
+        if (d && d.getFullYear() === currentYear) {
           countContratos[d.getMonth()]++;
         }
       }
@@ -190,8 +193,8 @@ export class DashboardComponent implements OnInit {
 
     this.agreements().forEach(a => {
       if (a.dataInicio) {
-        const d = new Date(a.dataInicio);
-        if (d.getFullYear() === currentYear) {
+        const d = parseDateSafe(a.dataInicio);
+        if (d && d.getFullYear() === currentYear) {
           countAtas[d.getMonth()]++;
         }
       }

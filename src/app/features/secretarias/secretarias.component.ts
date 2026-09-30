@@ -157,7 +157,10 @@ export class SecretariasComponent implements OnInit {
 
   openEditModal(item: Secretariat): void {
     this.editingId.set(item.id);
-    const activeObj = this.statusList().find(s => s.situacao === item.situacao || s.nome === item.situacao);
+    const activeObj = this.statusList().find(s =>
+      (s.situacao && item.situacao && s.situacao.trim().toUpperCase() === item.situacao.trim().toUpperCase()) ||
+      (s.nome && item.situacao && s.nome.trim().toUpperCase() === item.situacao.trim().toUpperCase())
+    );
     this.form.patchValue({
       nome: item.nome,
       sigla: item.sigla,
@@ -168,6 +171,7 @@ export class SecretariasComponent implements OnInit {
 
   closeModal(): void {
     this.isModalOpen.set(false);
+    this.editingId.set(null);
     this.form.reset();
   }
 

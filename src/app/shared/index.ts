@@ -13,3 +13,4 @@ export * from './directives/phone-mask.directive';
 // Pipes
 export * from './pipes/cpf.pipe';
 export * from './pipes/phone.pipe';
+export * from './pipes/order-equipe.pipe';

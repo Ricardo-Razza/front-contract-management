@@ -32,12 +32,12 @@
   }
 }
 
-.filters-group {
+.filters-group,
+.filter-selects {
   display: flex;
   gap: 0.75rem;
   align-items: center;
   flex-wrap: wrap;
-  width: 100%;
 }
 
 .search-input-wrapper {

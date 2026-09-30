@@ -5,7 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PaginationComponent } from '@shared';
 import { ContratoService, SecretariaService, ServidorService, LookupService, ToastService } from '@core/services';
 import { Contract, Secretariat, LookupItem } from '@core/models';
-import { includesNormalized, matchesSearch, exportToCsv, printFichaDocumento } from '@core/utils';
+import { includesNormalized, matchesSearch, exportToCsv, printFichaDocumento, parseDateSafe, formatDatePtBr } from '@core/utils';
 
 @Component({
   selector: 'app-contratos',
@@ -68,6 +68,7 @@ export class ContratosComponent implements OnInit {
   editingContrato = signal<Contract | null>(null);
   selectedContratoForDetails = signal<Contract | null>(null);
   modalSecretariaSearch = signal<string>('');
+  formatDatePtBr = formatDatePtBr;
 
   @HostListener('document:keydown.escape')
   onEscapeKey(): void {
@@ -160,9 +161,11 @@ export class ContratosComponent implements OnInit {
   });
 
   selectAllSecretarias(): void {
-    const allIds = this.secretariats().map(s => s.id);
+    const ids = this.filteredModalSecretarias().map(s => s.id);
     const control = this.form.get('secretariasIds');
-    control?.setValue(allIds);
+    const current = control?.value || [];
+    const merged = Array.from(new Set([...current, ...ids]));
+    control?.setValue(merged);
     control?.markAsTouched();
     control?.updateValueAndValidity();
   }
@@ -176,8 +179,11 @@ export class ContratosComponent implements OnInit {
 
   getVigenciaPercent(dataInicio?: string, dataFim?: string): number {
     if (!dataInicio || !dataFim) return 0;
-    const start = new Date(dataInicio).getTime();
-    const end = new Date(dataFim).getTime();
+    const startDate = parseDateSafe(dataInicio);
+    const endDate = parseDateSafe(dataFim);
+    if (!startDate || !endDate) return 0;
+    const start = startDate.getTime();
+    const end = endDate.getTime();
     const now = new Date().getTime();
     if (end <= start) return 100;
     if (now <= start) return 0;
@@ -407,7 +413,10 @@ export class ContratosComponent implements OnInit {
     }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const end = new Date(dataFimStr);
+    const end = parseDateSafe(dataFimStr);
+    if (!end) {
+      return { label: 'Sem data', badgeClass: 'vigencia-unknown', days: 0, text: '-' };
+    }
     end.setHours(0, 0, 0, 0);
     const diffTime = end.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -445,9 +454,7 @@ export class ContratosComponent implements OnInit {
 
   getDataVigente(contrato: Contract): string {
     if (!contrato.dataInicio || !contrato.dataFim) return '-';
-    const di = new Date(contrato.dataInicio).toLocaleDateString('pt-BR');
-    const df = new Date(contrato.dataFim).toLocaleDateString('pt-BR');
-    return `${di} - ${df}`;
+    return `${formatDatePtBr(contrato.dataInicio)} - ${formatDatePtBr(contrato.dataFim)}`;
   }
 
   getVigenciaPillClass(dataFim?: string): string {
@@ -470,11 +477,29 @@ export class ContratosComponent implements OnInit {
 
   copyToClipboard(text: string, label: string): void {
     if (!text) return;
-    navigator.clipboard.writeText(text).then(() => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        this.toast.info(`${label} copiado!`);
+      }).catch(() => {
+        this.fallbackCopy(text, label);
+      });
+    } else {
+      this.fallbackCopy(text, label);
+    }
+  }
+
+  private fallbackCopy(text: string, label: string): void {
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
       this.toast.info(`${label} copiado!`);
-    }).catch(() => {
+    } catch {
       this.toast.error('Não foi possível copiar');
-    });
+    }
   }
 
   exportContracts(): void {
@@ -490,11 +515,11 @@ export class ContratosComponent implements OnInit {
       { header: 'Tipo', accessor: c => c.tipo || 'PRODUTO' },
       { header: 'Situação', accessor: c => c.situacao || 'ATIVO' },
       { header: 'Contratado', accessor: c => c.nomeContratado || '' },
-      { header: 'Data Início', accessor: c => c.dataInicio ? new Date(c.dataInicio).toLocaleDateString('pt-BR') : '' },
-      { header: 'Data Término', accessor: c => c.dataFim ? new Date(c.dataFim).toLocaleDateString('pt-BR') : '' },
+      { header: 'Data Início', accessor: c => formatDatePtBr(c.dataInicio) },
+      { header: 'Data Término', accessor: c => formatDatePtBr(c.dataFim) },
       { header: 'Status Vigência', accessor: c => this.getVigenciaPillText(c.dataFim) },
       { header: 'Portaria', accessor: c => c.portariaDesignacao || '' },
-      { header: 'Data Portaria', accessor: c => c.dataDesignacao ? new Date(c.dataDesignacao).toLocaleDateString('pt-BR') : '' },
+      { header: 'Data Portaria', accessor: c => formatDatePtBr(c.dataDesignacao) },
       { header: 'Secretarias', accessor: c => (c.secretarias || []).map(s => s.sigla || s.nome).join(', ') },
       { header: 'Objeto', accessor: c => c.objeto || '' },
       { header: 'Observação', accessor: c => c.observacao || '' }
@@ -649,8 +674,14 @@ export class ContratosComponent implements OnInit {
     this.isEditModalOpen.set(true);
     this.modalSecretariaSearch.set('');
 
-    const tipoObj = this.tiposList().find(t => t.tipoArp === contrato.tipo || t.nome === contrato.tipo);
-    const activeObj = this.statusList().find(s => s.situacao === contrato.situacao || s.nome === contrato.situacao);
+    const tipoObj = this.tiposList().find(t =>
+      (t.tipoArp && contrato.tipo && t.tipoArp.trim().toUpperCase() === contrato.tipo.trim().toUpperCase()) ||
+      (t.nome && contrato.tipo && t.nome.trim().toUpperCase() === contrato.tipo.trim().toUpperCase())
+    );
+    const activeObj = this.statusList().find(s =>
+      (s.situacao && contrato.situacao && s.situacao.trim().toUpperCase() === contrato.situacao.trim().toUpperCase()) ||
+      (s.nome && contrato.situacao && s.nome.trim().toUpperCase() === contrato.situacao.trim().toUpperCase())
+    );
 
     this.form.patchValue({
       numero: contrato.numero,

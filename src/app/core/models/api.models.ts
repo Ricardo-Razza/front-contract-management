@@ -26,16 +26,21 @@ export interface Servant {
   id: number;
   nome: string;
   cargo: string;
+  setor?: string;
   matricula: number;
   email: string;
   telefone: string;
   secretaria: string;
+  secretariaId?: number;
+  secretariaNome?: string;
+  secretariaSigla?: string;
   situacao: string;
 }
 
 export interface ServantDTO {
   nome: string;
   cargo: string;
+  setor?: string;
   matricula: number;
   email: string;
   telefone: string;
@@ -71,6 +76,8 @@ export interface AgreementDTO {
   tipoId: number;
   objeto: string;
   observacao: string;
+  portariaDesignacao?: string;
+  dataDesignacao?: string;
   ativoId: number;
   secretariasIds: number[];
 }
@@ -114,7 +121,8 @@ export interface ContractDTO {
   portariaDesignacao: string;
   dataDesignacao: string;
   ativoId: number;
-  secretariasId: number[];
+  secretariasIds: number[];
+  secretariasId?: number[];
 }
 
 export interface ContractTeam {

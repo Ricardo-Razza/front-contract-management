@@ -50,6 +50,65 @@ export function matchesSearch(
     composite = normalizeText(targets);
   }
 
+  const compositeTokens = composite.split(/[\s/,-]+/).filter(t => t.length > 0);
+
   // Verifica se todos os tokens da busca estão presentes na composição
-  return searchTokens.every(token => composite.includes(token));
+  return searchTokens.every(token => {
+    // Se o token for puramente numérico (ex: "1", "10"), exige match exato de token ou fronteira de barra
+    if (/^\d+$/.test(token)) {
+      return compositeTokens.some(ct => ct === token) || composite.includes(`/${token}`) || composite.includes(`${token}/`);
+    }
+    // Para termos alfabéticos ou mistos, busca inclusão textual
+    return composite.includes(token);
+  });
+}
+
+/**
+ * Converte de forma segura uma data (string YYYY-MM-DD ou ISO) para Date local sem recuo UTC.
+ */
+export function parseDateSafe(dateVal?: string | Date | null): Date | null {
+  if (!dateVal) return null;
+  if (dateVal instanceof Date) {
+    return isNaN(dateVal.getTime()) ? null : dateVal;
+  }
+  const str = String(dateVal).trim();
+  if (!str) return null;
+
+  // Formato YYYY-MM-DD puro: constrói Date no fuso local para evitar offset UTC de -3h
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    const parts = str.split('-').map(Number);
+    return new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+  }
+
+  // Formato DD/MM/YYYY
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
+    const parts = str.split('/').map(Number);
+    return new Date(parts[2], parts[1] - 1, parts[0], 12, 0, 0);
+  }
+
+  const parsed = new Date(str);
+  return isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/**
+ * Formata data no padrão brasileiro dd/MM/yyyy de forma consistente e segura contra UTC off-by-one.
+ */
+export function formatDatePtBr(dateVal?: string | Date | null): string {
+  const d = parseDateSafe(dateVal);
+  if (!d) return '-';
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+/**
+ * Retorna a data de hoje no fuso local no formato YYYY-MM-DD para formulários (evita bug de UTC pós 21h).
+ */
+export function getTodayLocalDateString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }

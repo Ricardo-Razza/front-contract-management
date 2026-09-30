@@ -38,16 +38,16 @@
           </svg>
         </span>
         <input type="text" placeholder="Buscar por nome, matrícula, cargo, e-mail..."
-          [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" />
+          [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event); currentPage.set(1)" />
         @if (searchTerm()) {
-          <button type="button" class="filter-clear-btn" (click)="searchTerm.set('')">&#x2715;</button>
+          <button type="button" class="filter-clear-btn" (click)="searchTerm.set(''); currentPage.set(1)">&#x2715;</button>
         }
       </div>
 
       <div class="filter-selects">
         <div class="filter-field">
           <span class="filter-label">Secretaria</span>
-          <select [ngModel]="selectedSecretariatFilter()" (ngModelChange)="selectedSecretariatFilter.set($event)">
+          <select [ngModel]="selectedSecretariatFilter()" (ngModelChange)="selectedSecretariatFilter.set($event); currentPage.set(1)">
             <option value="">Todas</option>
             @for (sec of secretariats(); track sec.id) {
               <option [value]="sec.nome">{{ sec.sigla || sec.nome }}</option>
@@ -57,7 +57,7 @@
 
         <div class="filter-field">
           <span class="filter-label">Status</span>
-          <select [ngModel]="selectedStatusFilter()" (ngModelChange)="selectedStatusFilter.set($event)">
+          <select [ngModel]="selectedStatusFilter()" (ngModelChange)="selectedStatusFilter.set($event); currentPage.set(1)">
             <option value="">Todos</option>
             @for (item of statusList(); track item.id) {
               <option [value]="item.situacao || item.nome">{{ item.situacao || item.nome }}</option>
@@ -132,7 +132,12 @@
             <td>#{{ serv.id }}</td>
             <td><strong>{{ serv.nome }}</strong></td>
             <td><span class="mat-tag">{{ serv.matricula }}</span></td>
-            <td>{{ serv.cargo }}</td>
+            <td>
+              <div>{{ serv.cargo }}</div>
+              @if (serv.setor) {
+                <small style="color: #64748b; font-size: 0.72rem;">{{ serv.setor }}</small>
+              }
+            </td>
             <td><span class="sec-badge">{{ serv.secretaria }}</span></td>
             <td>
               <div class="contact-info">
@@ -170,7 +175,7 @@
           </tr>
           } @empty {
           <tr>
-            <td colspan="9">
+            <td colspan="8">
               <div class="empty-state">
                 <div class="empty-state-icon">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
@@ -239,7 +244,7 @@
         </div>
 
         <div class="form-grid">
-          <div class="col-6 form-group">
+          <div class="col-4 form-group">
             <label>Cargo / Função <span class="required">*</span></label>
             <input type="text" formControlName="cargo" placeholder="Ex: Analista Administrativo"
               [class.is-invalid]="form.get('cargo')?.invalid && form.get('cargo')?.touched" />
@@ -248,7 +253,12 @@
             }
           </div>
 
-          <div class="col-6 form-group">
+          <div class="col-4 form-group">
+            <label>Setor / Departamento</label>
+            <input type="text" formControlName="setor" placeholder="Ex: Setor de Informática" />
+          </div>
+
+          <div class="col-4 form-group">
             <label>Secretaria de Lotação <span class="required">*</span></label>
             <select formControlName="secretariaId"
               [class.is-invalid]="form.get('secretariaId')?.invalid && form.get('secretariaId')?.touched">

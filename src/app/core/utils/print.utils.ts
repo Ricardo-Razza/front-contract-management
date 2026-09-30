@@ -1,3 +1,5 @@
+import { formatDatePtBr } from './string.utils';
+
 export interface PrintItemData {
   tipoDocumento: 'Contrato' | 'Ata de Registro de Preços';
   numero: string | number;
@@ -29,9 +31,7 @@ export function printFichaDocumento(data: PrintItemData): void {
   if (!printWindow) return;
 
   const formatDate = (d?: string) => {
-    if (!d) return '-';
-    const date = new Date(d);
-    return isNaN(date.getTime()) ? d : date.toLocaleDateString('pt-BR');
+    return formatDatePtBr(d);
   };
 
   const html = `

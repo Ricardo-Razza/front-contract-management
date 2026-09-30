@@ -2,10 +2,10 @@ import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, H
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PaginationComponent } from '@shared';
+import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PaginationComponent, OrderEquipePipe } from '@shared';
 import { AtaService, SecretariaService, ServidorService, LookupService, ToastService } from '@core/services';
 import { Agreement, Secretariat, LookupItem } from '@core/models';
-import { includesNormalized, matchesSearch, exportToCsv, printFichaDocumento } from '@core/utils';
+import { includesNormalized, matchesSearch, exportToCsv, printFichaDocumento, parseDateSafe, formatDatePtBr } from '@core/utils';
 
 @Component({
   selector: 'app-atas',
@@ -17,13 +17,16 @@ import { includesNormalized, matchesSearch, exportToCsv, printFichaDocumento } f
     HeaderComponent,
     ConfirmModalComponent,
     LoadingSkeletonComponent,
-    PaginationComponent
+    PaginationComponent,
+    OrderEquipePipe
   ],
   templateUrl: './atas.component.html',
   styleUrls: ['./atas.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AtasComponent implements OnInit {
+  formatDatePtBr = formatDatePtBr;
+
   // ===== INJECTS =====
   private route = inject(ActivatedRoute);
   private ataService = inject(AtaService);
@@ -33,12 +36,6 @@ export class AtasComponent implements OnInit {
   private toast = inject(ToastService);
   private fb = inject(FormBuilder);
   private elementRef = inject(ElementRef);
-
-  isMenuOpen = signal(true);
-
-  toggleMenu() {
-    this.isMenuOpen.update(value => !value);
-  }
 
   // ===== DADOS =====
   agreements = signal<Agreement[]>([]);
@@ -138,6 +135,14 @@ export class AtasComponent implements OnInit {
     return Array.from(anos).sort((a, b) => b - a);
   });
 
+  tiposDisponiveis = computed(() => {
+    const tipos = new Set<string>();
+    this.agreements().forEach(a => {
+      if (a.tipo) tipos.add(a.tipo);
+    });
+    return Array.from(tipos).sort();
+  });
+
   filteredSecretariasForFilter = computed(() => {
     const search = this.secretariaFilterSearch().trim();
     const list = this.secretariats();
@@ -165,24 +170,29 @@ export class AtasComponent implements OnInit {
   });
 
   selectAllSecretarias(): void {
-    const allIds = this.secretariats().map(s => s.id);
+    const allFilteredIds = this.filteredModalSecretarias().map(s => s.id);
+    const currentSelected = this.form.get('secretariasIds')?.value || [];
+    const merged = Array.from(new Set([...currentSelected, ...allFilteredIds]));
     const control = this.form.get('secretariasIds');
-    control?.setValue(allIds);
+    control?.setValue(merged);
     control?.markAsTouched();
     control?.updateValueAndValidity();
   }
 
   clearAllSecretarias(): void {
+    const filteredIds = new Set(this.filteredModalSecretarias().map(s => s.id));
+    const currentSelected = this.form.get('secretariasIds')?.value || [];
+    const remaining = currentSelected.filter((id: number) => !filteredIds.has(id));
     const control = this.form.get('secretariasIds');
-    control?.setValue([]);
+    control?.setValue(remaining);
     control?.markAsTouched();
     control?.updateValueAndValidity();
   }
 
   getVigenciaPercent(dataInicio?: string, dataFim?: string): number {
     if (!dataInicio || !dataFim) return 0;
-    const start = new Date(dataInicio).getTime();
-    const end = new Date(dataFim).getTime();
+    const start = parseDateSafe(dataInicio)?.getTime() ?? 0;
+    const end = parseDateSafe(dataFim)?.getTime() ?? 0;
     const now = new Date().getTime();
     if (end <= start) return 100;
     if (now <= start) return 0;
@@ -235,12 +245,12 @@ export class AtasComponent implements OnInit {
       if (ano && ata.ano !== Number(ano)) return false;
 
       // 3. Tipo
-      if (tipo && ata.tipo !== tipo) return false;
+      if (tipo && (ata.tipo || '').trim().toUpperCase() !== tipo.trim().toUpperCase()) return false;
 
       // 4. Status
       if (status) {
-        const ataStatus = ata.situacao || 'ATIVO';
-        if (ataStatus !== status) return false;
+        const ataStatus = (ata.situacao || 'ATIVO').trim().toUpperCase();
+        if (ataStatus !== status.trim().toUpperCase()) return false;
       }
 
       // 5. Secretarias (Multi-select)
@@ -284,8 +294,10 @@ export class AtasComponent implements OnInit {
       }
 
       if (col === 'vigencia') {
-        valA = a.dataFim ? new Date(a.dataFim).getTime() : 0;
-        valB = b.dataFim ? new Date(b.dataFim).getTime() : 0;
+        const dateA = a.dataFim ? parseDateSafe(a.dataFim) : null;
+        const dateB = b.dataFim ? parseDateSafe(b.dataFim) : null;
+        valA = dateA ? dateA.getTime() : 0;
+        valB = dateB ? dateB.getTime() : 0;
         return (valA - valB) * multiplier;
       }
 
@@ -389,7 +401,10 @@ export class AtasComponent implements OnInit {
     }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const end = new Date(dataFimStr);
+    const end = parseDateSafe(dataFimStr);
+    if (!end) {
+      return { label: 'Sem data', badgeClass: 'vigencia-unknown', days: 0, text: '-' };
+    }
     end.setHours(0, 0, 0, 0);
     const diffTime = end.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -427,8 +442,8 @@ export class AtasComponent implements OnInit {
 
   getDataVigente(ata: Agreement): string {
     if (!ata.dataInicio || !ata.dataFim) return '-';
-    const di = new Date(ata.dataInicio).toLocaleDateString('pt-BR');
-    const df = new Date(ata.dataFim).toLocaleDateString('pt-BR');
+    const di = formatDatePtBr(ata.dataInicio);
+    const df = formatDatePtBr(ata.dataFim);
     return `${di} - ${df}`;
   }
 
@@ -471,11 +486,11 @@ export class AtasComponent implements OnInit {
       { header: 'Número/Ano', accessor: a => `${a.numero}/${a.ano}` },
       { header: 'Tipo', accessor: a => a.tipo || 'PRODUTO' },
       { header: 'Situação', accessor: a => a.situacao || 'ATIVO' },
-      { header: 'Data Início', accessor: a => a.dataInicio ? new Date(a.dataInicio).toLocaleDateString('pt-BR') : '' },
-      { header: 'Data Término', accessor: a => a.dataFim ? new Date(a.dataFim).toLocaleDateString('pt-BR') : '' },
+      { header: 'Data Início', accessor: a => a.dataInicio ? formatDatePtBr(a.dataInicio) : '' },
+      { header: 'Data Término', accessor: a => a.dataFim ? formatDatePtBr(a.dataFim) : '' },
       { header: 'Status Vigência', accessor: a => this.getVigenciaPillText(a.dataFim) },
       { header: 'Portaria', accessor: a => a.portariaDesignacao || '' },
-      { header: 'Data Portaria', accessor: a => a.dataDesignacao ? new Date(a.dataDesignacao).toLocaleDateString('pt-BR') : '' },
+      { header: 'Data Portaria', accessor: a => a.dataDesignacao ? formatDatePtBr(a.dataDesignacao) : '' },
       { header: 'Secretarias', accessor: a => (a.secretarias || []).map(s => s.sigla || s.nome).join(', ') },
       { header: 'Objeto', accessor: a => a.objeto || '' },
       { header: 'Observação', accessor: a => a.observacao || '' }
@@ -654,8 +669,16 @@ export class AtasComponent implements OnInit {
     this.isEditModalOpen.set(true);
     this.modalSecretariaSearch.set('');
 
-    const tipoObj = this.tiposList().find(t => t.tipoArp === ata.tipo || t.nome === ata.tipo);
-    const activeObj = this.statusList().find(s => s.situacao === ata.situacao || s.nome === ata.situacao);
+    const ataTipoNorm = (ata.tipo || '').trim().toUpperCase();
+    const tipoObj = this.tiposList().find(t =>
+      (t.tipoArp && t.tipoArp.trim().toUpperCase() === ataTipoNorm) ||
+      (t.nome && t.nome.trim().toUpperCase() === ataTipoNorm)
+    );
+    const ataSituacaoNorm = (ata.situacao || '').trim().toUpperCase();
+    const activeObj = this.statusList().find(s =>
+      (s.situacao && s.situacao.trim().toUpperCase() === ataSituacaoNorm) ||
+      (s.nome && s.nome.trim().toUpperCase() === ataSituacaoNorm)
+    );
 
     this.form.patchValue({
       numero: ata.numero,
@@ -767,22 +790,7 @@ export class AtasComponent implements OnInit {
   }
 
   ordenarMembros(membros: any[]): any[] {
-    if (!membros || membros.length === 0) return membros;
-
-    const ordem: { [key: string]: number } = {
-      'GT': 1,
-      'GS': 2,
-      'F': 3,
-    };
-
-    return [...membros].sort((a, b) => {
-      const funcaoA = a.funcaoNome?.toUpperCase() || '';
-      const funcaoB = b.funcaoNome?.toUpperCase() || '';
-
-      const ordemA = Object.keys(ordem).find(key => funcaoA === key || funcaoA.includes(key));
-      const ordemB = Object.keys(ordem).find(key => funcaoB === key || funcaoB.includes(key));
-
-      return (ordem[ordemA || ''] || 99) - (ordem[ordemB || ''] || 99);
-    });
+    if (!membros || membros.length === 0) return [];
+    return new OrderEquipePipe().transform(membros);
   }
 }

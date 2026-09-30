@@ -66,6 +66,7 @@ export class ServidoresComponent implements OnInit {
   form: FormGroup = this.fb.group({
     nome: ['', Validators.required],
     cargo: ['', Validators.required],
+    setor: [''],
     matricula: ['', Validators.required],
     email: ['', [Validators.email]],
     telefone: [''],
@@ -86,11 +87,21 @@ export class ServidoresComponent implements OnInit {
     }
 
     if (secFilter) {
-      result = result.filter(s => s.secretaria === secFilter);
+      result = result.filter(s => {
+        if (!s.secretaria) return false;
+        const sec = this.secretariats().find(sc => sc.nome === secFilter || sc.sigla === secFilter);
+        if (sec) {
+          return s.secretaria.toLowerCase() === sec.nome.toLowerCase() || s.secretaria.toLowerCase() === sec.sigla.toLowerCase();
+        }
+        return s.secretaria.toLowerCase() === secFilter.toLowerCase();
+      });
     }
 
     if (statusFilter) {
-      result = result.filter(s => s.situacao === statusFilter);
+      result = result.filter(s => {
+        if (!s.situacao) return false;
+        return s.situacao.trim().toUpperCase() === statusFilter.trim().toUpperCase();
+      });
     }
 
     return result;
@@ -210,6 +221,7 @@ export class ServidoresComponent implements OnInit {
     this.form.reset({
       nome: '',
       cargo: '',
+      setor: '',
       matricula: '',
       email: '',
       telefone: '',
@@ -222,11 +234,15 @@ export class ServidoresComponent implements OnInit {
   openEditModal(item: Servant): void {
     this.editingId.set(item.id);
     const matchedSec = this.secretariats().find(s => s.nome === item.secretaria || s.sigla === item.secretaria);
-    const activeObj = this.statusList().find(s => s.situacao === item.situacao || s.nome === item.situacao);
+    const activeObj = this.statusList().find(s =>
+      (s.situacao && item.situacao && s.situacao.trim().toUpperCase() === item.situacao.trim().toUpperCase()) ||
+      (s.nome && item.situacao && s.nome.trim().toUpperCase() === item.situacao.trim().toUpperCase())
+    );
 
     this.form.patchValue({
       nome: item.nome,
       cargo: item.cargo,
+      setor: item.setor || '',
       matricula: item.matricula,
       email: item.email || '',
       telefone: item.telefone || '',
@@ -238,6 +254,7 @@ export class ServidoresComponent implements OnInit {
 
   closeModal(): void {
     this.isModalOpen.set(false);
+    this.editingId.set(null);
     this.form.reset();
   }
 
@@ -249,7 +266,20 @@ export class ServidoresComponent implements OnInit {
 
     this.submitting.set(true);
     const val = { ...this.form.value };
-    val.telefone = val.telefone.replace(/\D/g, '');
+    if (val.telefone) {
+      val.telefone = String(val.telefone).replace(/\D/g, '');
+    } else {
+      val.telefone = '';
+    }
+    if (val.matricula) {
+      val.matricula = Number(val.matricula);
+    }
+    if (val.secretariaId) {
+      val.secretariaId = Number(val.secretariaId);
+    }
+    if (val.ativoId) {
+      val.ativoId = Number(val.ativoId);
+    }
 
     const id = this.editingId();
     if (id) {

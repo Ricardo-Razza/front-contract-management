@@ -37,7 +37,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
         <nav class="nav-menu">
           <div class="nav-section">PAINEL PRINCIPAL</div>
 
-          <a routerLink="/dashboard" routerLinkActive="active" class="nav-item">
+          <a routerLink="/dashboard" routerLinkActive="active" class="nav-item" (click)="onItemClick()">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="7" height="7"></rect>
               <rect x="14" y="3" width="7" height="7"></rect>
@@ -49,7 +49,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 
           <div class="nav-section">CADASTROS DE BASE</div>
 
-          <a routerLink="/secretarias" routerLinkActive="active" class="nav-item">
+          <a routerLink="/secretarias" routerLinkActive="active" class="nav-item" (click)="onItemClick()">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 21h18"></path>
               <path d="M9 8h1"></path>
@@ -63,7 +63,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
             <span>Secretarias</span>
           </a>
 
-          <a routerLink="/servidores" routerLinkActive="active" class="nav-item">
+          <a routerLink="/servidores" routerLinkActive="active" class="nav-item" (click)="onItemClick()">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
               <circle cx="9" cy="7" r="4"></circle>
@@ -73,9 +73,25 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
             <span>Servidores</span>
           </a>
 
+          <a routerLink="/ferias" routerLinkActive="active" class="nav-item" (click)="onItemClick()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+              <path d="M8 14h.01"></path>
+              <path d="M12 14h.01"></path>
+              <path d="M16 14h.01"></path>
+              <path d="M8 18h.01"></path>
+              <path d="M12 18h.01"></path>
+              <path d="M16 18h.01"></path>
+            </svg>
+            <span>Escala de Férias</span>
+          </a>
+
           <div class="nav-section">GESTÃO DE ACORDOS</div>
 
-          <a routerLink="/atas" routerLinkActive="active" class="nav-item">
+          <a routerLink="/atas" routerLinkActive="active" class="nav-item" (click)="onItemClick()">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
               <polyline points="14 2 14 8 20 8"></polyline>
@@ -84,7 +100,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
             <span>Atas de Preços</span>
           </a>
 
-          <a routerLink="/contratos" routerLinkActive="active" class="nav-item">
+          <a routerLink="/contratos" routerLinkActive="active" class="nav-item" (click)="onItemClick()">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
               <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
@@ -94,7 +110,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
             <span>Contratos</span>
           </a>
 
-          <a routerLink="/equipes" routerLinkActive="active" class="nav-item">
+          <a routerLink="/equipes" routerLinkActive="active" class="nav-item" (click)="onItemClick()">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
               <circle cx="9" cy="7" r="4"></circle>
@@ -106,7 +122,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 
           <div class="nav-section">OUTSOURCING DE IMPRESSÃO</div>
 
-          <a routerLink="/impressoras" routerLinkActive="active" class="nav-item">
+          <a routerLink="/impressoras" routerLinkActive="active" class="nav-item" (click)="onItemClick()">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="6 9 6 2 18 2 18 9"></polyline>
               <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
@@ -346,5 +362,11 @@ export class SidebarComponent {
   @HostBinding('class.open')
   get openClass(): boolean {
     return this.isOpen;
+  }
+
+  onItemClick(): void {
+    if (typeof window !== 'undefined' && window.innerWidth <= 1024) {
+      this.closeSidebar.emit();
+    }
   }
 }

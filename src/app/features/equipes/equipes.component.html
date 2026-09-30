@@ -20,13 +20,13 @@
   <div class="table-card">
     <div class="table-header-toolbar">
       <div class="toolbar-tabs">
-        <button type="button" class="tab-btn" [class.active]="filterTypeTab() === 'ALL'" (click)="filterTypeTab.set('ALL')">
+        <button type="button" class="tab-btn" [class.active]="filterTypeTab() === 'ALL'" (click)="filterTypeTab.set('ALL'); currentPage.set(1)">
           Todas <span class="tab-badge">{{ teams().length }}</span>
         </button>
-        <button type="button" class="tab-btn" [class.active]="filterTypeTab() === 'ATA'" (click)="filterTypeTab.set('ATA')">
+        <button type="button" class="tab-btn" [class.active]="filterTypeTab() === 'ATA'" (click)="filterTypeTab.set('ATA'); currentPage.set(1)">
           Atas <span class="tab-badge">{{ countAtas() }}</span>
         </button>
-        <button type="button" class="tab-btn" [class.active]="filterTypeTab() === 'CONTRATO'" (click)="filterTypeTab.set('CONTRATO')">
+        <button type="button" class="tab-btn" [class.active]="filterTypeTab() === 'CONTRATO'" (click)="filterTypeTab.set('CONTRATO'); currentPage.set(1)">
           Contratos <span class="tab-badge">{{ countContratos() }}</span>
         </button>
       </div>
@@ -37,9 +37,9 @@
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
         <input type="text" placeholder="Buscar por ata, contrato, servidor ou função..." [ngModel]="searchTerm()"
-          (ngModelChange)="searchTerm.set($event)" />
+          (ngModelChange)="searchTerm.set($event); currentPage.set(1)" />
         @if (searchTerm()) {
-        <button type="button" class="search-clear-btn" (click)="searchTerm.set('')" title="Limpar busca">✕</button>
+        <button type="button" class="search-clear-btn" (click)="searchTerm.set(''); currentPage.set(1)" title="Limpar busca">✕</button>
         }
       </div>
     </div>
@@ -97,7 +97,7 @@
             <td>
               @if (team.membros && team.membros.length > 0) {
               <div class="members-chips">
-                @for (m of team.membros; track $index) {
+                @for (m of (team.membros | orderEquipe); track $index) {
                 <div class="member-chip">
                   <span class="member-name">{{ m.servidorNome }}</span>
                   <span class="member-role-tag">{{ m.funcaoNome }}</span>
@@ -235,7 +235,7 @@
           <div class="col-8 form-group" style="position: relative;">
             <label>Ata de Registro de Preços <span class="required">*</span></label>
             <!-- Searchable ATA dropdown -->
-            <div class="custom-select-wrapper" [class.open]="ataDropdownOpen()" (clickOutside)="closeAtaDropdown()">
+            <div class="custom-select-wrapper" [class.open]="ataDropdownOpen()">
               <div class="custom-select-trigger" (click)="toggleAtaDropdown()"
                 [class.invalid]="form.get('ataId')?.touched && !form.get('ataId')?.value">
                 <span class="trigger-text">
@@ -294,8 +294,7 @@
           <div class="col-8 form-group" style="position: relative;">
             <label>Contrato <span class="required">*</span></label>
             <!-- Searchable Contrato dropdown -->
-            <div class="custom-select-wrapper" [class.open]="contratoDropdownOpen()"
-              (clickOutside)="closeContratoDropdown()">
+            <div class="custom-select-wrapper" [class.open]="contratoDropdownOpen()">
               <div class="custom-select-trigger" (click)="toggleContratoDropdown()"
                 [class.invalid]="form.get('contratoId')?.touched && !form.get('contratoId')?.value">
                 <span class="trigger-text">
@@ -472,7 +471,7 @@
 
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
-        <button type="submit" class="btn btn-primary" [disabled]="submitting() || form.invalid">
+        <button type="submit" class="btn btn-primary" [disabled]="submitting() || !isFormValid()">
           @if (submitting()) {
           <span>Salvando...</span>
           } @else {
@@ -487,5 +486,5 @@
 
 <!-- Delete Confirmation Modal -->
 <app-confirm-modal [isOpen]="isDeleteModalOpen()" [title]="'Excluir Equipe de Contrato'"
-  [message]="'Tem certeza que deseja excluir toda a equipe designada para esta ata?'" [loading]="deleting()"
+  [message]="(itemToDelete()?.tipo === 'CONTRATO' || itemToDelete()?.contratoNumero) ? 'Tem certeza que deseja excluir toda a equipe designada para este contrato?' : 'Tem certeza que deseja excluir toda a equipe designada para esta ata?'" [loading]="deleting()"
   (confirm)="confirmDelete()" (cancel)="closeDeleteModal()"></app-confirm-modal>

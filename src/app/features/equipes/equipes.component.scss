@@ -234,8 +234,8 @@
 
   .col-action {
     display: flex;
-    align-items: flex-end;
-    padding-top: 26px;
+    align-items: center;
+    padding-top: 22px;
     flex-shrink: 0;
   }
 }
@@ -319,7 +319,7 @@
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
   z-index: 9999;
   overflow: hidden;
-  max-height: 320px;
+  max-height: 220px;
   display: flex;
   flex-direction: column;
 

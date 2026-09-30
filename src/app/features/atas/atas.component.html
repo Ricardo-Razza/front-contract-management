@@ -64,8 +64,9 @@
         <span class="filter-label">Tipo</span>
         <select [ngModel]="filterTipo()" (ngModelChange)="filterTipo.set($event); currentPage.set(1)">
           <option value="">Todos</option>
-          <option value="PRODUTO">Produto</option>
-          <option value="SERVICO">Serviço</option>
+          @for (tipo of tiposDisponiveis(); track tipo) {
+            <option [value]="tipo">{{ tipo }}</option>
+          }
         </select>
       </div>
 
@@ -284,19 +285,19 @@
               </div>
             </td>
             <td class="text-center col-tipo">
-              <span class="type-badge">{{ ata.tipo || 'PRODUTO' }}</span>
+              <span class="type-badge" [class.type-servico]="ata.tipo === 'SERVICO'">{{ ata.tipo || 'PRODUTO' }}</span>
             </td>
             <td class="td-objeto-completo col-objeto">
               <div class="objeto-full">{{ ata.objeto }}</div>
             </td>
             <td class="text-center col-portaria">{{ ata.portariaDesignacao || '-' }}</td>
-            <td class="text-center col-data-designacao">{{ ata.dataDesignacao | date:'dd/MM/yyyy' }}</td>
+            <td class="text-center col-data-designacao">{{ formatDatePtBr(ata.dataDesignacao) || '-' }}</td>
             <td class="col-equipe">
               @if (ata.equipe && ata.equipe.length > 0) {
               <div class="equipe-list">
                 @for (eq of ata.equipe; track eq.id) {
                 @if (eq.membros && eq.membros.length > 0) {
-                @for (membro of ordenarMembros(eq.membros); track membro.id) {
+                @for (membro of (eq.membros | orderEquipe); track membro.id) {
                 <span class="equipe-item">
                   <span class="equipe-funcao">{{ membro.funcaoNome }}:</span>
                   <span class="equipe-nome">{{ membro.servidorNome }}</span>
@@ -326,6 +327,13 @@
                     stroke-width="2" width="18" height="18">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
+                <button class="btn-icon btn-icon-danger" title="Excluir Ata" (click)="promptDelete(ata)">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" width="16" height="16">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                   </svg>
                 </button>
               </div>
@@ -562,7 +570,7 @@
           <span class="dot"></span>
           {{ selectedAtaForDetails()?.situacao || 'ATIVO' }}
         </span>
-        <span class="type-badge">{{ selectedAtaForDetails()?.tipo || 'PRODUTO' }}</span>
+        <span class="type-badge" [class.type-servico]="selectedAtaForDetails()?.tipo === 'SERVICO'">{{ selectedAtaForDetails()?.tipo || 'PRODUTO' }}</span>
       </div>
       <button class="modal-close" (click)="closeDetailsModal()">&times;</button>
     </div>
@@ -590,9 +598,9 @@
           </div>
         </div>
         <div class="timeline-dates">
-          <span>Início: <strong>{{ selectedAtaForDetails()?.dataInicio | date:'dd/MM/yyyy' }}</strong></span>
+          <span>Início: <strong>{{ formatDatePtBr(selectedAtaForDetails()?.dataInicio) }}</strong></span>
           <span>Decorrido: <strong>{{ getVigenciaPercent(selectedAtaForDetails()?.dataInicio, selectedAtaForDetails()?.dataFim) }}%</strong></span>
-          <span>Término: <strong>{{ selectedAtaForDetails()?.dataFim | date:'dd/MM/yyyy' }}</strong></span>
+          <span>Término: <strong>{{ formatDatePtBr(selectedAtaForDetails()?.dataFim) }}</strong></span>
         </div>
       </div>
 
@@ -624,12 +632,12 @@
         <div class="team-cards-grid">
           @for (eq of selectedAtaForDetails()?.equipe; track eq.id) {
           @if (eq.membros && eq.membros.length > 0) {
-          @for (membro of eq.membros; track membro.id) {
+          @for (membro of (eq.membros | orderEquipe); track membro.id) {
           <div class="team-member-card">
             <div class="member-role">{{ membro.funcaoNome }}</div>
             <div class="member-name">{{ membro.servidorNome }}</div>
             @if (membro.servidorCargo) {
-            <div class="text-muted-sm">{{ membro.servidorCargo }}</div>
+            <div class="text-muted">{{ membro.servidorCargo }}</div>
             }
           </div>
           }
@@ -665,7 +673,7 @@
         </div>
         <div class="detail-item">
           <label>Data da Designação</label>
-          <span>{{ selectedAtaForDetails()?.dataDesignacao | date:'dd/MM/yyyy' || '-' }}</span>
+          <span>{{ formatDatePtBr(selectedAtaForDetails()?.dataDesignacao) || '-' }}</span>
         </div>
       </div>
 

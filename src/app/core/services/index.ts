@@ -7,3 +7,4 @@ export * from './servidor.service';
 export * from './toast.service';
 export * from './impressora.service';
 export * from './local-instalacao.service';
+export * from './ferias.service';

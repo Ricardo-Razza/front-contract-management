@@ -1,0 +1,1890 @@
+<app-header title="Férias e afastamentos"></app-header>
+<main
+  class="ferias-page"
+  [attr.inert]="painel() || cadastroPeriodo() || cancelamento() ? '' : null"
+>
+  <header class="page-heading no-print">
+    <div>
+      <span class="eyebrow">GESTÃO DE PESSOAS</span>
+      <h1>Férias e afastamentos</h1>
+      <p>
+        A escala que sua equipe já conhece, com os saldos e agendamentos em um
+        só lugar.
+      </p>
+    </div>
+    <div class="actions">
+      <button class="button secondary" (click)="imprimir()">
+        Imprimir escala anual</button
+      ><button
+        class="button primary"
+        (click)="abrir()"
+        [disabled]="carregando() || erro()"
+      >
+        <span aria-hidden="true">＋</span> Novo agendamento
+      </button>
+    </div>
+  </header>
+  @if (carregando()) {
+    <app-loading-skeleton [rows]="8"></app-loading-skeleton>
+  } @else if (erro()) {
+    <div class="empty error-state">
+      <h2>Não foi possível carregar o módulo</h2>
+      <p>Verifique a conexão com a API e tente novamente.</p>
+      <button class="button primary" (click)="carregar()">
+        Tentar novamente
+      </button>
+    </div>
+  } @else {
+    <section
+      class="metrics no-print"
+      [class.compact-metrics]="aba() === 'escala'"
+      aria-label="Resumo da equipe"
+    >
+      <article>
+        <span class="metric-icon blue" aria-hidden="true">
+          <svg class="metric-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2"></path>
+            <path d="M12 20v2"></path>
+            <path d="m4.93 4.93 1.41 1.41"></path>
+            <path d="m17.66 17.66 1.41 1.41"></path>
+            <path d="M2 12h2"></path>
+            <path d="M20 12h2"></path>
+            <path d="m6.34 17.66-1.41 1.41"></path>
+            <path d="m19.07 4.93-1.41 1.41"></path>
+          </svg>
+        </span>
+        <div>
+          <span>Em férias hoje</span
+          ><strong>{{ emFerias() }} <small>servidores</small></strong>
+          <p>Confirmados no ano consultado</p>
+        </div>
+      </article>
+      <article>
+        <span class="metric-icon violet" aria-hidden="true">
+          <svg class="metric-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="7 7 17 7 17 17"></polyline>
+            <line x1="7" y1="17" x2="17" y2="7"></line>
+          </svg>
+        </span>
+        <div>
+          <span>Próximas saídas</span
+          ><strong>{{ proximas() }} <small>agendamentos</small></strong>
+          <p>Confirmados nos próximos 30 dias, no ano consultado</p>
+        </div>
+      </article>
+      <article>
+        <span class="metric-icon amber" aria-hidden="true">
+          <svg class="metric-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </span>
+        <div>
+          <span>Atenção aos prazos</span
+          ><strong>{{ vencendo() }} <small>períodos</small></strong>
+          <p>Com saldo, vencidos ou a vencer em 90 dias</p>
+        </div>
+      </article>
+    </section>
+    <section class="workspace no-print">
+      <nav class="tabs" aria-label="Visualizações de férias">
+        <button
+          [class.active]="aba() === 'escala'"
+          [attr.aria-current]="aba() === 'escala' ? 'page' : null"
+          (click)="aba.set('escala')"
+        >
+          Escala anual
+        </button>
+        <button
+          [class.active]="aba() === 'agendamentos'"
+          [attr.aria-current]="aba() === 'agendamentos' ? 'page' : null"
+          (click)="aba.set('agendamentos')"
+        >
+          Agendamentos <span>{{ base().length }}</span>
+        </button>
+
+        <button
+          [class.active]="aba() === 'saldos'"
+          [attr.aria-current]="aba() === 'saldos' ? 'page' : null"
+          (click)="aba.set('saldos')"
+        >
+          Saldos e períodos
+        </button>
+      </nav>
+      <div class="filters">
+        <label class="search"
+          ><span>Buscar servidor</span
+          ><input
+            type="search"
+            placeholder="Nome ou matrícula…"
+            [ngModel]="busca()"
+            (ngModelChange)="busca.set($event); pagina.set(1)"
+        /></label>
+        <label
+          ><span>Secretaria</span
+          ><select
+            [ngModel]="secretaria()"
+            (ngModelChange)="mudarSecretaria($event)"
+          >
+            <option [ngValue]="null">Todas as secretarias</option>
+            @for (s of secretarias(); track s.id) {
+              <option [ngValue]="s.id">{{ s.sigla || s.nome }}</option>
+            }
+          </select></label
+        >
+        <label
+          ><span>Setor</span
+          ><select
+            [ngModel]="setor()"
+            (ngModelChange)="setor.set($event); pagina.set(1)"
+          >
+            <option value="">Todos os setores</option>
+            @for (s of setores(); track s) {
+              <option [value]="s">{{ s }}</option>
+            }
+          </select></label
+        >
+        @if (aba() !== "saldos") {
+          <label class="year"
+            ><span>Ano</span
+            ><select [ngModel]="ano()" (ngModelChange)="mudarAno($event)">
+              @for (a of anos; track a) {
+                <option [ngValue]="a">{{ a }}</option>
+              }
+            </select></label
+          >
+        }
+        <button class="text-button reset" (click)="limparFiltros()">
+          Limpar
+        </button>
+      </div>
+      @if (aba() === "agendamentos") {
+        <div class="section-heading">
+          <div>
+            <h2>Agendamentos da equipe</h2>
+            <p>{{ filtrados().length }} registros encontrados · {{ ano() }}</p>
+          </div>
+          <div class="compact-filters">
+            <select
+              aria-label="Filtrar por mês"
+              [ngModel]="mes()"
+              (ngModelChange)="mes.set($event); pagina.set(1)"
+            >
+              <option [ngValue]="0">Todos os meses</option>
+              @for (m of meses; track m; let i = $index) {
+                <option [ngValue]="i + 1">{{ m }}</option>
+              }</select
+            ><select
+              aria-label="Filtrar por situação"
+              [ngModel]="status()"
+              (ngModelChange)="status.set($event); pagina.set(1)"
+            >
+              <option value="">Todas as situações</option>
+              <option value="PLANEJADO">Planejados</option>
+              <option value="CONFIRMADO">Confirmados</option>
+              <option value="CANCELADO">Cancelados</option>
+            </select>
+          </div>
+        </div>
+        @if (visiveis().length) {
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Servidor</th>
+                  <th>Afastamento</th>
+                  <th>Datas e duração</th>
+                  <th>Período aquisitivo</th>
+                  <th>Situação</th>
+                  <th class="right">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (a of visiveis(); track a.id) {
+                  <tr [class.cancelled]="a.status === 'CANCELADO'">
+                    <td>
+                      <div class="person">
+                        <span class="avatar">{{
+                          iniciais(a.servidorNome)
+                        }}</span>
+                        <div>
+                          <strong>{{ a.servidorNome }}</strong
+                          ><small
+                            >{{ a.servidorSetor || "Sem setor" }} · Matrícula
+                            {{ a.servidorMatricula }}</small
+                          >
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="type" [attr.data-type]="a.tipoAfastamento">{{
+                        tipos[a.tipoAfastamento]
+                      }}</span>
+                    </td>
+                    <td>
+                      <strong
+                        >{{ a.dataInicio | date: "dd/MM" }} —
+                        {{ a.dataFim | date: "dd/MM/yyyy" }}</strong
+                      ><small>{{ a.dias }} dias corridos</small>
+                    </td>
+                    <td>{{ a.periodoIdentificador || "Não se aplica" }}</td>
+                    <td>
+                      <span class="badge" [attr.data-status]="a.status">{{
+                        situacoes[a.status]
+                      }}</span>
+                      @if (a.alertaConflito) {
+                        <small
+                          class="warning"
+                          [title]="a.descricaoConflito || ''"
+                          >Sobreposição na escala</small
+                        >
+                      }
+                    </td>
+                    <td class="right">
+                      @if (a.status !== "CANCELADO") {
+                        <div class="row-actions">
+                          <button
+                            class="text-button"
+                            (click)="abrir(a)"
+                            [attr.aria-label]="
+                              'Editar agendamento de ' + a.servidorNome
+                            "
+                          >
+                            Editar</button
+                          ><button
+                            class="text-button danger-text"
+                            (click)="pedirCancelamento(a)"
+                            [attr.aria-label]="
+                              'Cancelar agendamento de ' + a.servidorNome
+                            "
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      } @else {
+                        <span class="muted">Histórico preservado</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <footer class="pagination">
+            <span>Página {{ paginaAtual() }} de {{ totalPaginas() }}</span>
+            <div class="actions">
+              <button
+                class="button secondary small"
+                [disabled]="paginaAtual() === 1"
+                (click)="pagina.set(paginaAtual() - 1)"
+              >
+                Anterior</button
+              ><button
+                class="button secondary small"
+                [disabled]="paginaAtual() === totalPaginas()"
+                (click)="pagina.set(paginaAtual() + 1)"
+              >
+                Próxima
+              </button>
+            </div>
+          </footer>
+        } @else {
+          <div class="empty">
+            <span class="empty-icon" aria-hidden="true">▦</span>
+            <h3>Nenhum agendamento neste recorte</h3>
+            <p>Altere os filtros ou comece a planejar a próxima saída.</p>
+            <button class="button primary" (click)="abrir()">
+              Novo agendamento
+            </button>
+          </div>
+        }
+      }
+      @if (aba() === "escala") {
+        <!-- Modern Toolbar: Month Navigator + Pills + View Switcher -->
+        <div class="escala-toolbar">
+          <div class="month-navigator">
+            <button
+              class="nav-btn"
+              (click)="mesAnterior()"
+              title="Mês anterior"
+              aria-label="Mês anterior"
+            >
+              ‹
+            </button>
+            <div class="month-display">
+              <span class="month-name">{{ nomeMesNavegacao() }}</span>
+              <span class="month-year">{{ ano() }}</span>
+            </div>
+            <button
+              class="nav-btn"
+              (click)="proximoMes()"
+              title="Próximo mês"
+              aria-label="Próximo mês"
+            >
+              ›
+            </button>
+            <button
+              class="today-btn"
+              (click)="irParaHoje()"
+              title="Ir para o mês atual"
+            >
+              Hoje
+            </button>
+          </div>
+
+          <!-- Quick Month Pills -->
+          <div class="month-pills-bar" role="tablist" aria-label="Meses do ano">
+            @for (m of meses; track m; let i = $index) {
+              <button
+                class="month-pill"
+                [class.active]="mesNavegacao() === i + 1"
+                (click)="selecionarMes(i + 1)"
+                [attr.aria-selected]="mesNavegacao() === i + 1"
+              >
+                {{ m.slice(0, 3) }}
+              </button>
+            }
+          </div>
+
+          <!-- Segmented View Switcher -->
+          <div class="view-switcher" role="radiogroup" aria-label="Modo de visualização">
+            <button
+              class="switcher-btn"
+              [class.active]="modoVisualizacao() === 'timeline'"
+              (click)="modoVisualizacao.set('timeline')"
+              title="Linha do Tempo (Gantt)"
+              aria-label="Visualização em Linha do Tempo"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="15" y2="12"></line>
+                <line x1="3" y1="18" x2="18" y2="18"></line>
+              </svg>
+              <span>Linha do Tempo</span>
+            </button>
+            <button
+              class="switcher-btn"
+              [class.active]="modoVisualizacao() === 'calendario'"
+              (click)="modoVisualizacao.set('calendario')"
+              title="Calendário Mensal"
+              aria-label="Visualização em Calendário Mensal"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <span>Calendário</span>
+            </button>
+            <button
+              class="switcher-btn"
+              [class.active]="modoVisualizacao() === 'matriz'"
+              (click)="modoVisualizacao.set('matriz')"
+              title="Matriz Panorâmica"
+              aria-label="Visualização em Matriz Panorâmica"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="3" y1="9" x2="21" y2="9"></line>
+                <line x1="3" y1="15" x2="21" y2="15"></line>
+                <line x1="9" y1="3" x2="9" y2="21"></line>
+                <line x1="15" y1="3" x2="15" y2="21"></line>
+              </svg>
+              <span>Matriz</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 1. Interactive Timeline (Gantt) -->
+        @if (modoVisualizacao() === "timeline") {
+          @if (timelineMes(); as tMes) {
+            <div class="timeline-wrapper">
+              <div class="timeline-header-bar">
+                <div class="timeline-info">
+                  <strong>{{ tMes.nome }} de {{ ano() }}</strong>
+                  <span>{{ tMes.linhas.length }} servidor(es) com afastamento neste mês</span>
+                </div>
+                <div class="timeline-actions">
+                  <button
+                    class="button primary small"
+                    (click)="agendarNoMes(tMes.numero)"
+                  >
+                    + Agendar em {{ tMes.nome }}
+                  </button>
+                </div>
+              </div>
+
+              @if (tMes.linhas.length > 0) {
+                <div class="timeline-container">
+                  <!-- Header row: Servers column + Days grid columns -->
+                  <div class="timeline-grid-header">
+                    <div class="timeline-col-server">Servidor / Cargo</div>
+                    <div
+                      class="timeline-days-header"
+                      [style.grid-template-columns]="'repeat(' + tMes.totalDias + ', minmax(28px, 1fr))'"
+                    >
+                      @for (d of tMes.diasValidos; track d.dia) {
+                        <div
+                          class="timeline-day-cell"
+                          [class.weekend]="d.ehFimDeSemana"
+                          [class.holiday]="d.ehFeriado"
+                          [class.today]="d.dia === tMes.diaHoje"
+                          [title]="d.nomeFeriado || (d.diaSemanaSigla + ', ' + d.dia + '/' + tMes.numero)"
+                        >
+                          <span class="day-num">{{ d.dia }}</span>
+                          <span class="day-weekday">{{ d.diaSemanaSigla.slice(0, 1) }}</span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Rows for each server -->
+                  <div class="timeline-body">
+                    @for (linha of tMes.linhas; track linha.chave) {
+                      <div class="timeline-row">
+                        <!-- Server info card on left -->
+                        <div class="timeline-server-card">
+                          <span class="avatar">{{ iniciais(linha.nome) }}</span>
+                          <div class="server-meta">
+                            <strong [title]="linha.nome">{{ linha.nome }}</strong>
+                            <small>{{ linha.setor }} · Mat. {{ linha.matricula }}</small>
+                          </div>
+                          <button
+                            class="server-add-btn"
+                            (click)="abrir(null, linha.servidorId)"
+                            title="Agendar para este servidor"
+                            aria-label="Agendar para este servidor"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <!-- Days track on right -->
+                        <div
+                          class="timeline-track"
+                          [style.grid-template-columns]="'repeat(' + tMes.totalDias + ', minmax(28px, 1fr))'"
+                        >
+                          <!-- Background grid columns for weekends and today line -->
+                          @for (d of tMes.diasValidos; track d.dia) {
+                            <div
+                              class="timeline-track-col"
+                              [class.weekend]="d.ehFimDeSemana"
+                              [class.holiday]="d.ehFeriado"
+                              [class.today]="d.dia === tMes.diaHoje"
+                              (click)="agendarNoDia(ano() + '-' + (tMes.numero < 10 ? '0' : '') + tMes.numero + '-' + (d.dia < 10 ? '0' : '') + d.dia, linha.servidorId)"
+                              title="Clique para agendar neste dia"
+                            ></div>
+                          }
+
+                          <!-- Vacation floating pill -->
+                          @for (f of linha.faixas; track f.agendamento.id) {
+                            <div
+                              class="timeline-pill"
+                              [style.grid-column]="f.inicio + ' / ' + (f.fim + 1)"
+                              [style.background-color]="f.cor"
+                              [class.planned]="f.agendamento.status === 'PLANEJADO'"
+                              [class.dimmed]="
+                                periodoDestaque() &&
+                                periodoDestaque() !==
+                                  (f.agendamento.periodoIdentificador ||
+                                    'Período não informado')
+                              "
+                              (click)="abrir(f.agendamento)"
+                              [title]="descricaoFaixa(f.agendamento)"
+                            >
+                              <div class="pill-content">
+                                <span class="pill-label">
+                                  {{ tipos[f.agendamento.tipoAfastamento] }}
+                                  @if (f.agendamento.fracao) {
+                                    <span class="pill-badge">{{ f.agendamento.fracao }}ª fração</span>
+                                  }
+                                </span>
+                                <span class="pill-days">{{ f.agendamento.dias }}d</span>
+                                @if (f.agendamento.alertaConflito) {
+                                  <span class="pill-conflict" title="Sobreposição na escala">!</span>
+                                }
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              } @else {
+                <div class="empty-timeline-state">
+                  <div class="empty-icon-circle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="32" height="32">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                  </div>
+                  <h3>Nenhum afastamento em {{ tMes.nome }} de {{ ano() }}</h3>
+                  <p>Não há servidores de férias ou afastados programados para este mês.</p>
+                  <button
+                    class="button primary"
+                    (click)="agendarNoMes(tMes.numero)"
+                  >
+                    + Agendar férias em {{ tMes.nome }}
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        }
+
+        <!-- 2. Monthly Calendar (7-col Grid) -->
+        @if (modoVisualizacao() === "calendario") {
+          <div class="calendar-wrapper">
+            <div class="calendar-header-bar">
+              <div class="calendar-title">
+                <strong>{{ nomeMesNavegacao() }} {{ ano() }}</strong>
+                <span>Visão em grade semanal</span>
+              </div>
+              <button
+                class="button primary small"
+                (click)="agendarNoMes(mesNavegacao())"
+              >
+                + Agendar no mês
+              </button>
+            </div>
+
+            <div class="calendar-grid-container">
+              <!-- Weekday labels -->
+              <div class="calendar-weekdays">
+                <div>Domingo</div>
+                <div>Segunda</div>
+                <div>Terça</div>
+                <div>Quarta</div>
+                <div>Quinta</div>
+                <div>Sexta</div>
+                <div>Sábado</div>
+              </div>
+
+              <!-- Day cells (7 columns) -->
+              <div class="calendar-cells">
+                @for (celula of diasCalendario(); track celula.data) {
+                  <div
+                    class="calendar-day-cell"
+                    [class.outside-month]="!celula.mesAtual"
+                    [class.weekend]="celula.ehFimDeSemana"
+                    [class.holiday]="celula.ehFeriado"
+                    [class.today]="celula.ehHoje"
+                  >
+                    <div class="day-cell-top">
+                      <span class="day-cell-num" [class.today-badge]="celula.ehHoje">
+                        {{ celula.diaNumero }}
+                      </span>
+                      @if (celula.nomeFeriado) {
+                        <span class="holiday-pill" [title]="celula.nomeFeriado">
+                          {{ celula.nomeFeriado }}
+                        </span>
+                      }
+                      <button
+                        class="cell-add-btn"
+                        (click)="agendarNoDia(celula.data)"
+                        title="Agendar neste dia"
+                        aria-label="Agendar neste dia"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <!-- Events list in this day -->
+                    <div class="day-events-list">
+                      @for (ev of celula.eventos.slice(0, 3); track ev.id) {
+                        <div
+                          class="calendar-event-chip"
+                          [style.background-color]="ev.corHex || corAgendamento(ev)"
+                          [class.planned]="ev.status === 'PLANEJADO'"
+                          (click)="abrir(ev); $event.stopPropagation()"
+                          [title]="descricaoFaixa(ev)"
+                        >
+                          <span class="chip-avatar">{{ iniciais(ev.servidorNome) }}</span>
+                          <span class="chip-name">{{ ev.servidorNome }}</span>
+                          @if (ev.fracao) {
+                            <span class="chip-fraction">{{ ev.fracao }}ª</span>
+                          }
+                          @if (ev.alertaConflito) {
+                            <span class="chip-conflict">!</span>
+                          }
+                        </div>
+                      }
+                      @if (celula.eventos.length > 3) {
+                        <span class="events-overflow">
+                          +{{ celula.eventos.length - 3 }} outros
+                        </span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- 3. Redesigned Panoramic Matrix -->
+        @if (modoVisualizacao() === "matriz") {
+          <div class="matrix-wrapper">
+            <div class="matrix-controls-bar">
+              <div>
+                <strong>Matriz Panorâmica de Afastamentos</strong>
+                <p>Grade com 31 dias por unidade e servidor</p>
+              </div>
+              <label class="month-select">
+                <span>Exibir:</span>
+                <select
+                  [ngModel]="mesEscala()"
+                  (ngModelChange)="mesEscala.set($event)"
+                >
+                  <option [ngValue]="0">Ano completo (12 meses)</option>
+                  @for (m of meses; track m; let i = $index) {
+                    <option [ngValue]="i + 1">{{ m }}</option>
+                  }
+                </select>
+              </label>
+            </div>
+            <ng-container
+              *ngTemplateOutlet="
+                escalaTemplate;
+                context: { $implicit: escalaVisivel() }
+              "
+            ></ng-container>
+          </div>
+        }
+      }
+      @if (aba() === "saldos") {
+        <div class="section-heading">
+          <div>
+            <h2>Saldos e períodos aquisitivos</h2>
+            <p>
+              Todos os períodos · Reservados incluem planejamentos e dias
+              confirmados ainda não gozados.
+            </p>
+          </div>
+          <button class="button secondary" (click)="abrirPeriodo()">
+            + Novo período
+          </button>
+        </div>
+        <div class="balance-list">
+          @for (s of saldos(); track s.servidor.id) {
+            <details class="balance-card">
+              <summary>
+                <div class="person">
+                  <span class="avatar">{{ iniciais(s.servidor.nome) }}</span>
+                  <div>
+                    <strong>{{ s.servidor.nome }}</strong
+                    ><small
+                      >{{ s.servidor.setor || "Sem setor" }} ·
+                      {{ s.periodos.length }} períodos</small
+                    >
+                  </div>
+                </div>
+                <div class="balance-progress-container">
+                  <div class="balance-progress-track">
+                    <div
+                      class="progress-fill gozados"
+                      [style.width.%]="calcPercent(s.gozados, s.disponiveis + s.reservados + s.gozados)"
+                      title="Gozados: {{ s.gozados }} dias"
+                    ></div>
+                    <div
+                      class="progress-fill reservados"
+                      [style.width.%]="calcPercent(s.reservados, s.disponiveis + s.reservados + s.gozados)"
+                      title="Reservados: {{ s.reservados }} dias"
+                    ></div>
+                    <div
+                      class="progress-fill disponiveis"
+                      [style.width.%]="calcPercent(s.disponiveis, s.disponiveis + s.reservados + s.gozados)"
+                      title="Disponíveis: {{ s.disponiveis }} dias"
+                    ></div>
+                  </div>
+                  <div class="progress-labels">
+                    <span>{{ s.gozados + s.reservados }} de {{ s.disponiveis + s.reservados + s.gozados }} dias alocados</span>
+                    <span class="available-badge">{{ s.disponiveis }} dias livres</span>
+                  </div>
+                </div>
+                <div class="balance-numbers">
+                  <div>
+                    <strong class="available"
+                      >{{ s.disponiveis }}<small>dias</small></strong
+                    ><span>Disponíveis</span>
+                  </div>
+                  <div>
+                    <strong>{{ s.reservados }}</strong
+                    ><span>Reservados</span>
+                  </div>
+                  <div>
+                    <strong>{{ s.gozados }}</strong
+                    ><span>Gozados</span>
+                  </div>
+                </div>
+                <span class="expand">Ver períodos ⌄</span>
+              </summary>
+              <div class="balance-detail">
+                @if (s.periodos.length) {
+                  <div class="table-scroll">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Período</th>
+                          <th>Aquisição</th>
+                          <th>Limite para gozo</th>
+                          <th>Total</th>
+                          <th>Reservados</th>
+                          <th>Gozados</th>
+                          <th>Disponíveis</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (p of s.periodos; track p.id) {
+                          <tr>
+                            <td>
+                              <strong>{{ p.identificador }}</strong>
+                            </td>
+                            <td>
+                              {{ p.dataInicio | date: "dd/MM/yyyy" }} —
+                              {{ p.dataFim | date: "dd/MM/yyyy" }}
+                            </td>
+                            <td>
+                              {{
+                                p.limiteGozo
+                                  ? (p.limiteGozo | date: "dd/MM/yyyy")
+                                  : "Não informado"
+                              }}
+                              @if (prazo(p)) {
+                                <small class="warning">{{ prazo(p) }}</small>
+                              }
+                            </td>
+                            <td>{{ p.totalDias }}</td>
+                            <td>{{ p.diasReservados }}</td>
+                            <td>{{ p.diasGozados }}</td>
+                            <td>
+                              <strong class="available">{{
+                                p.diasRestantes
+                              }}</strong>
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                } @else {
+                  <p class="muted">
+                    Este servidor ainda não possui períodos aquisitivos.
+                  </p>
+                }
+                <div class="actions">
+                  <button
+                    class="button secondary small"
+                    (click)="abrirPeriodo(s.servidor.id)"
+                  >
+                    Cadastrar período</button
+                  ><button
+                    class="button primary small"
+                    (click)="abrir(null, s.servidor.id)"
+                  >
+                    Agendar férias
+                  </button>
+                </div>
+              </div>
+            </details>
+          } @empty {
+            <div class="empty">
+              <h3>Nenhum servidor encontrado</h3>
+              <p>Altere os filtros para consultar os saldos.</p>
+            </div>
+          }
+        </div>
+      }
+    </section>
+    <section class="print-only">
+      <ng-container
+        *ngTemplateOutlet="
+          escalaTemplate;
+          context: { $implicit: escalaCompleta() }
+        "
+      ></ng-container>
+    </section>
+  }
+</main>
+
+<ng-template #escalaTemplate let-grupos>
+  <section
+    class="annual-sheet"
+    aria-label="Escala anual de férias e afastamentos"
+  >
+    <header class="sheet-title">
+      <strong>ESCALA DE FÉRIAS — {{ tituloEscala() | uppercase }}</strong
+      ><span>{{ setor() || "Todas as unidades" }} · {{ ano() }}</span>
+    </header>
+    <div
+      class="sheet-scroll"
+      tabindex="0"
+      aria-label="Tabela da escala. Role horizontalmente para consultar os dias."
+    >
+      <table class="annual-grid">
+        <caption class="sr-only">
+          Escala de férias por mês, unidade, servidor e dia. As cores
+          identificam os períodos aquisitivos.
+        </caption>
+        <colgroup>
+          <col class="unit-col" />
+          <col class="person-col" />
+          <col span="31" class="day-col" />
+        </colgroup>
+        @for (m of grupos; track m.numero) {
+          <tbody>
+            <tr class="month-band">
+              <th scope="col" class="sticky-unit">Unidade</th>
+              <th scope="col" class="sticky-person">
+                <div class="month-label">
+                  <span>{{ m.nome }}/{{ ano() }}</span
+                  ><button
+                    class="month-add no-print"
+                    (click)="agendarNoMes(m.numero)"
+                    [attr.aria-label]="'Novo agendamento em ' + m.nome"
+                    title="Agendar neste mês"
+                  >
+                    +
+                  </button>
+                </div>
+              </th>
+              @for (d of m.dias; track d.dia) {
+                <th
+                  scope="col"
+                  class="day-heading"
+                  [class.invalid-day]="d.dia > m.totalDias"
+                  [title]="
+                    d.dia <= m.totalDias
+                      ? d.diaSemanaSigla +
+                        (d.nomeFeriado ? ' · ' + d.nomeFeriado : '')
+                      : ''
+                  "
+                >
+                  {{ d.dia <= m.totalDias ? d.dia : "" }}
+                </th>
+              }
+            </tr>
+            @for (l of m.linhas; track l.chave) {
+              <tr class="scale-person-row">
+                <td class="sticky-unit" [title]="l.setor">{{ l.setor }}</td>
+                <th scope="row" class="sticky-person">
+                  <button
+                    class="person-action"
+                    (click)="abrir(null, l.servidorId)"
+                    [title]="
+                      l.nome +
+                      ' · Matrícula ' +
+                      l.matricula +
+                      ' · Agendar férias'
+                    "
+                  >
+                    <span>{{ l.nome }}</span
+                    ><small>{{ l.matricula }}</small>
+                  </button>
+                </th>
+                <td colspan="31" class="days-cell">
+                  <div class="annual-days">
+                    <div class="day-background">
+                      @for (d of m.dias; track d.dia) {
+                        <span
+                          [class.day-off]="d.ehFimDeSemana || d.ehFeriado"
+                          [class.invalid-day]="d.dia > m.totalDias"
+                          [title]="
+                            d.dia <= m.totalDias
+                              ? d.nomeFeriado || d.diaSemanaSigla
+                              : ''
+                          "
+                        ></span>
+                      }
+                    </div>
+                    <div class="annual-bars">
+                      @for (f of l.faixas; track f.agendamento.id) {
+                        <button
+                          class="annual-bar"
+                          [style.grid-column]="f.inicio + ' / ' + (f.fim + 1)"
+                          [style.background-color]="f.cor"
+                          [class.planned]="f.agendamento.status === 'PLANEJADO'"
+                          [class.dimmed]="
+                            periodoDestaque() &&
+                            periodoDestaque() !==
+                              (f.agendamento.periodoIdentificador ||
+                                'Período não informado')
+                          "
+                          [title]="descricaoFaixa(f.agendamento)"
+                          [attr.aria-label]="descricaoFaixa(f.agendamento)"
+                          (click)="abrir(f.agendamento)"
+                        >
+                          @if (f.agendamento.fracao) {
+                            <span class="fraction-mark"
+                              >{{ f.agendamento.fracao }}ª</span
+                            >
+                          }
+                          @if (f.agendamento.alertaConflito) {
+                            <span class="conflict-mark" aria-hidden="true"
+                              >!</span
+                            >
+                          }
+                        </button>
+                      }
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr class="empty-scale-row">
+                <td class="sticky-unit">{{ setor() || "—" }}</td>
+                <td colspan="32">
+                  <span>Sem afastamentos em {{ m.nome | lowercase }}.</span
+                  ><button
+                    class="text-button no-print"
+                    (click)="agendarNoMes(m.numero)"
+                  >
+                    + Agendar neste mês
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        }
+      </table>
+    </div>
+    <footer class="sheet-legend">
+      <div class="legend-heading">
+        <strong>Entenda as cores</strong
+        ><span class="no-print"
+          >Selecione um período para destacar suas férias na escala.</span
+        >
+      </div>
+      <div class="legend-items">
+        <span class="legend-chip"
+          ><i class="off-swatch"></i>Fins de semana e feriados</span
+        >
+        @for (l of legendasPeriodos(); track l.label) {
+          <button
+            class="legend-chip"
+            [class.selected]="periodoDestaque() === l.label"
+            [attr.aria-pressed]="periodoDestaque() === l.label"
+            (click)="
+              periodoDestaque.set(periodoDestaque() === l.label ? '' : l.label)
+            "
+          >
+            <i [style.background-color]="l.cor"></i>Período {{ l.label }}
+          </button>
+        }
+        <span class="legend-chip"
+          ><i style="background: #ce8131"></i>Licença saúde</span
+        ><span class="legend-chip"
+          ><i style="background: #cf8989"></i>Licença prêmio</span
+        ><span class="legend-chip"
+          ><i style="background: #254b84"></i>Folga</span
+        >
+      </div>
+      <div class="legend-notes">
+        <span><i class="planned-swatch"></i>Borda tracejada: planejado</span
+        ><span><b class="conflict-mark">!</b>Sobreposição na escala</span
+        ><span>1ª, 2ª, 3ª: parcela das férias</span
+        ><span class="no-print"
+          >Clique na faixa colorida para ver as datas, o saldo e os
+          detalhes.</span
+        >
+      </div>
+    </footer>
+  </section>
+</ng-template>
+
+@if (painel() && !cadastroPeriodo()) {
+  <div class="modal-overlay no-print" (click)="fechar()">
+    <aside
+      class="modal-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tituloAgendamento"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Modern Header -->
+      <header class="modal-header">
+        <div class="modal-header-info">
+          <div class="modal-type-badge" [class]="'badge-' + formValor().tipoAfastamento.toLowerCase()">
+            @if (formValor().tipoAfastamento === "FERIAS") {
+              <svg class="mat-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2"></path>
+                <path d="M12 20v2"></path>
+                <path d="m4.93 4.93 1.41 1.41"></path>
+                <path d="m17.66 17.66 1.41 1.41"></path>
+                <path d="M2 12h2"></path>
+                <path d="M20 12h2"></path>
+                <path d="m6.34 17.66-1.41 1.41"></path>
+                <path d="m19.07 4.93-1.41 1.41"></path>
+              </svg>
+            } @else if (formValor().tipoAfastamento === "LICENCA_SAUDE") {
+              <svg class="mat-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+              </svg>
+            } @else if (formValor().tipoAfastamento === "LICENCA_PREMIO") {
+              <svg class="mat-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="8" r="6"></circle>
+                <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"></path>
+              </svg>
+            } @else {
+              <svg class="mat-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            }
+          </div>
+          <div>
+            <span class="modal-eyebrow">CONTROLE DE AFASTAMENTOS</span>
+            <h2 id="tituloAgendamento">
+              {{ edicao() ? "Editar Agendamento" : "Novo Agendamento" }}
+            </h2>
+          </div>
+        </div>
+        <button
+          class="modal-close-btn"
+          aria-label="Fechar"
+          (click)="fechar()"
+          [disabled]="salvando()"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </header>
+
+      <form [formGroup]="form" (ngSubmit)="salvar()" class="modal-form">
+        <input type="hidden" formControlName="servidorId" />
+        <input type="hidden" formControlName="tipoAfastamento" />
+        <input type="hidden" formControlName="periodoAquisitivoId" />
+        <input type="hidden" formControlName="fracao" />
+        <input type="hidden" formControlName="status" />
+
+        <div class="modal-body">
+          <!-- 1. TIPO DE AFASTAMENTO (Visual Segmented Cards) -->
+          <div class="form-section-card">
+            <label class="section-title">1. Tipo de Afastamento</label>
+            <div
+              class="tipo-grid"
+              role="radiogroup"
+              aria-label="Tipo de afastamento"
+            >
+              <button
+                type="button"
+                class="tipo-card-btn"
+                [class.active]="formValor().tipoAfastamento === 'FERIAS'"
+                (click)="selecionarTipoAfastamento('FERIAS')"
+              >
+                <span class="tipo-icon">
+                  <svg class="tipo-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="4"></circle>
+                    <path d="M12 2v2"></path>
+                    <path d="M12 20v2"></path>
+                    <path d="m4.93 4.93 1.41 1.41"></path>
+                    <path d="m17.66 17.66 1.41 1.41"></path>
+                    <path d="M2 12h2"></path>
+                    <path d="M20 12h2"></path>
+                    <path d="m6.34 17.66-1.41 1.41"></path>
+                    <path d="m19.07 4.93-1.41 1.41"></path>
+                  </svg>
+                </span>
+                <div class="tipo-text">
+                  <strong>Férias</strong>
+                  <span>Desconta período aquisitivo</span>
+                </div>
+              </button>
+              <button
+                type="button"
+                class="tipo-card-btn"
+                [class.active]="formValor().tipoAfastamento === 'LICENCA_SAUDE'"
+                (click)="selecionarTipoAfastamento('LICENCA_SAUDE')"
+              >
+                <span class="tipo-icon">
+                  <svg class="tipo-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                  </svg>
+                </span>
+                <div class="tipo-text">
+                  <strong>Licença Saúde</strong>
+                  <span>Atestado ou tratamento</span>
+                </div>
+              </button>
+              <button
+                type="button"
+                class="tipo-card-btn"
+                [class.active]="
+                  formValor().tipoAfastamento === 'LICENCA_PREMIO'
+                "
+                (click)="selecionarTipoAfastamento('LICENCA_PREMIO')"
+              >
+                <span class="tipo-icon">
+                  <svg class="tipo-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="8" r="6"></circle>
+                    <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"></path>
+                  </svg>
+                </span>
+                <div class="tipo-text">
+                  <strong>Licença Prêmio</strong>
+                  <span>Assiduidade ou mérito</span>
+                </div>
+              </button>
+              <button
+                type="button"
+                class="tipo-card-btn"
+                [class.active]="formValor().tipoAfastamento === 'FOLGA'"
+                (click)="selecionarTipoAfastamento('FOLGA')"
+              >
+                <span class="tipo-icon">
+                  <svg class="tipo-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                </span>
+                <div class="tipo-text">
+                  <strong>Folga</strong>
+                  <span>Compensatória ou eleitoral</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- 2. SERVIDOR -->
+          <div class="form-section-card">
+            <div class="section-header-flex">
+              <div>
+                <label class="section-title">2. Servidor *</label>
+                <p class="section-desc">
+                  {{
+                    servidorSelecionado()
+                      ? "Servidor selecionado para o afastamento"
+                      : "Digite o nome ou matrícula para buscar e selecionar"
+                  }}
+                </p>
+              </div>
+              @if (edicao()) {
+                <span class="badge-readonly">Servidor fixo nesta edição</span>
+              }
+            </div>
+
+            <!-- Se nenhum servidor foi selecionado e não é edição, exibe a busca com autocomplete -->
+            @if (!servidorSelecionado() && !edicao()) {
+              <div class="server-autocomplete-container">
+                <div class="autocomplete-input-wrap">
+                  <span class="search-lens-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                  </span>
+                  <input
+                    type="search"
+                    placeholder="Digite o nome ou matrícula do servidor..."
+                    [ngModel]="buscaServidor()"
+                    (ngModelChange)="
+                      buscaServidor.set($event); abrirMenuServidores()
+                    "
+                    (focus)="abrirMenuServidores()"
+                    (blur)="fecharMenuServidores()"
+                    [ngModelOptions]="{ standalone: true }"
+                    class="autocomplete-input"
+                    autocomplete="off"
+                  />
+                  @if (buscaServidor()) {
+                    <button
+                      type="button"
+                      class="clear-search-btn"
+                      (click)="buscaServidor.set(''); abrirMenuServidores()"
+                      title="Limpar busca"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
+                  }
+                </div>
+
+                <!-- Lista flutuante de sugestões em tempo real -->
+                @if (menuServidoresAberto()) {
+                  <div
+                    class="server-suggestions-dropdown"
+                    (mousedown)="$event.preventDefault()"
+                  >
+                    <div class="suggestions-header">
+                      <span
+                        >{{ servidoresBusca().length }} servidor(es)
+                        encontrado(s)</span
+                      >
+                      <small>Clique para selecionar</small>
+                    </div>
+
+                    <div class="suggestions-list">
+                      @for (s of servidoresBusca().slice(0, 10); track s.id) {
+                        <button
+                          type="button"
+                          class="suggestion-item-btn"
+                          (click)="selecionarServidor(s)"
+                        >
+                          <span class="suggestion-avatar">{{
+                            iniciais(s.nome)
+                          }}</span>
+                          <div class="suggestion-info">
+                            <strong>{{ s.nome }}</strong>
+                            <div class="suggestion-meta">
+                              <span class="meta-tag"
+                                >Mat. {{ s.matricula }}</span
+                              >
+                              <span>{{ s.setor || "Sem setor" }}</span>
+                              @if (s.cargo) {
+                                <span>· {{ s.cargo }}</span>
+                              }
+                            </div>
+                          </div>
+                          <span class="select-action-badge">Selecionar ↵</span>
+                        </button>
+                      } @empty {
+                        <div class="empty-suggestions">
+                          <span class="empty-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+                              <circle cx="11" cy="11" r="8"></circle>
+                              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                          </span>
+                          <p>
+                            Nenhum servidor encontrado para "<strong
+                              >{{ buscaServidor() }}</strong
+                            >"
+                          </p>
+                          <small
+                            >Verifique a digitação ou tente pelo número de
+                            matrícula.</small
+                          >
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Card de perfil do servidor selecionado -->
+            @if (servidorSelecionado(); as srv) {
+              <div class="selected-server-badge">
+                <span class="srv-avatar">{{ iniciais(srv.nome) }}</span>
+                <div class="srv-info">
+                  <div class="srv-name-row">
+                    <strong>{{ srv.nome }}</strong>
+                    <span class="srv-mat-pill"
+                      >Matrícula: {{ srv.matricula }}</span
+                    >
+                  </div>
+                  <span class="srv-unit-text">
+                    {{ srv.setor || "Unidade não informada" }}
+                    @if (srv.cargo) {
+                      · {{ srv.cargo }}
+                    }
+                  </span>
+                </div>
+
+                @if (formValor().tipoAfastamento === "FERIAS") {
+                  <div class="srv-saldo-badge">
+                    <strong>{{ totalSaldoServidor() }} dias</strong>
+                    <span>saldo total</span>
+                  </div>
+                }
+
+                @if (!edicao()) {
+                  <button
+                    type="button"
+                    class="trocar-servidor-btn"
+                    (click)="limparServidor()"
+                    title="Trocar servidor"
+                  >
+                    Trocar
+                  </button>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- 3. PERÍODO AQUISITIVO (Apenas para FÉRIAS) -->
+          @if (formValor().tipoAfastamento === "FERIAS") {
+            <div class="form-section-card">
+              <div class="section-header-flex">
+                <div>
+                  <label class="section-title">3. Período Aquisitivo *</label>
+                  <p class="section-desc">
+                    Selecione o direito adquirido do qual os dias serão
+                    descontados:
+                  </p>
+                </div>
+                @if (formValor().servidorId) {
+                  <button
+                    type="button"
+                    class="button secondary small"
+                    (click)="abrirPeriodo()"
+                  >
+                    + Novo Período
+                  </button>
+                }
+              </div>
+
+              @if (periodosFormulario().length > 0) {
+                <div class="periodos-cards-list">
+                  @for (p of periodosFormulario(); track p.id) {
+                    <div
+                      class="periodo-option-card"
+                      [class.selected]="
+                        formValor().periodoAquisitivoId === '' + p.id
+                      "
+                      (click)="selecionarPeriodo(p.id)"
+                    >
+                      <div class="radio-indicator">
+                        <span class="radio-circle"></span>
+                      </div>
+                      <div class="periodo-meta">
+                        <div class="periodo-main-row">
+                          <strong class="periodo-title"
+                            >Período {{ p.identificador }}</strong
+                          >
+                          <span
+                            class="periodo-days-tag"
+                            [class.available-tag]="p.diasRestantes > 0"
+                            [class.empty-tag]="p.diasRestantes <= 0"
+                          >
+                            {{ p.diasRestantes }} dias disponíveis
+                          </span>
+                        </div>
+                        <div class="periodo-sub-row">
+                          <span
+                            >Aquisição:
+                            {{ p.dataInicio | date: "dd/MM/yyyy" }} a
+                            {{ p.dataFim | date: "dd/MM/yyyy" }}</span
+                          >
+                          @if (p.limiteGozo) {
+                            <span
+                              class="periodo-limit"
+                              [class.warning-limit]="prazo(p)"
+                            >
+                              · Limite:
+                              {{ p.limiteGozo | date: "dd/MM/yyyy" }}
+                              @if (prazo(p)) {
+                                ({{ prazo(p) }})
+                              }
+                            </span>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              } @else if (formValor().servidorId) {
+                <div class="empty-periodo-box">
+                  <svg class="alert-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                  </svg>
+                  <div>
+                    <strong>Nenhum período aquisitivo cadastrado</strong>
+                    <p>
+                      Cadastre um período aquisitivo para este servidor para
+                      poder agendar as férias.
+                    </p>
+                  </div>
+                </div>
+              }
+
+              <!-- Parcela das férias -->
+              <div class="fracao-group">
+                <span class="fracao-title">Parcela das férias:</span>
+                <div class="fracao-pills-bar">
+                  <button
+                    type="button"
+                    class="fracao-btn"
+                    [class.active]="!formValor().fracao"
+                    (click)="selecionarFracao('')"
+                  >
+                    Integral / Parcela Única
+                  </button>
+                  <button
+                    type="button"
+                    class="fracao-btn"
+                    [class.active]="formValor().fracao === '1'"
+                    (click)="selecionarFracao('1')"
+                  >
+                    1ª Parcela
+                  </button>
+                  <button
+                    type="button"
+                    class="fracao-btn"
+                    [class.active]="formValor().fracao === '2'"
+                    (click)="selecionarFracao('2')"
+                  >
+                    2ª Parcela
+                  </button>
+                  <button
+                    type="button"
+                    class="fracao-btn"
+                    [class.active]="formValor().fracao === '3'"
+                    (click)="selecionarFracao('3')"
+                  >
+                    3ª Parcela
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- 4. DATAS & CALCULADORA -->
+          <div class="form-section-card">
+            <div class="section-header-flex">
+              <label class="section-title">
+                {{
+                  formValor().tipoAfastamento === "FERIAS" ? "4" : "3"
+                }}. Intervalo de Datas *
+              </label>
+              <!-- Duração rápida presets -->
+              <div class="quick-presets">
+                <span class="presets-caption">Atalhos:</span>
+                <button
+                  type="button"
+                  class="preset-pill"
+                  (click)="aplicarDuracao(5)"
+                >
+                  5d
+                </button>
+                <button
+                  type="button"
+                  class="preset-pill"
+                  (click)="aplicarDuracao(10)"
+                >
+                  10d
+                </button>
+                <button
+                  type="button"
+                  class="preset-pill highlight"
+                  (click)="aplicarDuracao(15)"
+                >
+                  15d
+                </button>
+                <button
+                  type="button"
+                  class="preset-pill"
+                  (click)="aplicarDuracao(20)"
+                >
+                  20d
+                </button>
+                <button
+                  type="button"
+                  class="preset-pill highlight"
+                  (click)="aplicarDuracao(30)"
+                >
+                  30d
+                </button>
+              </div>
+            </div>
+
+            <div class="dates-calculator-row">
+              <div class="date-inputs-col">
+                <div class="date-field">
+                  <label for="modalDataInicio">Data de Início *</label>
+                  <input
+                    id="modalDataInicio"
+                    type="date"
+                    formControlName="dataInicio"
+                    class="form-date-input"
+                  />
+                </div>
+                <div class="date-field">
+                  <label for="modalDataFim">Data de Término *</label>
+                  <input
+                    id="modalDataFim"
+                    type="date"
+                    formControlName="dataFim"
+                    [min]="formValor().dataInicio"
+                    class="form-date-input"
+                  />
+                </div>
+              </div>
+
+              <!-- Live Balance Calculator Box -->
+              <div class="calculator-box">
+                <div class="calc-col">
+                  <span class="calc-label">Duração</span>
+                  <strong class="calc-num primary">{{ dias() }}</strong>
+                  <span class="calc-sub">dias corridos</span>
+                </div>
+                @if (formValor().tipoAfastamento === "FERIAS") {
+                  <div class="calc-sep"></div>
+                  <div class="calc-col">
+                    <span class="calc-label">Disponível</span>
+                    <strong class="calc-num">{{ saldoDisponivel() }}</strong>
+                    <span class="calc-sub">dias no período</span>
+                  </div>
+                  <div class="calc-sep"></div>
+                  <div class="calc-col">
+                    <span class="calc-label">Restante</span>
+                    <strong
+                      class="calc-num"
+                      [class.calc-danger]="saldoDisponivel() - dias() < 0"
+                      [class.calc-success]="saldoDisponivel() - dias() >= 0"
+                    >
+                      {{ saldoDisponivel() - dias() }}
+                    </strong>
+                    <span class="calc-sub">após agendamento</span>
+                  </div>
+                }
+              </div>
+            </div>
+
+            @if (
+              formValor().tipoAfastamento === "FERIAS" &&
+              saldoDisponivel() - dias() < 0
+            ) {
+              <div class="insufficient-balance-alert">
+                <svg class="alert-inline-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span>O agendamento excede o saldo disponível do período em
+                {{ dias() - saldoDisponivel() }} dia(s).</span>
+              </div>
+            }
+          </div>
+
+          <!-- 5. SITUAÇÃO, CONFLITOS E OBSERVAÇÃO -->
+          <div class="form-section-card">
+            <label class="section-title">
+              {{
+                formValor().tipoAfastamento === "FERIAS" ? "5" : "4"
+              }}. Situação e Validação na Escala
+            </label>
+
+            <!-- Status Buttons -->
+            <div class="status-selector-row">
+              <button
+                type="button"
+                class="status-choice-btn planned"
+                [class.active]="formValor().status === 'PLANEJADO'"
+                (click)="selecionarStatus('PLANEJADO')"
+              >
+                <span class="status-marker planned"></span>
+                <div>
+                  <strong>Planejado</strong>
+                  <small>Reserva dias, passível de alteração</small>
+                </div>
+              </button>
+              <button
+                type="button"
+                class="status-choice-btn confirmed"
+                [class.active]="formValor().status === 'CONFIRMADO'"
+                (click)="selecionarStatus('CONFIRMADO')"
+              >
+                <span class="status-marker confirmed"></span>
+                <div>
+                  <strong>Confirmado</strong>
+                  <small>Oficializado no planejamento anual</small>
+                </div>
+              </button>
+            </div>
+
+            <!-- Intelligent Conflict Banners -->
+            @if (verificando()) {
+              <div class="conflict-card checking">
+                <span class="pulse-loader"></span>
+                <span>Verificando sobreposição com servidores da mesma equipe...</span>
+              </div>
+            }
+
+            @if (falhaConflito()) {
+              <div class="conflict-card failure">
+                <div class="conflict-msg-wrap">
+                  <svg class="alert-inline-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                  </svg>
+                  <span>Não foi possível verificar sobreposições de escala.</span>
+                </div>
+                <button
+                  type="button"
+                  class="text-button"
+                  (click)="invalidarConflito()"
+                >
+                  Tentar novamente
+                </button>
+              </div>
+            }
+
+            @if (
+              !verificando() &&
+              !conflito()?.temConflito &&
+              formValor().dataInicio &&
+              formValor().dataFim
+            ) {
+              <div class="conflict-card clean">
+                <svg class="clean-check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>Escala liberada: nenhuma sobreposição detectada na unidade.</span>
+              </div>
+            }
+
+            @if (conflito()?.temConflito) {
+              <div
+                class="conflict-card has-conflict"
+                [class.blocking]="conflito()?.bloqueante"
+              >
+                <div class="conflict-top">
+                  <span class="conflict-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+                      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                      <line x1="12" y1="9" x2="12" y2="13"></line>
+                      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                  </span>
+                  <div>
+                    <strong>{{
+                      conflito()?.bloqueante
+                        ? "Afastamento bloqueado: servidor já possui agendamento nestas datas"
+                        : "Atenção: sobreposição detectada na equipe"
+                    }}</strong>
+                    <p>{{ conflito()?.mensagem }}</p>
+                  </div>
+                </div>
+
+                <div class="conflict-servers-list">
+                  @for (c of conflito()?.conflitos; track c.agendamentoId) {
+                    <div class="conflict-server-pill">
+                      <strong>{{ c.servidorNome }}</strong>
+                      <span
+                        >{{ c.dataInicio | date: "dd/MM" }} a
+                        {{ c.dataFim | date: "dd/MM/yyyy" }}</span
+                      >
+                      <small>({{ c.dias }}d)</small>
+                    </div>
+                  }
+                </div>
+
+                @if (!conflito()?.bloqueante) {
+                  <label class="conflict-override-toggle">
+                    <input
+                      type="checkbox"
+                      formControlName="confirmarComConflito"
+                    />
+                    <span
+                      >Estou ciente da sobreposição de escala e confirmo o
+                      agendamento.</span
+                    >
+                  </label>
+                } @else {
+                  <p class="blocking-note">
+                    Selecione outro período de datas para prosseguir com este
+                    servidor.
+                  </p>
+                }
+              </div>
+            }
+
+            <!-- Observações -->
+            <div class="observacao-box">
+              <label for="observacaoInput"
+                >Observações ou Justificativa (opcional)</label
+              >
+              <textarea
+                id="observacaoInput"
+                formControlName="observacao"
+                rows="2"
+                placeholder="Insira detalhes de cobertura, substituição ou anotações internas..."
+                class="observacao-textarea"
+              ></textarea>
+            </div>
+
+            @if (erroForm()) {
+              <div class="form-error-box" role="alert">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+                <span>{{ erroForm() }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="modal-footer">
+          <button
+            type="button"
+            class="button secondary"
+            (click)="fechar()"
+            [disabled]="salvando()"
+          >
+            Voltar
+          </button>
+          <button
+            type="submit"
+            class="button primary modal-save-btn"
+            [disabled]="
+              salvando() ||
+              verificando() ||
+              conflito()?.bloqueante ||
+              falhaConflito() ||
+              (formValor().tipoAfastamento === 'FERIAS' &&
+                saldoDisponivel() - dias() < 0)
+            "
+          >
+            {{
+              salvando()
+                ? "Salvando agendamento…"
+                : edicao()
+                  ? "Salvar Alterações"
+                  : "Confirmar Agendamento"
+            }}
+          </button>
+        </footer>
+      </form>
+    </aside>
+  </div>
+}
+@if (cadastroPeriodo()) {
+  <div class="drawer-overlay no-print" (click)="fecharPeriodo()">
+    <aside
+      class="drawer"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tituloPeriodo"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="drawer-heading">
+        <div>
+          <span class="eyebrow">SALDO DE FÉRIAS</span>
+          <h2 id="tituloPeriodo">Novo período aquisitivo</h2>
+        </div>
+        <button
+          class="close"
+          aria-label="Fechar cadastro de período"
+          (click)="fecharPeriodo()"
+          [disabled]="salvandoPeriodo()"
+        >
+          ×
+        </button>
+      </header>
+      <form
+        [formGroup]="formPeriodo"
+        (ngSubmit)="salvarPeriodo()"
+        class="drawer-form"
+      >
+        <div class="drawer-body">
+          <p class="muted">
+            Cadastre o intervalo em que o servidor adquiriu o direito às férias.
+          </p>
+          <label
+            >Servidor *<select formControlName="servidorId">
+              <option value="">Selecione um servidor</option>
+              @for (s of servidores(); track s.id) {
+                <option [value]="s.id">{{ s.nome }} · {{ s.matricula }}</option>
+              }
+            </select></label
+          >
+          <div class="form-grid">
+            <label
+              >Início da aquisição *<input
+                type="date"
+                formControlName="dataInicio" /></label
+            ><label
+              >Fim da aquisição *<input type="date" formControlName="dataFim"
+            /></label>
+          </div>
+          <label
+            >Limite para gozo<input type="date" formControlName="limiteGozo"
+          /></label>
+          <p class="hint">
+            Se não informado, será sugerido um ano após o fim da aquisição,
+            conforme a regra atual do sistema.
+          </p>
+          <label
+            >Total de dias *<input
+              type="number"
+              formControlName="totalDias"
+              min="1"
+              max="60"
+          /></label>
+          @if (erroPeriodo()) {
+            <div class="alert blocked" role="alert">{{ erroPeriodo() }}</div>
+          }
+        </div>
+        <footer class="drawer-footer">
+          <button
+            class="button secondary"
+            type="button"
+            (click)="fecharPeriodo()"
+            [disabled]="salvandoPeriodo()"
+          >
+            {{ painel() ? "Voltar ao agendamento" : "Voltar" }}</button
+          ><button
+            class="button primary"
+            type="submit"
+            [disabled]="salvandoPeriodo()"
+          >
+            {{ salvandoPeriodo() ? "Salvando…" : "Cadastrar período" }}
+          </button>
+        </footer>
+      </form>
+    </aside>
+  </div>
+}
+@if (cancelamento(); as ag) {
+  <div class="confirm-overlay no-print">
+    <section
+      class="confirm-card"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tituloCancelar"
+    >
+      <span class="metric-icon amber" aria-hidden="true">
+        <svg class="metric-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+          <path d="M3 3v5h5"></path>
+        </svg>
+      </span>
+      <h2 id="tituloCancelar">Cancelar agendamento?</h2>
+      <p>
+        O afastamento de <strong>{{ ag.servidorNome }}</strong
+        >, de {{ ag.dataInicio | date: "dd/MM/yyyy" }} a
+        {{ ag.dataFim | date: "dd/MM/yyyy" }}, ficará no histórico como
+        cancelado.
+      </p>
+      <div class="info-note">
+        {{
+          ag.tipoAfastamento === "FERIAS"
+            ? "Os " + ag.dias + " dias serão devolvidos ao período aquisitivo."
+            : "Este afastamento não desconta saldo de férias."
+        }}
+      </div>
+      <div class="actions">
+        <button
+          class="button secondary"
+          [disabled]="cancelando()"
+          (click)="cancelamento.set(null)"
+        >
+          Manter agendamento</button
+        ><button
+          class="button danger"
+          [disabled]="cancelando()"
+          (click)="cancelar()"
+        >
+          {{ cancelando() ? "Cancelando…" : "Confirmar cancelamento" }}
+        </button>
+      </div>
+    </section>
+  </div>
+}

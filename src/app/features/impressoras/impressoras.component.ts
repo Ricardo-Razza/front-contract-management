@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ImpressoraService } from '@core/services/impressora.service';
@@ -7,7 +7,7 @@ import { ToastService } from '@core/services/toast.service';
 import { ConfirmModalComponent } from '@shared/components/confirm-modal/confirm-modal.component';
 import { PaginationComponent } from '@shared/components/pagination/pagination.component';
 import { HeaderComponent } from '@shared/components/header/header.component';
-import { exportToCsv } from '@core/utils/export.utils';
+import { exportToCsv, getTodayLocalDateString, formatDatePtBr } from '@core/utils';
 import {
   Impressora,
   LoteImpressao,
@@ -50,6 +50,8 @@ import { LocalInstalacaoService } from '@core/services/local-instalacao.service'
   styleUrls: ['./impressoras.component.scss']
 })
 export class ImpressorasComponent implements OnInit, OnDestroy {
+  formatDatePtBr = formatDatePtBr;
+
   private impressoraService = inject(ImpressoraService);
   private secretariaService = inject(SecretariaService);
   private localInstalacaoService = inject(LocalInstalacaoService);
@@ -58,6 +60,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
   // Estados principais
   loading = signal<boolean>(true);
+  inventoryError = signal(false);
   printers = signal<Impressora[]>([]);
   lotes = signal<LoteImpressao[]>([]);
   secretariats = signal<Secretariat[]>([]);
@@ -79,6 +82,202 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   filterLote = signal<string>('');
   filterEmpenho = signal<string>('');
   filterStatus = signal<string>('');
+  filterTipo = signal<string>('');
+  filterFabricante = signal<string>('');
+  filterTransformador = signal<string>('');
+
+  // Novos controles visuais de visualização e filtros rápidos
+  viewMode = signal<'tabela' | 'secretaria'>('tabela');
+  showInventoryDetails = signal(false);
+  readonly tabDescriptions = {
+    INVENTARIO: { title: 'Inventário de impressoras', description: 'Localize um equipamento e use Ações para editar, registrar leituras ou remanejar.' },
+    LEITURAS: { title: 'Medição mensal', description: 'Selecione a competência para conferir o consumo ou lançar uma leitura manual.' },
+    COLETA: { title: 'Coleta automática', description: 'Selecione o período, inicie a coleta e confira os resultados antes de sincronizar as leituras.' },
+    FINANCEIRO: { title: 'Financeiro', description: 'Consulte as faturas do período, acompanhe o demonstrativo anual ou gerencie os empenhos.' },
+    LOTES: { title: 'Lotes e franquias', description: 'Confira o consumo por lote e consulte os valores e as franquias contratadas.' },
+    LOCAIS: { title: 'Locais de instalação', description: 'Cadastre os setores e mantenha os endereços e responsáveis atualizados.' }
+  };
+  currentSection = computed(() => this.tabDescriptions[this.activeTab()]);
+  showAdvancedFilters = signal<boolean>(false);
+
+  toggleAdvancedFilters(): void {
+    this.showAdvancedFilters.update(v => !v);
+  }
+
+  fabricantesDisponiveis = computed(() => {
+    const set = new Set<string>();
+    this.printers().forEach(p => {
+      if (p.fabricante) set.add(p.fabricante);
+    });
+    return Array.from(set).sort();
+  });
+
+  activeAdvancedFiltersCount = computed(() => {
+    let count = 0;
+    if (this.filterTipo()) count++;
+    if (this.filterFabricante()) count++;
+    if (this.filterLote()) count++;
+    if (this.filterEmpenho()) count++;
+    if (this.filterTransformador()) count++;
+    return count;
+  });
+
+  activeFiltersCount = computed(() => {
+    let count = 0;
+    if (this.globalSearch()) count++;
+    if (this.filterSecretaria()) count++;
+    if (this.filterTipo()) count++;
+    if (this.filterFabricante()) count++;
+    if (this.filterStatus()) count++;
+    if (this.filterLote()) count++;
+    if (this.filterEmpenho()) count++;
+    if (this.filterTransformador()) count++;
+    return count;
+  });
+
+  clearFilters(): void {
+    this.globalSearch.set('');
+    this.filterSecretaria.set('');
+    this.filterTipo.set('');
+    this.filterFabricante.set('');
+    this.filterStatus.set('');
+    this.filterLote.set('');
+    this.filterEmpenho.set('');
+    this.filterTransformador.set('');
+    this.currentPage.set(1);
+  }
+
+  // Agrupamento por Secretaria para Visão Executiva / Setorial
+  printersGroupedBySecretaria = computed(() => {
+    const list = this.filteredPrinters();
+    const map = new Map<string, { sigla: string; nome: string; total: number; ativas: number; manutencao: number; printers: Impressora[] }>();
+
+    list.forEach(p => {
+      const key = p.secretariaSigla || 'OUTRAS';
+      if (!map.has(key)) {
+        map.set(key, {
+          sigla: key,
+          nome: p.secretariaNome || key,
+          total: 0,
+          ativas: 0,
+          manutencao: 0,
+          printers: []
+        });
+      }
+      const g = map.get(key)!;
+      g.total++;
+      if (p.statusInstalacao === 'ATIVA' || (p.ativo && !p.statusInstalacao)) {
+        g.ativas++;
+      } else if (p.statusInstalacao === 'MANUTENCAO' || p.statusInstalacao === 'EM_MANUTENCAO') {
+        g.manutencao++;
+      }
+      g.printers.push(p);
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  });
+
+  expandedSecretarias = signal<Set<string>>(new Set<string>());
+
+  toggleSecretariaGroup(sigla: string): void {
+    this.expandedSecretarias.update(set => {
+      const next = new Set(set);
+      if (next.has(sigla)) {
+        next.delete(sigla);
+      } else {
+        next.add(sigla);
+      }
+      return next;
+    });
+  }
+
+  expandAllSecretarias(): void {
+    const all = new Set(this.printersGroupedBySecretaria().map(g => g.sigla));
+    this.expandedSecretarias.set(all);
+  }
+
+  collapseAllSecretarias(): void {
+    this.expandedSecretarias.set(new Set<string>());
+  }
+
+  // Dropdown de Ações por Linha e Acordeão de Faturas
+  activePrinterMenuId = signal<number | null>(null);
+  printerMenuPosition = signal({ left: 0, top: 0 });
+  private printerMenuTrigger: HTMLElement | null = null;
+  private readonly dismissPrinterMenuOnScroll = () => this.closePrinterMenu();
+  expandedInvoices = signal<Set<string>>(new Set<string>());
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    this.activePrinterMenuId.set(null);
+  }
+
+  @HostListener('document:keydown.escape')
+  onPrinterMenuEscape(): void {
+    if (this.activePrinterMenuId() !== null) {
+      this.closePrinterMenu();
+      this.printerMenuTrigger?.focus();
+    }
+  }
+
+  @HostListener('window:resize')
+  onPrinterMenuResize(): void {
+    this.closePrinterMenu();
+  }
+
+  togglePrinterMenu(printerId: number, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    if (this.activePrinterMenuId() === printerId) {
+      this.activePrinterMenuId.set(null);
+    } else {
+      this.printerMenuTrigger = event?.currentTarget as HTMLElement | null;
+      const rect = this.printerMenuTrigger?.getBoundingClientRect();
+      if (rect) {
+        this.printerMenuPosition.set({
+          left: Math.max(12, Math.min(rect.right - 240, window.innerWidth - 252)),
+          top: Math.max(12, Math.min(rect.bottom + 6, window.innerHeight - 292))
+        });
+      }
+      this.activePrinterMenuId.set(printerId);
+    }
+  }
+
+  closePrinterMenu(): void {
+    this.activePrinterMenuId.set(null);
+  }
+
+  toggleInvoice(numeroEmpenho: string): void {
+    this.expandedInvoices.update(set => {
+      const newSet = new Set(set);
+      if (newSet.has(numeroEmpenho)) {
+        newSet.delete(numeroEmpenho);
+      } else {
+        newSet.add(numeroEmpenho);
+      }
+      return newSet;
+    });
+  }
+
+  isInvoiceExpanded(numeroEmpenho: string): boolean {
+    return this.expandedInvoices().has(numeroEmpenho);
+  }
+
+  expandAllInvoices(): void {
+    const all = new Set(this.notasFiscaisLote().map(f => f.numeroEmpenho));
+    this.expandedInvoices.set(all);
+  }
+
+  collapseAllInvoices(): void {
+    this.expandedInvoices.set(new Set<string>());
+  }
+
+  calcularPercentualEmpenho(emp: EmpenhoImpressao): number {
+    if (!emp.valorTotal || emp.valorTotal <= 0) return 0;
+    const consumido = emp.valorTotal - (emp.saldo || 0);
+    return Math.min(100, Math.max(0, Math.round((consumido / emp.valorTotal) * 100)));
+  }
 
   // Módulo Financeiro & Notas Fiscais Unificado
   subTabFinanceiro = signal<'NOTAS_MENSAIS' | 'DEMONSTRATIVO_ANUAL' | 'EMPENHOS'>('NOTAS_MENSAIS');
@@ -188,7 +387,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     endereco: [''],
     responsavel: [''],
     transformador: ['NAO'],
-    dataInstalacao: [new Date().toISOString().substring(0, 10), Validators.required],
+    dataInstalacao: [getTodayLocalDateString(), Validators.required],
     contadorInicialMono: [0],
     contadorInicialColor: [0]
   });
@@ -201,7 +400,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     novoResponsavel: [''],
     novoIp: [''],
     novoTransformador: ['NAO'],
-    dataMudanca: [new Date().toISOString().substring(0, 10), Validators.required],
+    dataMudanca: [getTodayLocalDateString(), Validators.required],
     contadorAtualMono: [0, Validators.required],
     contadorAtualColor: [0],
     motivo: ['Remanejamento de setor']
@@ -219,7 +418,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   substituirForm: FormGroup = this.fb.group({
     contadorFinalMonoRetirada: [0, Validators.required],
     contadorFinalColorRetirada: [0],
-    dataSubstituicao: [new Date().toISOString().substring(0, 10), Validators.required],
+    dataSubstituicao: [getTodayLocalDateString(), Validators.required],
     motivoDefeito: ['', Validators.required],
     novoNumeroSerie: [''],
     novoFabricante: ['Ricoh'],
@@ -232,7 +431,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     impressoraId: ['', Validators.required],
     mesReferencia: [new Date().getMonth() + 1, Validators.required],
     anoReferencia: [new Date().getFullYear(), Validators.required],
-    dataLeitura: [new Date().toISOString().substring(0, 10), Validators.required],
+    dataLeitura: [getTodayLocalDateString(), Validators.required],
     leituraMonoAtual: [0, Validators.required],
     leituraColorAtual: [0],
     proporcao: [1.0],
@@ -251,30 +450,73 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
   // Métricas Computadas
   totalImpressoras = computed(() => this.printers().length);
-  totalAtivas = computed(() => this.printers().filter(p => p.statusInstalacao === 'ATIVA' || p.ativo).length);
+  totalManutencao = computed(() => this.printers().filter(p => p.statusInstalacao === 'MANUTENCAO' || p.statusInstalacao === 'EM_MANUTENCAO').length);
+  totalAtivas = computed(() => this.printers().filter(p => p.statusInstalacao === 'ATIVA' || (p.ativo && !p.statusInstalacao)).length);
   totalMono = computed(() => this.printers().filter(p => p.tipoImpressao === 'MONO').length);
   totalColor = computed(() => this.printers().filter(p => p.tipoImpressao === 'COLOR').length);
 
   // Computado de filtragem do Inventário
   filteredPrinters = computed(() => {
     let list = this.printers();
-    const search = this.globalSearch().toLowerCase().trim();
+    const rawSearch = this.globalSearch().trim();
 
-    if (search) {
-      list = list.filter(p =>
-        (p.modelo && p.modelo.toLowerCase().includes(search)) ||
-        (p.ip && p.ip.toLowerCase().includes(search)) ||
-        (p.localInstalacao && p.localInstalacao.toLowerCase().includes(search)) ||
-        (p.secretariaSigla && p.secretariaSigla.toLowerCase().includes(search)) ||
-        (p.secretariaNome && p.secretariaNome.toLowerCase().includes(search)) ||
-        (p.numeroSerie && p.numeroSerie.toLowerCase().includes(search)) ||
-        (p.numeroEmpenho && p.numeroEmpenho.toLowerCase().includes(search)) ||
-        (p.itemPedido && p.itemPedido.toString().includes(search))
-      );
+    if (rawSearch) {
+      const isItemHash = /^#\s*(\d+)$/.test(rawSearch);
+      const isItemWord = /^item\s*(\d+)$/i.test(rawSearch);
+      const isPureNumber = /^\d+$/.test(rawSearch);
+
+      if (isItemHash || isItemWord || isPureNumber) {
+        const itemNum = parseInt(rawSearch.replace(/\D/g, ''), 10);
+        const exactMatches = list.filter(p => p.itemPedido === itemNum || p.id === itemNum);
+        if (exactMatches.length > 0) {
+          list = exactMatches;
+        } else {
+          const search = rawSearch.toLowerCase();
+          list = list.filter(p =>
+            (p.numeroSerie && p.numeroSerie.toLowerCase().includes(search)) ||
+            (p.ip && p.ip.toLowerCase() === search) ||
+            (p.numeroEmpenho && p.numeroEmpenho.toLowerCase().includes(search)) ||
+            (p.modelo && p.modelo.toLowerCase().includes(search))
+          );
+        }
+      } else {
+        const search = rawSearch.toLowerCase();
+        list = list.filter(p =>
+          (p.modelo && p.modelo.toLowerCase().includes(search)) ||
+          (p.fabricante && p.fabricante.toLowerCase().includes(search)) ||
+          (p.ip && p.ip.toLowerCase().includes(search)) ||
+          (p.localInstalacao && p.localInstalacao.toLowerCase().includes(search)) ||
+          (p.endereco && p.endereco.toLowerCase().includes(search)) ||
+          (p.secretariaSigla && p.secretariaSigla.toLowerCase().includes(search)) ||
+          (p.secretariaNome && p.secretariaNome.toLowerCase().includes(search)) ||
+          (p.numeroSerie && p.numeroSerie.toLowerCase().includes(search)) ||
+          (p.numeroEmpenho && p.numeroEmpenho.toLowerCase().includes(search))
+        );
+      }
     }
 
     if (this.filterSecretaria()) {
       list = list.filter(p => p.secretariaSigla === this.filterSecretaria());
+    }
+
+    if (this.filterTipo()) {
+      list = list.filter(p => p.tipoImpressao === this.filterTipo());
+    }
+
+    if (this.filterFabricante()) {
+      list = list.filter(p => p.fabricante?.toLowerCase() === this.filterFabricante().toLowerCase());
+    }
+
+    if (this.filterStatus()) {
+      if (this.filterStatus() === 'ATIVA') {
+        list = list.filter(p => p.statusInstalacao === 'ATIVA' || (p.ativo && !p.statusInstalacao));
+      } else if (this.filterStatus() === 'MANUTENCAO') {
+        list = list.filter(p => p.statusInstalacao === 'MANUTENCAO' || p.statusInstalacao === 'EM_MANUTENCAO');
+      } else if (this.filterStatus() === 'INATIVA') {
+        list = list.filter(p => p.statusInstalacao === 'INATIVA' || p.statusInstalacao === 'RECOLHIDA' || !p.ativo);
+      } else {
+        list = list.filter(p => p.statusInstalacao === this.filterStatus());
+      }
     }
 
     if (this.filterLote()) {
@@ -283,6 +525,10 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
     if (this.filterEmpenho()) {
       list = list.filter(p => p.numeroEmpenho === this.filterEmpenho());
+    }
+
+    if (this.filterTransformador()) {
+      list = list.filter(p => p.transformador === this.filterTransformador());
     }
 
     return list;
@@ -297,16 +543,34 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   // Filtragem de Leituras da Competência
   filteredLeituras = computed(() => {
     let list = this.leituras();
-    const search = this.termoBuscaLeituras().toLowerCase().trim();
+    const rawSearch = this.termoBuscaLeituras().trim();
 
-    if (search) {
-      list = list.filter(l =>
-        (l.impressoraModelo && l.impressoraModelo.toLowerCase().includes(search)) ||
-        (l.localInstalacao && l.localInstalacao.toLowerCase().includes(search)) ||
-        (l.impressoraIp && l.impressoraIp.toLowerCase().includes(search)) ||
-        (l.secretariaSigla && l.secretariaSigla.toLowerCase().includes(search)) ||
-        (l.itemPedido && l.itemPedido.toString().includes(search))
-      );
+    if (rawSearch) {
+      const isItemHash = /^#\s*(\d+)$/.test(rawSearch);
+      const isItemWord = /^item\s*(\d+)$/i.test(rawSearch);
+      const isPureNumber = /^\d+$/.test(rawSearch);
+
+      if (isItemHash || isItemWord || isPureNumber) {
+        const itemNum = parseInt(rawSearch.replace(/\D/g, ''), 10);
+        const exactMatches = list.filter(l => (l.itemPedido === itemNum || l.impressoraId === itemNum));
+        if (exactMatches.length > 0) {
+          list = exactMatches;
+        } else {
+          const search = rawSearch.toLowerCase();
+          list = list.filter(l =>
+            (l.impressoraIp && l.impressoraIp.toLowerCase() === search) ||
+            (l.impressoraModelo && l.impressoraModelo.toLowerCase().includes(search))
+          );
+        }
+      } else {
+        const search = rawSearch.toLowerCase();
+        list = list.filter(l =>
+          (l.impressoraModelo && l.impressoraModelo.toLowerCase().includes(search)) ||
+          (l.localInstalacao && l.localInstalacao.toLowerCase().includes(search)) ||
+          (l.impressoraIp && l.impressoraIp.toLowerCase().includes(search)) ||
+          (l.secretariaSigla && l.secretariaSigla.toLowerCase().includes(search))
+        );
+      }
     }
 
     if (this.filtroSecretariaLeituras()) {
@@ -523,6 +787,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
+    document.addEventListener('scroll', this.dismissPrinterMenuOnScroll, true);
     this.carregarDados();
   }
 
@@ -552,6 +817,8 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   }
 
   carregarImpressoras(): void {
+    this.loading.set(true);
+    this.inventoryError.set(false);
     this.impressoraService.getAll().subscribe({
       next: list => {
         this.printers.set(list);
@@ -559,6 +826,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.toast.error('Erro ao conectar com o serviço de impressoras.');
+        this.inventoryError.set(true);
         this.loading.set(false);
       }
     });
@@ -789,7 +1057,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       tipoImpressao: 'MONO',
       loteId: 1,
       transformador: 'NAO',
-      dataInstalacao: new Date().toISOString().substring(0, 10),
+      dataInstalacao: getTodayLocalDateString(),
       contadorInicialMono: 0,
       contadorInicialColor: 0,
       secretariaId: '',
@@ -917,7 +1185,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       novoResponsavel: p.responsavel,
       novoIp: p.ip,
       novoTransformador: p.transformador || 'NAO',
-      dataMudanca: new Date().toISOString().substring(0, 10),
+      dataMudanca: getTodayLocalDateString(),
       contadorAtualMono: p.ultimoContadorMono || p.contadorInstalacaoMono || 0,
       contadorAtualColor: p.ultimoContadorColor || p.contadorInstalacaoColor || 0,
       motivo: 'Remanejamento de setor'
@@ -964,7 +1232,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     this.substituirForm.reset({
       contadorFinalMonoRetirada: p.ultimoContadorMono || p.contadorInstalacaoMono || 0,
       contadorFinalColorRetirada: p.ultimoContadorColor || p.contadorInstalacaoColor || 0,
-      dataSubstituicao: new Date().toISOString().substring(0, 10),
+      dataSubstituicao: getTodayLocalDateString(),
       motivoDefeito: '',
       novoNumeroSerie: '',
       novoFabricante: p.fabricante,
@@ -1003,7 +1271,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       impressoraId: p ? p.id : '',
       mesReferencia: this.mesCompetencia(),
       anoReferencia: this.anoCompetencia(),
-      dataLeitura: new Date().toISOString().substring(0, 10),
+      dataLeitura: getTodayLocalDateString(),
       leituraMonoAtual: p ? (p.ultimoContadorMono || p.contadorInstalacaoMono || 0) : 0,
       leituraColorAtual: p ? (p.ultimoContadorColor || p.contadorInstalacaoColor || 0) : 0,
       proporcao: 1.0,
@@ -1213,7 +1481,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       { header: 'Ultimo Contador', accessor: (p: Impressora) => (p.ultimoContadorMono || 0).toLocaleString('pt-BR') },
       { header: 'Status', accessor: (p: Impressora) => p.statusInstalacao || 'ATIVA' }
     ];
-    exportToCsv('inventario_impressoras_' + new Date().toISOString().substring(0, 10), columns, list);
+    exportToCsv('inventario_impressoras_' + getTodayLocalDateString(), columns, list);
     this.toast.success('Inventário exportado em .CSV com sucesso!');
   }
 
@@ -1993,6 +2261,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   // ==================== METODOS DA COLETA AUTOMATICA ====================
 
   ngOnDestroy(): void {
+    document.removeEventListener('scroll', this.dismissPrinterMenuOnScroll, true);
     this.pararPollingColeta();
   }
 
@@ -2177,14 +2446,50 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     });
   }
 
+  printZoomLevel = signal<number>(1);
+  printRotation = signal<number>(0);
+
   abrirModalPrint(item: ColetaItem): void {
     this.printSelecionado.set(item);
+    this.printZoomLevel.set(1);
+    this.printRotation.set(0);
     this.modalPrintAberto.set(true);
   }
 
   fecharModalPrint(): void {
     this.modalPrintAberto.set(false);
     this.printSelecionado.set(null);
+    this.printZoomLevel.set(1);
+    this.printRotation.set(0);
+  }
+
+  zoomInPrint(): void {
+    this.printZoomLevel.update(z => Math.min(Number((z + 0.25).toFixed(2)), 3));
+  }
+
+  zoomOutPrint(): void {
+    this.printZoomLevel.update(z => Math.max(Number((z - 0.25).toFixed(2)), 0.5));
+  }
+
+  resetZoomPrint(): void {
+    this.printZoomLevel.set(1);
+    this.printRotation.set(0);
+  }
+
+  rotatePrint(): void {
+    this.printRotation.update(r => (r + 90) % 360);
+  }
+
+  downloadPrintImage(item: ColetaItem): void {
+    const url = this.getUrlImagemColeta(item);
+    if (!url) return;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = item.nomeArquivo || `print-${item.modelo || 'impressora'}.png`;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
 
   getUrlImagemColeta(item: ColetaItem): string {
@@ -2192,4 +2497,3 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     return this.impressoraService.getUrlImagemColeta(item.sessaoId, item.nomeArquivo);
   }
 }
-
