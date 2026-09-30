@@ -1,10 +1,10 @@
 import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PaginationComponent, OrderEquipePipe } from '@shared';
 import { AtaService, SecretariaService, ServidorService, LookupService, ToastService } from '@core/services';
-import { Agreement, Secretariat, LookupItem } from '@core/models';
+import { Agreement, Secretariat, LookupItem, Servant } from '@core/models';
 import { includesNormalized, matchesSearch, exportToCsv, printFichaDocumento, parseDateSafe, formatDatePtBr } from '@core/utils';
 
 @Component({
@@ -42,7 +42,22 @@ export class AtasComponent implements OnInit {
   secretariats = signal<Secretariat[]>([]);
   tiposList = signal<LookupItem[]>([]);
   statusList = signal<LookupItem[]>([]);
+  funcoesList = signal<LookupItem[]>([]);
+  servants = signal<Servant[]>([]);
   servidoresList = signal<{ id: number; nome: string }[]>([]);
+
+  // Equipe de Ata (No Modal)
+  openServidorDropdownIndex = signal<number | null>(null);
+  servidorSearch = signal<string>('');
+  selectedServants = signal<(Servant | null)[]>([]);
+
+  filteredServantsForDropdown = computed(() => {
+    const term = this.servidorSearch().trim();
+    if (!term) return this.servants();
+    return this.servants().filter(s =>
+      matchesSearch([s.nome, s.cargo, s.matricula, s.secretaria], term)
+    );
+  });
 
   // ===== FILTROS =====
   showFilters = signal(false);
@@ -84,6 +99,8 @@ export class AtasComponent implements OnInit {
       this.showSecretariaDropdown.set(false);
     } else if (this.showPessoaSuggestions()) {
       this.showPessoaSuggestions.set(false);
+    } else if (this.openServidorDropdownIndex() !== null) {
+      this.openServidorDropdownIndex.set(null);
     } else if (this.isDetailsModalOpen()) {
       this.closeDetailsModal();
     } else if (this.isModalOpen()) {
@@ -100,6 +117,9 @@ export class AtasComponent implements OnInit {
       this.showSecretariaDropdown.set(false);
       this.showPessoaSuggestions.set(false);
     }
+    if (!target.closest('.custom-select-wrapper')) {
+      this.openServidorDropdownIndex.set(null);
+    }
   }
 
   // ===== FORM =====
@@ -114,8 +134,13 @@ export class AtasComponent implements OnInit {
     portariaDesignacao: ['', Validators.required],
     dataDesignacao: ['', Validators.required],
     ativoId: [1, Validators.required],
-    secretariasIds: [[], Validators.required]
+    secretariasIds: [[], Validators.required],
+    membros: this.fb.array([])
   });
+
+  get membrosArray(): FormArray {
+    return this.form.get('membros') as FormArray;
+  }
 
   // ===== COMPUTED =====
   activeFiltersCount = computed(() => {
@@ -366,14 +391,59 @@ export class AtasComponent implements OnInit {
     this.lookupService.getAtivos().subscribe({
       next: (items) => this.statusList.set(items || [])
     });
+    this.lookupService.getFuncoesEquipe().subscribe({
+      next: (items) => this.funcoesList.set(items || [])
+    });
   }
 
   loadServidores(): void {
     this.servidorService.getAll().subscribe({
       next: (data) => {
-        this.servidoresList.set(data.map(s => ({ id: s.id, nome: s.nome })));
+        this.servants.set(data || []);
+        this.servidoresList.set((data || []).map(s => ({ id: s.id, nome: s.nome })));
       }
     });
+  }
+
+  // ============ MÉTODOS DE EQUIPE DE ATA (MODAL) ============
+  addMembro(servidorId: number | string = '', funcaoId: number | string = '', servantObj: Servant | null = null): void {
+    this.membrosArray.push(this.fb.group({
+      servidorId: [servidorId, Validators.required],
+      funcaoId: [funcaoId, Validators.required]
+    }));
+    this.selectedServants.update(list => [...list, servantObj]);
+  }
+
+  removeMembro(index: number): void {
+    this.membrosArray.removeAt(index);
+    this.selectedServants.update(list => list.filter((_, i) => i !== index));
+    if (this.openServidorDropdownIndex() === index) {
+      this.openServidorDropdownIndex.set(null);
+    }
+  }
+
+  toggleServidorDropdown(index: number): void {
+    if (this.openServidorDropdownIndex() === index) {
+      this.openServidorDropdownIndex.set(null);
+    } else {
+      this.openServidorDropdownIndex.set(index);
+      this.servidorSearch.set('');
+    }
+  }
+
+  selectServant(index: number, servant: Servant): void {
+    const ctrl = this.membrosArray.at(index);
+    if (ctrl) {
+      ctrl.get('servidorId')!.setValue(servant.id);
+      this.selectedServants.update(list => {
+        const copy = [...list];
+        copy[index] = servant;
+        return copy;
+      });
+      ctrl.get('servidorId')!.markAsTouched();
+    }
+    this.openServidorDropdownIndex.set(null);
+    this.servidorSearch.set('');
   }
 
   // ===== SORT & PAGINATION METHODS =====
@@ -648,6 +718,10 @@ export class AtasComponent implements OnInit {
     this.editingAta.set(null);
     this.isEditModalOpen.set(false);
     this.modalSecretariaSearch.set('');
+    this.membrosArray.clear();
+    this.selectedServants.set([]);
+    this.openServidorDropdownIndex.set(null);
+    this.servidorSearch.set('');
     this.form.reset({
       numero: '',
       ano: new Date().getFullYear(),
@@ -668,6 +742,10 @@ export class AtasComponent implements OnInit {
     this.editingAta.set(ata);
     this.isEditModalOpen.set(true);
     this.modalSecretariaSearch.set('');
+    this.membrosArray.clear();
+    this.selectedServants.set([]);
+    this.openServidorDropdownIndex.set(null);
+    this.servidorSearch.set('');
 
     const ataTipoNorm = (ata.tipo || '').trim().toUpperCase();
     const tipoObj = this.tiposList().find(t =>
@@ -694,6 +772,26 @@ export class AtasComponent implements OnInit {
       secretariasIds: ata.secretarias?.map(s => s.id) || []
     });
 
+    if (ata.equipe && ata.equipe.length > 0) {
+      ata.equipe.forEach(eq => {
+        if (eq.membros && eq.membros.length > 0) {
+          eq.membros.forEach(m => {
+            const sObj = this.servants().find(s => s.id === m.servidorId) || {
+              id: m.servidorId,
+              nome: m.servidorNome || '',
+              cargo: m.servidorCargo || '',
+              matricula: m.servidorMatricula ? Number(m.servidorMatricula) : 0,
+              email: '',
+              telefone: '',
+              secretaria: '',
+              situacao: 'ATIVO'
+            };
+            this.addMembro(m.servidorId, m.funcaoId, sObj);
+          });
+        }
+      });
+    }
+
     this.isModalOpen.set(true);
   }
 
@@ -702,6 +800,10 @@ export class AtasComponent implements OnInit {
     this.isEditModalOpen.set(false);
     this.editingAta.set(null);
     this.modalSecretariaSearch.set('');
+    this.membrosArray.clear();
+    this.selectedServants.set([]);
+    this.openServidorDropdownIndex.set(null);
+    this.servidorSearch.set('');
     this.form.reset();
   }
 
@@ -715,6 +817,13 @@ export class AtasComponent implements OnInit {
     this.submitting.set(true);
     const val = this.form.value;
 
+    const membrosPayload = val.membros && val.membros.length > 0
+      ? val.membros.map((m: any) => ({
+          servidorId: Number(m.servidorId),
+          funcaoId: Number(m.funcaoId)
+        }))
+      : [];
+
     const payload = {
       numero: Number(val.numero),
       ano: Number(val.ano),
@@ -726,7 +835,8 @@ export class AtasComponent implements OnInit {
       portariaDesignacao: val.portariaDesignacao,
       dataDesignacao: val.dataDesignacao,
       ativoId: Number(val.ativoId),
-      secretariasIds: val.secretariasIds || []
+      secretariasIds: val.secretariasIds || [],
+      membros: membrosPayload
     };
 
     if (this.editingAta()) {

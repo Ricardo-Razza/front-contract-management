@@ -80,6 +80,7 @@ export interface AgreementDTO {
   dataDesignacao?: string;
   ativoId: number;
   secretariasIds: number[];
+  membros?: { servidorId: number; funcaoId: number }[];
 }
 
 export interface ContractTeamMember {
@@ -123,6 +124,7 @@ export interface ContractDTO {
   ativoId: number;
   secretariasIds: number[];
   secretariasId?: number[];
+  membros?: { servidorId: number; funcaoId: number }[];
 }
 
 export interface ContractTeam {

@@ -399,181 +399,350 @@
 <!-- ===== MODAL DE CADASTRO / EDIÇÃO ===== -->
 @if (isModalOpen()) {
 <div class="modal-backdrop" (click)="closeModal()">
-  <div class="modal-card modal-lg" (click)="$event.stopPropagation()">
+  <div class="modal-card modal-xl" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h3>{{ editingContrato() ? 'Editar Contrato' : 'Novo Contrato' }}</h3>
-      <button class="modal-close" (click)="closeModal()">&times;</button>
+      <div class="modal-header-info">
+        <div class="modal-type-badge badge-contrato">
+          <svg class="mat-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
+          </svg>
+        </div>
+        <div>
+          <span class="modal-eyebrow">GESTÃO DE CONTRATOS</span>
+          <h2>{{ editingContrato() ? 'Editar Contrato Nº ' + (form.get('numero')?.value || '') + '/' + (form.get('ano')?.value || '') : 'Novo Contrato Municipal' }}</h2>
+          <p class="modal-subtitle">Controle de vigência, objeto, secretarias participantes e equipe de fiscalização</p>
+        </div>
+      </div>
+      <button type="button" class="modal-close-btn" (click)="closeModal()" aria-label="Fechar janela">&times;</button>
     </div>
+
     <form [formGroup]="form" (ngSubmit)="saveContrato()">
       <div class="modal-body">
-        <div class="form-section-title">
-          <span class="section-bullet">1</span>
-          Identificação do Contrato
-        </div>
-        <div class="form-grid">
+        <!-- 1. IDENTIFICAÇÃO DO CONTRATO -->
+        <div class="form-section-card">
+          <div class="section-card-header">
+            <div class="title-with-pill">
+              <span class="section-bullet">1</span>
+              <label class="section-title">Identificação do Contrato</label>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Número <span class="required">*</span></label>
+              <input type="number" formControlName="numero" placeholder="Ex: 011"
+                [class.is-invalid]="form.get('numero')?.invalid && form.get('numero')?.touched" />
+              @if (form.get('numero')?.touched && form.get('numero')?.hasError('required')) {
+                <span class="invalid-feedback">O número é obrigatório</span>
+              }
+            </div>
+            <div class="form-group">
+              <label>Ano <span class="required">*</span></label>
+              <input type="number" formControlName="ano" placeholder="Ex: 2026"
+                [class.is-invalid]="form.get('ano')?.invalid && form.get('ano')?.touched" />
+              @if (form.get('ano')?.touched && form.get('ano')?.hasError('required')) {
+                <span class="invalid-feedback">O ano é obrigatório</span>
+              }
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Tipo <span class="required">*</span></label>
+              <select formControlName="tipoId"
+                [class.is-invalid]="form.get('tipoId')?.invalid && form.get('tipoId')?.touched">
+                @for (item of tiposList(); track item.id) {
+                <option [value]="item.id">{{ item.tipoArp || item.nome || item.descricao }}</option>
+                }
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Situação <span class="required">*</span></label>
+              <select formControlName="ativoId"
+                [class.is-invalid]="form.get('ativoId')?.invalid && form.get('ativoId')?.touched">
+                @for (item of statusList(); track item.id) {
+                <option [value]="item.id">{{ item.situacao || item.nome }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
           <div class="form-group">
-            <label>Número <span class="required">*</span></label>
-            <input type="number" formControlName="numero" placeholder="Ex: 011"
-              [class.is-invalid]="form.get('numero')?.invalid && form.get('numero')?.touched" />
-            @if (form.get('numero')?.touched && form.get('numero')?.hasError('required')) {
-              <span class="invalid-feedback">O número é obrigatório</span>
+            <label>Nome do Contratado <span class="required">*</span></label>
+            <input type="text" formControlName="nomeContratado" placeholder="Nome da pessoa física ou empresa contratada"
+              [class.is-invalid]="form.get('nomeContratado')?.invalid && form.get('nomeContratado')?.touched" />
+            @if (form.get('nomeContratado')?.touched && form.get('nomeContratado')?.hasError('required')) {
+              <span class="invalid-feedback">O nome do contratado é obrigatório</span>
             }
           </div>
-          <div class="form-group">
-            <label>Ano <span class="required">*</span></label>
-            <input type="number" formControlName="ano" placeholder="Ex: 2020"
-              [class.is-invalid]="form.get('ano')?.invalid && form.get('ano')?.touched" />
-            @if (form.get('ano')?.touched && form.get('ano')?.hasError('required')) {
-              <span class="invalid-feedback">O ano é obrigatório</span>
-            }
-          </div>
         </div>
 
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Tipo <span class="required">*</span></label>
-            <select formControlName="tipoId"
-              [class.is-invalid]="form.get('tipoId')?.invalid && form.get('tipoId')?.touched">
-              @for (item of tiposList(); track item.id) {
-              <option [value]="item.id">{{ item.tipoArp || item.nome || item.descricao }}</option>
-              }
-            </select>
+        <!-- 2. SECRETARIAS PARTICIPANTES -->
+        <div class="form-section-card">
+          <div class="section-card-header">
+            <div class="title-with-pill">
+              <span class="section-bullet">2</span>
+              <label class="section-title">Secretarias Vinculadas</label>
+            </div>
           </div>
-          <div class="form-group">
-            <label>Situação <span class="required">*</span></label>
-            <select formControlName="ativoId"
-              [class.is-invalid]="form.get('ativoId')?.invalid && form.get('ativoId')?.touched">
-              @for (item of statusList(); track item.id) {
-              <option [value]="item.id">{{ item.situacao || item.nome }}</option>
-              }
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Nome do Contratado <span class="required">*</span></label>
-          <input type="text" formControlName="nomeContratado" placeholder="Nome da pessoa física ou empresa contratada"
-            [class.is-invalid]="form.get('nomeContratado')?.invalid && form.get('nomeContratado')?.touched" />
-          @if (form.get('nomeContratado')?.touched && form.get('nomeContratado')?.hasError('required')) {
-            <span class="invalid-feedback">O nome do contratado é obrigatório</span>
-          }
-        </div>
-
-        <!-- ===== BLOCO DE SECRETARIAS MODERNO & INTERATIVO ===== -->
-        <div class="form-section-title">
-          <span class="section-bullet">2</span>
-          Secretarias Vinculadas
-        </div>
-        <div class="form-group">
-          <label>Selecione as secretarias participantes <span class="required">*</span></label>
-          <div class="secretarias-modal-box">
-            <div class="sec-toolbar">
-              <input type="text" class="sec-search-input" placeholder="Filtrar secretaria por sigla ou nome..."
-                [ngModel]="modalSecretariaSearch()" (ngModelChange)="modalSecretariaSearch.set($event)"
-                [ngModelOptions]="{standalone: true}" />
-              <div class="sec-actions">
-                <button type="button" class="btn-sec-action" (click)="selectAllSecretarias()">Todas</button>
-                <button type="button" class="btn-sec-action" (click)="clearAllSecretarias()">Limpar</button>
-                <span class="sec-count">{{ form.get('secretariasIds')?.value?.length || 0 }} de {{ secretariats().length }}</span>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label>Selecione as secretarias participantes <span class="required">*</span></label>
+            <div class="secretarias-modal-box">
+              <div class="sec-toolbar">
+                <input type="text" class="sec-search-input" placeholder="Filtrar secretaria por sigla ou nome..."
+                  [ngModel]="modalSecretariaSearch()" (ngModelChange)="modalSecretariaSearch.set($event)"
+                  [ngModelOptions]="{standalone: true}" />
+                <div class="sec-actions">
+                  <button type="button" class="btn-sec-action" (click)="selectAllSecretarias()">Todas</button>
+                  <button type="button" class="btn-sec-action" (click)="clearAllSecretarias()">Limpar</button>
+                  <span class="sec-count">{{ form.get('secretariasIds')?.value?.length || 0 }} de {{ secretariats().length }}</span>
+                </div>
+              </div>
+              <div class="sec-checkboxes-grid">
+                @for (sec of filteredModalSecretarias(); track sec.id) {
+                <label class="sec-check-item" [class.checked]="isSecretariaSelected(sec.id)">
+                  <input type="checkbox" [checked]="isSecretariaSelected(sec.id)" (change)="toggleSecretaria(sec.id)" />
+                  <div class="sec-info">
+                    <span class="sec-sigla">{{ sec.sigla }}</span>
+                    <span class="sec-nome" [title]="sec.nome">{{ sec.nome }}</span>
+                  </div>
+                </label>
+                } @empty {
+                <span class="text-muted" style="padding: 0.75rem; grid-column: 1 / -1; font-size: 0.8rem;">
+                  Nenhuma secretaria encontrada para "{{ modalSecretariaSearch() }}"
+                </span>
+                }
               </div>
             </div>
-            <div class="sec-checkboxes-grid">
-              @for (sec of filteredModalSecretarias(); track sec.id) {
-              <label class="sec-check-item" [class.checked]="isSecretariaSelected(sec.id)">
-                <input type="checkbox" [checked]="isSecretariaSelected(sec.id)" (change)="toggleSecretaria(sec.id)" />
-                <div class="sec-info">
-                  <span class="sec-sigla">{{ sec.sigla }}</span>
-                  <span class="sec-nome" [title]="sec.nome">{{ sec.nome }}</span>
-                </div>
-              </label>
-              } @empty {
-              <span class="text-muted" style="padding: 0.75rem; grid-column: 1 / -1; font-size: 0.8rem;">
-                Nenhuma secretaria encontrada para "{{ modalSecretariaSearch() }}"
-              </span>
+            @if (form.get('secretariasIds')?.touched && form.get('secretariasIds')?.hasError('required')) {
+              <span class="invalid-feedback">Selecione ao menos uma secretaria</span>
+            }
+          </div>
+        </div>
+
+        <!-- 3. PRAZOS E PORTARIA DE DESIGNAÇÃO -->
+        <div class="form-section-card">
+          <div class="section-card-header">
+            <div class="title-with-pill">
+              <span class="section-bullet">3</span>
+              <label class="section-title">Prazos e Portaria de Designação</label>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Data Início <span class="required">*</span></label>
+              <input type="date" formControlName="dataInicio"
+                [class.is-invalid]="form.get('dataInicio')?.invalid && form.get('dataInicio')?.touched" />
+              @if (form.get('dataInicio')?.touched && form.get('dataInicio')?.hasError('required')) {
+                <span class="invalid-feedback">Data de início é obrigatória</span>
+              }
+            </div>
+            <div class="form-group">
+              <label>Data Fim <span class="required">*</span></label>
+              <input type="date" formControlName="dataFim"
+                [class.is-invalid]="form.get('dataFim')?.invalid && form.get('dataFim')?.touched" />
+              @if (form.get('dataFim')?.touched && form.get('dataFim')?.hasError('required')) {
+                <span class="invalid-feedback">Data de término é obrigatória</span>
               }
             </div>
           </div>
-          @if (form.get('secretariasIds')?.touched && form.get('secretariasIds')?.hasError('required')) {
-            <span class="invalid-feedback">Selecione ao menos uma secretaria</span>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Portaria de Designação <span class="required">*</span></label>
+              <input type="text" formControlName="portariaDesignacao" placeholder="Ex: 602/2023"
+                [class.is-invalid]="form.get('portariaDesignacao')?.invalid && form.get('portariaDesignacao')?.touched" />
+              @if (form.get('portariaDesignacao')?.touched && form.get('portariaDesignacao')?.hasError('required')) {
+                <span class="invalid-feedback">Informação da portaria é obrigatória</span>
+              }
+            </div>
+            <div class="form-group">
+              <label>Data da Designação <span class="required">*</span></label>
+              <input type="date" formControlName="dataDesignacao"
+                [class.is-invalid]="form.get('dataDesignacao')?.invalid && form.get('dataDesignacao')?.touched" />
+              @if (form.get('dataDesignacao')?.touched && form.get('dataDesignacao')?.hasError('required')) {
+                <span class="invalid-feedback">Data de designação é obrigatória</span>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. OBJETO E OBSERVAÇÕES -->
+        <div class="form-section-card">
+          <div class="section-card-header">
+            <div class="title-with-pill">
+              <span class="section-bullet">4</span>
+              <label class="section-title">Objeto e Observações</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Objeto do Contrato <span class="required">*</span></label>
+            <textarea formControlName="objeto" rows="3" placeholder="Descreva o objeto do contrato..."
+              [class.is-invalid]="form.get('objeto')?.invalid && form.get('objeto')?.touched"></textarea>
+            @if (form.get('objeto')?.touched && form.get('objeto')?.hasError('required')) {
+              <span class="invalid-feedback">O objeto é obrigatório</span>
+            }
+          </div>
+          
+          <div class="form-group" style="margin-bottom: 0;">
+            <label>Observações Gerais</label>
+            <textarea formControlName="observacao" rows="3" 
+              placeholder="Observações adicionais ou notas administrativas..."
+              class="observacao-textarea"></textarea>
+            <span class="form-hint">Campo opcional para anotações administrativas.</span>
+          </div>
+        </div>
+
+        <!-- 5. EQUIPE DE GESTÃO E FISCALIZAÇÃO (OPCIONAL) -->
+        <div class="form-section-card equipe-section-card">
+          <div class="section-card-header flex-header">
+            <div>
+              <div class="title-with-pill">
+                <span class="section-bullet bullet-equipe">5</span>
+                <label class="section-title">Equipe de Gestão e Fiscalização</label>
+                <span class="badge-opcional">Opcional</span>
+              </div>
+              <p class="section-subtitle">
+                Adicione os servidores e funções designados para este contrato. Você também pode preencher ou alterar depois.
+              </p>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary" (click)="addMembro()">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Adicionar Integrante
+            </button>
+          </div>
+
+          @if (membrosArray.length === 0) {
+            <div class="equipe-empty-card">
+              <div class="empty-icon-circle">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </div>
+              <div class="empty-content">
+                <strong>Nenhum fiscal ou gestor designado ainda</strong>
+                <p>O contrato pode ser salvo normalmente sem equipe vinculada no primeiro momento.</p>
+              </div>
+              <button type="button" class="btn-add-first" (click)="addMembro()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Designar Membro Agora
+              </button>
+            </div>
+          } @else {
+            <div formArrayName="membros" class="membros-table-list">
+              @for (ctrl of membrosArray.controls; track $index; let i = $index) {
+                <div [formGroupName]="i" class="membro-row-card">
+                  <div class="membro-index-badge">#{{ i + 1 }}</div>
+                  
+                  <!-- Coluna Servidor -->
+                  <div class="form-group col-servidor-field" style="position: relative; margin-bottom: 0;">
+                    <label>Servidor <span class="required">*</span></label>
+                    <div class="custom-select-wrapper" [class.open]="openServidorDropdownIndex() === i">
+                      <div class="custom-select-trigger" (click)="toggleServidorDropdown(i)"
+                        [class.invalid]="ctrl.get('servidorId')?.touched && ctrl.get('servidorId')?.invalid">
+                        <span class="trigger-text">
+                          @if (selectedServants()[i]) {
+                            {{ selectedServants()[i]!.nome }}
+                          } @else {
+                            Selecione o servidor...
+                          }
+                        </span>
+                        <svg class="chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" stroke-width="2" width="16" height="16">
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      </div>
+                      @if (openServidorDropdownIndex() === i) {
+                      <div class="custom-select-dropdown">
+                        <div class="dropdown-search">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" width="14" height="14">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                          </svg>
+                          <input #servInput type="text" placeholder="Buscar por nome, cargo ou matrícula..." [value]="servidorSearch()"
+                            (input)="servidorSearch.set(servInput.value)" (click)="$event.stopPropagation()" autofocus />
+                        </div>
+                        <ul class="dropdown-list">
+                          @for (serv of filteredServantsForDropdown(); track serv.id) {
+                          <li (click)="selectServant(i, serv)" [class.selected]="ctrl.get('servidorId')?.value == serv.id">
+                            <div class="serv-item-row">
+                              <strong>{{ serv.nome }}</strong>
+                              @if (serv.matricula) {
+                                <span class="serv-mat">Mat. {{ serv.matricula }}</span>
+                              }
+                            </div>
+                            @if (serv.cargo || serv.secretaria) {
+                              <span class="serv-sub-info">{{ serv.cargo }}{{ serv.cargo && serv.secretaria ? ' • ' : '' }}{{ serv.secretaria }}</span>
+                            }
+                          </li>
+                          } @empty {
+                          <li class="no-results">Nenhum servidor encontrado</li>
+                          }
+                        </ul>
+                      </div>
+                      }
+                    </div>
+                    <select formControlName="servidorId" style="display:none">
+                      <option value=""></option>
+                      @for (serv of servants(); track serv.id) {
+                        <option [value]="serv.id">{{ serv.id }}</option>
+                      }
+                    </select>
+                    @if (ctrl.get('servidorId')?.touched && ctrl.get('servidorId')?.invalid) {
+                      <span class="invalid-feedback">Selecione o servidor</span>
+                    }
+                  </div>
+
+                  <!-- Coluna Função -->
+                  <div class="form-group col-funcao-field" style="margin-bottom: 0;">
+                    <label>Função na Equipe <span class="required">*</span></label>
+                    <select formControlName="funcaoId" [class.is-invalid]="ctrl.get('funcaoId')?.touched && ctrl.get('funcaoId')?.invalid">
+                      <option value="">Selecione a função...</option>
+                      @for (item of funcoesList(); track item.id) {
+                        <option [value]="item.id">{{ item.nome || item.funcao || item.descricao }}</option>
+                      }
+                    </select>
+                    @if (ctrl.get('funcaoId')?.touched && ctrl.get('funcaoId')?.invalid) {
+                      <span class="invalid-feedback">Selecione a função</span>
+                    }
+                  </div>
+
+                  <!-- Botão Remover -->
+                  <div class="membro-action-col">
+                    <button type="button" class="btn-remove-membro" (click)="removeMembro(i)" title="Remover integrante">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
           }
         </div>
-        <!-- ===== FIM DO BLOCO DE SECRETARIAS ===== -->
-
-        <div class="form-section-title">
-          <span class="section-bullet">3</span>
-          Prazos e Portaria de Designação
-        </div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Data Início <span class="required">*</span></label>
-            <input type="date" formControlName="dataInicio"
-              [class.is-invalid]="form.get('dataInicio')?.invalid && form.get('dataInicio')?.touched" />
-            @if (form.get('dataInicio')?.touched && form.get('dataInicio')?.hasError('required')) {
-              <span class="invalid-feedback">Data de início é obrigatória</span>
-            }
-          </div>
-          <div class="form-group">
-            <label>Data Fim <span class="required">*</span></label>
-            <input type="date" formControlName="dataFim"
-              [class.is-invalid]="form.get('dataFim')?.invalid && form.get('dataFim')?.touched" />
-            @if (form.get('dataFim')?.touched && form.get('dataFim')?.hasError('required')) {
-              <span class="invalid-feedback">Data de término é obrigatória</span>
-            }
-          </div>
-        </div>
-
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Portaria de Designação <span class="required">*</span></label>
-            <input type="text" formControlName="portariaDesignacao" placeholder="Ex: 602/2023"
-              [class.is-invalid]="form.get('portariaDesignacao')?.invalid && form.get('portariaDesignacao')?.touched" />
-            @if (form.get('portariaDesignacao')?.touched && form.get('portariaDesignacao')?.hasError('required')) {
-              <span class="invalid-feedback">Informação da portaria é obrigatória</span>
-            }
-          </div>
-          <div class="form-group">
-            <label>Data da Designação <span class="required">*</span></label>
-            <input type="date" formControlName="dataDesignacao"
-              [class.is-invalid]="form.get('dataDesignacao')?.invalid && form.get('dataDesignacao')?.touched" />
-            @if (form.get('dataDesignacao')?.touched && form.get('dataDesignacao')?.hasError('required')) {
-              <span class="invalid-feedback">Data de designação é obrigatória</span>
-            }
-          </div>
-        </div>
-
-        <div class="form-section-title">
-          <span class="section-bullet">4</span>
-          Objeto e Observações
-        </div>
-        <div class="form-group">
-          <label>Objeto do Contrato <span class="required">*</span></label>
-          <textarea formControlName="objeto" rows="3" placeholder="Descreva o objeto do contrato..."
-            [class.is-invalid]="form.get('objeto')?.invalid && form.get('objeto')?.touched"></textarea>
-          @if (form.get('objeto')?.touched && form.get('objeto')?.hasError('required')) {
-            <span class="invalid-feedback">O objeto é obrigatório</span>
-          }
-        </div>
-        
-        <!-- ===== OBSERVAÇÃO CORRIGIDA NO MODAL DE EDIÇÃO ===== -->
-        <div class="form-group">
-          <label>Observações Gerais</label>
-          <textarea formControlName="observacao" rows="4" 
-            placeholder="Observações adicionais ou notas administrativas..."
-            class="observacao-textarea"></textarea>
-          <span class="form-hint">Campo opcional para anotações administrativas.</span>
-        </div>
-        <!-- ===== FIM OBSERVAÇÃO ===== -->
-
-        <p class="form-hint">Gestores e fiscais podem ser vinculados na seção Equipes de Contrato.</p>
       </div>
 
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
         <button type="submit" class="btn btn-primary" [disabled]="submitting() || form.invalid">
           @if (submitting()) {
-          <span>Salvando...</span>
+            <span>Salvando...</span>
           } @else {
-          <span>{{ editingContrato() ? 'Atualizar Contrato' : 'Cadastrar Contrato' }}</span>
+            <span>{{ editingContrato() ? 'Atualizar Contrato' : 'Cadastrar Contrato' }}</span>
           }
         </button>
       </div>
