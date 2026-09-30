@@ -65,6 +65,7 @@ export class AtasComponent implements OnInit {
   filterAno = signal<string>('');
   filterTipo = signal<string>('');
   filterStatus = signal<string>('');
+  filterVigencia = signal<string>('');
   filterSecretarias = signal<number[]>([]);
   showSecretariaDropdown = signal<boolean>(false);
   secretariaFilterSearch = signal<string>('');
@@ -149,6 +150,7 @@ export class AtasComponent implements OnInit {
     if (this.filterAno()) count++;
     if (this.filterTipo()) count++;
     if (this.filterStatus()) count++;
+    if (this.filterVigencia()) count++;
     count += this.filterSecretarias().length;
     count += this.filterPessoas().length;
     return count;
@@ -232,6 +234,7 @@ export class AtasComponent implements OnInit {
     const ano = this.filterAno();
     const tipo = this.filterTipo();
     const status = this.filterStatus();
+    const vigencia = this.filterVigencia();
     const selectedSecs = this.filterSecretarias();
     const selectedPessoas = this.filterPessoas();
 
@@ -276,6 +279,17 @@ export class AtasComponent implements OnInit {
       if (status) {
         const ataStatus = (ata.situacao || 'ATIVO').trim().toUpperCase();
         if (ataStatus !== status.trim().toUpperCase()) return false;
+      }
+
+      // 5. Vigência
+      if (vigencia) {
+        const vStatus = this.getVigenciaStatus(ata.dataFim);
+        if (vigencia === 'VIGENTE' && vStatus.badgeClass !== 'vigencia-ok') return false;
+        if (vigencia === 'ATENCAO' && vStatus.badgeClass !== 'vigencia-warning') return false;
+        if (vigencia === 'CRITICA' && vStatus.badgeClass !== 'vigencia-critical') return false;
+        if (vigencia === 'EM_ALERTA' && vStatus.badgeClass !== 'vigencia-warning' && vStatus.badgeClass !== 'vigencia-critical') return false;
+        if (vigencia === 'VENCIDO' && vStatus.badgeClass !== 'vigencia-expired') return false;
+        if (vigencia === 'TODOS_VIGENTES' && (vStatus.badgeClass === 'vigencia-expired' || vStatus.badgeClass === 'vigencia-unknown')) return false;
       }
 
       // 5. Secretarias (Multi-select)
@@ -359,6 +373,9 @@ export class AtasComponent implements OnInit {
       }
       if (params['search']) {
         this.globalSearch.set(params['search']);
+      }
+      if (params['vigencia']) {
+        this.filterVigencia.set(params['vigencia'].toUpperCase());
       }
     });
     this.loadData();
@@ -535,6 +552,33 @@ export class AtasComponent implements OnInit {
     return '-';
   }
 
+  getVigenciaFilterLabel(val: string): string {
+    switch (val) {
+      case 'VIGENTE': return 'Vigente (> 60d)';
+      case 'ATENCAO': return 'Atenção (Vence em 60d)';
+      case 'CRITICA': return 'Crítica (Vence em 30d)';
+      case 'EM_ALERTA': return 'Em Alerta (≤ 60d)';
+      case 'VENCIDO': return 'Vencido';
+      case 'TODOS_VIGENTES': return 'Não Vencidos';
+      default: return val;
+    }
+  }
+
+  filterByVigenciaPill(dataFim?: string): void {
+    if (!dataFim) return;
+    const vStatus = this.getVigenciaStatus(dataFim);
+    if (vStatus.badgeClass === 'vigencia-expired') {
+      this.filterVigencia.set('VENCIDO');
+    } else if (vStatus.badgeClass === 'vigencia-critical') {
+      this.filterVigencia.set('CRITICA');
+    } else if (vStatus.badgeClass === 'vigencia-warning') {
+      this.filterVigencia.set('ATENCAO');
+    } else if (vStatus.badgeClass === 'vigencia-ok') {
+      this.filterVigencia.set('VIGENTE');
+    }
+    this.currentPage.set(1);
+  }
+
   copyToClipboard(text: string, label: string): void {
     if (!text) return;
     navigator.clipboard.writeText(text).then(() => {
@@ -660,6 +704,7 @@ export class AtasComponent implements OnInit {
     this.filterAno.set('');
     this.filterTipo.set('');
     this.filterStatus.set('');
+    this.filterVigencia.set('');
     this.filterSecretarias.set([]);
     this.filterPessoas.set([]);
     this.pessoaInput.set('');

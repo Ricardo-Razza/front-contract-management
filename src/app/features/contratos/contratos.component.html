@@ -78,6 +78,20 @@
         </select>
       </div>
 
+      <!-- Vigência -->
+      <div class="filter-field">
+        <span class="filter-label">Vigência</span>
+        <select [ngModel]="filterVigencia()" (ngModelChange)="filterVigencia.set($event); currentPage.set(1)">
+          <option value="">Todas</option>
+          <option value="VIGENTE">Vigente (> 60d)</option>
+          <option value="ATENCAO">Atenção (Vence em 60d)</option>
+          <option value="CRITICA">Crítica (Vence em 30d)</option>
+          <option value="EM_ALERTA">Em Alerta (≤ 60d)</option>
+          <option value="VENCIDO">Vencido</option>
+          <option value="TODOS_VIGENTES">Todos Não Vencidos</option>
+        </select>
+      </div>
+
       <!-- Secretarias (Multi-select) -->
       <div class="filter-field">
         <span class="filter-label">Secretarias</span>
@@ -169,6 +183,9 @@
         }
         @if (filterStatus()) {
           <span class="filter-tag">Status: {{ filterStatus() }} <button class="tag-remove" (click)="filterStatus.set(''); currentPage.set(1)">&#x2715;</button></span>
+        }
+        @if (filterVigencia()) {
+          <span class="filter-tag">Vigência: {{ getVigenciaFilterLabel(filterVigencia()) }} <button class="tag-remove" (click)="filterVigencia.set(''); currentPage.set(1)">&#x2715;</button></span>
         }
         @for (secId of filterSecretarias(); track secId) {
           <span class="filter-tag">Secretaria: {{ getSecretariaNome(secId) }} <button class="tag-remove" (click)="removeSecretariaFilter(secId)">&#x2715;</button></span>
@@ -268,7 +285,9 @@
               <div class="vigencia-cell">
                 <span class="vigencia-date">{{ getDataVigente(contrato) }}</span>
                 @if (contrato.dataFim) {
-                  <span class="vigencia-pill" [ngClass]="getVigenciaPillClass(contrato.dataFim)">
+                  <span class="vigencia-pill" [ngClass]="getVigenciaPillClass(contrato.dataFim)"
+                        (click)="filterByVigenciaPill(contrato.dataFim); $event.stopPropagation()"
+                        title="Clique para filtrar por esta vigência">
                     {{ getVigenciaPillText(contrato.dataFim) }}
                   </span>
                 }
