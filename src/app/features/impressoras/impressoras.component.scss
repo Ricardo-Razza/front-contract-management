@@ -2292,6 +2292,11 @@
             color: #ffffff;
           }
 
+          &.active {
+            background: rgba(59, 130, 246, 0.25);
+            color: #93c5fd;
+          }
+
           &:disabled {
             opacity: 0.35;
             cursor: not-allowed;
@@ -2372,30 +2377,48 @@
     position: relative;
     overflow: auto;
     display: flex;
-    align-items: center;
-    justify-content: center;
     padding: 1.5rem;
     background: #020617;
     background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
     background-size: 20px 20px;
+    cursor: default;
 
     .lightbox-canvas {
+      margin: auto;
       display: flex;
       align-items: center;
       justify-content: center;
-      max-width: 100%;
-      max-height: 100%;
+      position: relative;
 
       .lightbox-img {
-        max-width: 100%;
-        max-height: 72vh;
-        object-fit: contain;
+        display: block;
         border-radius: 8px;
         box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
-        image-rendering: -webkit-optimize-contrast;
-        image-rendering: crisp-edges;
-        transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+        image-rendering: auto;
+        image-rendering: -webkit-pict-smooth;
         user-select: none;
+        transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease;
+
+        &.mode-fit {
+          max-width: 100%;
+          max-height: calc(88vh - 120px);
+          width: auto;
+          height: auto;
+          object-fit: contain;
+          cursor: zoom-in;
+        }
+
+        &.mode-original {
+          max-width: none;
+          max-height: none;
+          width: auto;
+          height: auto;
+          cursor: grab;
+
+          &:active {
+            cursor: grabbing;
+          }
+        }
       }
     }
   }
@@ -2454,6 +2477,23 @@
             border-radius: 50%;
             background: #4ade80;
           }
+        }
+      }
+
+      .footer-dimension-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-family: ui-monospace, SFMono-Regular, monospace;
+        font-size: 0.75rem;
+        color: #94a3b8;
+        background: rgba(255, 255, 255, 0.06);
+        padding: 0.2rem 0.55rem;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+
+        svg {
+          color: #38bdf8;
         }
       }
     }

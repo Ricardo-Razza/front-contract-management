@@ -38,6 +38,10 @@
   gap: 0.75rem;
   align-items: center;
   flex-wrap: wrap;
+
+  .filter-field {
+    min-width: 210px;
+  }
 }
 
 .search-input-wrapper {

@@ -7,7 +7,7 @@ import { ToastService } from '@core/services/toast.service';
 import { ConfirmModalComponent } from '@shared/components/confirm-modal/confirm-modal.component';
 import { PaginationComponent } from '@shared/components/pagination/pagination.component';
 import { HeaderComponent } from '@shared/components/header/header.component';
-import { exportToCsv, getTodayLocalDateString, formatDatePtBr } from '@core/utils';
+import { exportToCsv, getTodayLocalDateString, formatDatePtBr, matchesSearch } from '@core/utils';
 import {
   Impressora,
   LoteImpressao,
@@ -71,6 +71,9 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   locais = signal<LocalInstalacao[]>([]);
   loadingLocais = signal<boolean>(false);
   filtroSecretariaLocais = signal<string>('');
+  filtroSecretariasLocais = signal<number[]>([]);
+  showSecretariaDropdownLocais = signal<boolean>(false);
+  secretariaFilterSearchLocais = signal<string>('');
   buscaLocais = signal<string>('');
   isLocalModalOpen = signal<boolean>(false);
   editingLocal = signal<LocalInstalacao | null>(null);
@@ -79,6 +82,9 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   activeTab = signal<'INVENTARIO' | 'LEITURAS' | 'FINANCEIRO' | 'LOTES' | 'COLETA' | 'LOCAIS'>('INVENTARIO');
   globalSearch = signal<string>('');
   filterSecretaria = signal<string>('');
+  filterSecretarias = signal<number[]>([]);
+  showSecretariaDropdown = signal<boolean>(false);
+  secretariaFilterSearch = signal<string>('');
   filterLote = signal<string>('');
   filterEmpenho = signal<string>('');
   filterStatus = signal<string>('');
@@ -122,10 +128,56 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     return count;
   });
 
+  filteredSecretariasForFilter = computed(() => {
+    const search = this.secretariaFilterSearch().trim();
+    const list = this.secretariats();
+    if (!search) return list;
+    return list.filter(sec => matchesSearch([sec.sigla, sec.nome], search));
+  });
+
+  toggleSecretariaDropdown(): void {
+    this.showSecretariaDropdown.update(v => !v);
+    if (this.showSecretariaDropdown()) {
+      this.secretariaFilterSearch.set('');
+    }
+  }
+
+  toggleSecretariaFilter(id: number): void {
+    this.filterSecretarias.update(ids => {
+      const exists = ids.includes(id);
+      return exists ? ids.filter(i => i !== id) : [...ids, id];
+    });
+    this.currentPage.set(1);
+  }
+
+  isSecretariaFilterSelected(id: number): boolean {
+    return this.filterSecretarias().includes(id);
+  }
+
+  selectAllSecretariasFilter(): void {
+    this.filterSecretarias.set(this.secretariats().map(s => s.id));
+    this.currentPage.set(1);
+  }
+
+  clearSecretariaFilter(): void {
+    this.filterSecretarias.set([]);
+    this.currentPage.set(1);
+  }
+
+  removeSecretariaFilter(id: number): void {
+    this.filterSecretarias.update(ids => ids.filter(i => i !== id));
+    this.currentPage.set(1);
+  }
+
+  getSecretariaNome(id: number): string {
+    const sec = this.secretariats().find(s => s.id === id);
+    return sec ? (sec.sigla || sec.nome) : '';
+  }
+
   activeFiltersCount = computed(() => {
     let count = 0;
     if (this.globalSearch()) count++;
-    if (this.filterSecretaria()) count++;
+    if (this.filterSecretarias().length > 0 || this.filterSecretaria()) count++;
     if (this.filterTipo()) count++;
     if (this.filterFabricante()) count++;
     if (this.filterStatus()) count++;
@@ -138,6 +190,8 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   clearFilters(): void {
     this.globalSearch.set('');
     this.filterSecretaria.set('');
+    this.filterSecretarias.set([]);
+    this.showSecretariaDropdown.set(false);
     this.filterTipo.set('');
     this.filterFabricante.set('');
     this.filterStatus.set('');
@@ -208,9 +262,17 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   private readonly dismissPrinterMenuOnScroll = () => this.closePrinterMenu();
   expandedInvoices = signal<Set<string>>(new Set<string>());
 
-  @HostListener('document:click')
-  onDocumentClick(): void {
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event?: MouseEvent): void {
     this.closePrinterMenu();
+    if (event) {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.custom-multiselect')) {
+        this.showSecretariaDropdown.set(false);
+        this.showSecretariaDropdownLeituras.set(false);
+        this.showSecretariaDropdownLocais.set(false);
+      }
+    }
   }
 
   @HostListener('document:keydown.escape')
@@ -219,6 +281,9 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       this.closePrinterMenu();
       this.printerMenuTrigger?.focus();
     }
+    this.showSecretariaDropdown.set(false);
+    this.showSecretariaDropdownLeituras.set(false);
+    this.showSecretariaDropdownLocais.set(false);
   }
 
   @HostListener('window:resize')
@@ -348,6 +413,46 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   });
   termoBuscaLeituras = signal<string>('');
   filtroSecretariaLeituras = signal<string>('');
+  filtroSecretariasLeituras = signal<number[]>([]);
+  showSecretariaDropdownLeituras = signal<boolean>(false);
+  secretariaFilterSearchLeituras = signal<string>('');
+
+  filteredSecretariasForLeituras = computed(() => {
+    const search = this.secretariaFilterSearchLeituras().trim();
+    const list = this.secretariats();
+    if (!search) return list;
+    return list.filter(sec => matchesSearch([sec.sigla, sec.nome], search));
+  });
+
+  toggleSecretariaDropdownLeituras(): void {
+    this.showSecretariaDropdownLeituras.update(v => !v);
+    if (this.showSecretariaDropdownLeituras()) {
+      this.secretariaFilterSearchLeituras.set('');
+    }
+  }
+
+  toggleSecretariaFilterLeituras(id: number): void {
+    this.filtroSecretariasLeituras.update(ids => {
+      const exists = ids.includes(id);
+      return exists ? ids.filter(i => i !== id) : [...ids, id];
+    });
+  }
+
+  isSecretariaFilterSelectedLeituras(id: number): boolean {
+    return this.filtroSecretariasLeituras().includes(id);
+  }
+
+  selectAllSecretariasFilterLeituras(): void {
+    this.filtroSecretariasLeituras.set(this.secretariats().map(s => s.id));
+  }
+
+  clearSecretariaFilterLeituras(): void {
+    this.filtroSecretariasLeituras.set([]);
+  }
+
+  removeSecretariaFilterLeituras(id: number): void {
+    this.filtroSecretariasLeituras.update(ids => ids.filter(i => i !== id));
+  }
 
   // Paginação da tabela de inventário
   currentPage = signal<number>(1);
@@ -523,7 +628,16 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       }
     }
 
-    if (this.filterSecretaria()) {
+    if (this.filterSecretarias().length > 0) {
+      const selected = this.filterSecretarias();
+      list = list.filter(p => {
+        if (p.secretariaId && selected.includes(p.secretariaId)) return true;
+        return selected.some(id => {
+          const sec = this.secretariats().find(s => s.id === id);
+          return sec && (p.secretariaSigla === sec.sigla || p.secretariaSigla === sec.nome);
+        });
+      });
+    } else if (this.filterSecretaria()) {
       list = list.filter(p => p.secretariaSigla === this.filterSecretaria());
     }
 
@@ -601,7 +715,15 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       }
     }
 
-    if (this.filtroSecretariaLeituras()) {
+    if (this.filtroSecretariasLeituras().length > 0) {
+      const selected = this.filtroSecretariasLeituras();
+      list = list.filter(l => {
+        return selected.some(id => {
+          const sec = this.secretariats().find(s => s.id === id);
+          return sec && (l.secretariaSigla === sec.sigla || l.secretariaSigla === sec.nome);
+        });
+      });
+    } else if (this.filtroSecretariaLeituras()) {
       list = list.filter(l => l.secretariaSigla === this.filtroSecretariaLeituras());
     }
 
@@ -661,6 +783,43 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
   // Métricas e Filtragem do CRUD de Locais de Instalação
   totalLocais = computed(() => this.locais().length);
+  filteredSecretariasForLocais = computed(() => {
+    const search = this.secretariaFilterSearchLocais().trim();
+    const list = this.secretariats();
+    if (!search) return list;
+    return list.filter(sec => matchesSearch([sec.sigla, sec.nome], search));
+  });
+
+  toggleSecretariaDropdownLocais(): void {
+    this.showSecretariaDropdownLocais.update(v => !v);
+    if (this.showSecretariaDropdownLocais()) {
+      this.secretariaFilterSearchLocais.set('');
+    }
+  }
+
+  toggleSecretariaFilterLocais(id: number): void {
+    this.filtroSecretariasLocais.update(ids => {
+      const exists = ids.includes(id);
+      return exists ? ids.filter(i => i !== id) : [...ids, id];
+    });
+  }
+
+  isSecretariaFilterSelectedLocais(id: number): boolean {
+    return this.filtroSecretariasLocais().includes(id);
+  }
+
+  selectAllSecretariasFilterLocais(): void {
+    this.filtroSecretariasLocais.set(this.secretariats().map(s => s.id));
+  }
+
+  clearSecretariaFilterLocais(): void {
+    this.filtroSecretariasLocais.set([]);
+  }
+
+  removeSecretariaFilterLocais(id: number): void {
+    this.filtroSecretariasLocais.update(ids => ids.filter(i => i !== id));
+  }
+
   filteredLocais = computed(() => {
     let list = this.locais();
     const busca = this.buscaLocais().toLowerCase().trim();
@@ -673,7 +832,16 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
         (l.secretariaNome && l.secretariaNome.toLowerCase().includes(busca))
       );
     }
-    if (this.filtroSecretariaLocais()) {
+    if (this.filtroSecretariasLocais().length > 0) {
+      const selected = this.filtroSecretariasLocais();
+      list = list.filter(l => {
+        if (l.secretariaId && selected.includes(l.secretariaId)) return true;
+        return selected.some(id => {
+          const sec = this.secretariats().find(s => s.id === id);
+          return sec && (l.secretariaSigla === sec.sigla || l.secretariaSigla === sec.nome);
+        });
+      });
+    } else if (this.filtroSecretariaLocais()) {
       list = list.filter(l => l.secretariaSigla === this.filtroSecretariaLocais());
     }
     return list;
@@ -2478,11 +2646,15 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
   printZoomLevel = signal<number>(1);
   printRotation = signal<number>(0);
+  printFitMode = signal<'fit' | 'original'>('fit');
+  printImgDimensions = signal<{ width: number; height: number } | null>(null);
 
   abrirModalPrint(item: ColetaItem): void {
     this.printSelecionado.set(item);
     this.printZoomLevel.set(1);
     this.printRotation.set(0);
+    this.printFitMode.set('fit');
+    this.printImgDimensions.set(null);
     this.modalPrintAberto.set(true);
   }
 
@@ -2491,19 +2663,61 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     this.printSelecionado.set(null);
     this.printZoomLevel.set(1);
     this.printRotation.set(0);
+    this.printFitMode.set('fit');
+    this.printImgDimensions.set(null);
+  }
+
+  onPrintImageLoaded(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img && img.naturalWidth) {
+      this.printImgDimensions.set({
+        width: img.naturalWidth,
+        height: img.naturalHeight
+      });
+    }
+  }
+
+  toggleFitMode(): void {
+    if (this.printFitMode() === 'fit') {
+      this.printFitMode.set('original');
+      this.printZoomLevel.set(1);
+    } else {
+      this.printFitMode.set('fit');
+      this.printZoomLevel.set(1);
+    }
   }
 
   zoomInPrint(): void {
-    this.printZoomLevel.update(z => Math.min(Number((z + 0.25).toFixed(2)), 3));
+    if (this.printFitMode() === 'fit') {
+      this.printFitMode.set('original');
+      this.printZoomLevel.set(1.25);
+    } else {
+      this.printZoomLevel.update(z => Math.min(Number((z + 0.25).toFixed(2)), 3.5));
+    }
   }
 
   zoomOutPrint(): void {
-    this.printZoomLevel.update(z => Math.max(Number((z - 0.25).toFixed(2)), 0.5));
+    if (this.printZoomLevel() <= 1 && this.printFitMode() === 'original') {
+      this.printFitMode.set('fit');
+      this.printZoomLevel.set(1);
+    } else {
+      this.printZoomLevel.update(z => Math.max(Number((z - 0.25).toFixed(2)), 0.5));
+    }
   }
 
   resetZoomPrint(): void {
+    this.printFitMode.set('fit');
     this.printZoomLevel.set(1);
     this.printRotation.set(0);
+  }
+
+  onPrintWheel(event: WheelEvent): void {
+    event.preventDefault();
+    if (event.deltaY < 0) {
+      this.zoomInPrint();
+    } else {
+      this.zoomOutPrint();
+    }
   }
 
   rotatePrint(): void {

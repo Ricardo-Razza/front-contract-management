@@ -1341,9 +1341,10 @@ h1, h2, h3, h4, h5, h6 {
       }
 
       .multiselect-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 8px !important;
         padding: 0.45rem 0.55rem;
         border-radius: 6px;
         cursor: pointer;

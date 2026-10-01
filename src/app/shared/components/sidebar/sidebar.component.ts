@@ -120,7 +120,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
             <span>Equipes de Contrato</span>
           </a>
 
-          <div class="nav-section">OUTSOURCING DE IMPRESSÃO</div>
+          <div class="nav-section">GESTÃO DE IMPRESSÃO</div>
 
           <a routerLink="/impressoras" routerLinkActive="active" class="nav-item" (click)="onItemClick()">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

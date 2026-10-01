@@ -165,7 +165,7 @@ textarea:focus-visible {
   background: white;
   border: 1px solid #e0e7f0;
   border-radius: 13px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 3px 12px #172b4d03;
 }
 .tabs {
@@ -208,6 +208,26 @@ textarea:focus-visible {
 .filters label {
   flex: 1;
   min-width: 130px;
+}
+.filters .filter-field-ferias {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+
+  .filter-label-ferias {
+    font-size: 12px;
+    font-weight: 600;
+    color: #4a5c73;
+  }
+
+  .multiselect-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
 }
 .filters .search {
   flex: 2;

@@ -39,7 +39,7 @@ import {
   EscalaAnual,
   DiaInfo,
 } from "@core/models";
-import { exportToCsv, formatDatePtBr } from "@core/utils";
+import { exportToCsv, formatDatePtBr, matchesSearch } from "@core/utils";
 
 import {
   montarEscala,
@@ -105,10 +105,20 @@ export class FeriasComponent implements OnInit {
   ano = signal(new Date().getFullYear());
   mes = signal(0);
   busca = signal("");
-  secretaria = signal<number | null>(null);
+  filterSecretarias = signal<number[]>([]);
+  showSecretariaDropdown = signal<boolean>(false);
+  secretariaFilterSearch = signal<string>("");
+  secretaria = computed(() => (this.filterSecretarias().length === 1 ? this.filterSecretarias()[0] : null));
   setor = signal("");
   status = signal("");
   pagina = signal(1);
+
+  filteredSecretariasForFilter = computed(() => {
+    const search = this.secretariaFilterSearch().trim();
+    const list = this.secretarias();
+    if (!search) return list;
+    return list.filter((sec) => matchesSearch([sec.sigla, sec.nome], search));
+  });
   readonly meses = [
     "Janeiro",
     "Fevereiro",
@@ -222,16 +232,17 @@ export class FeriasComponent implements OnInit {
         ),
     ),
   );
-  base = computed(() =>
-    this.agendamentos().filter(
+  base = computed(() => {
+    const selectedSecs = this.filterSecretarias();
+    return this.agendamentos().filter(
       (a) =>
-        (!this.secretaria() || a.secretariaId === Number(this.secretaria())) &&
+        (selectedSecs.length === 0 || (!!a.secretariaId && selectedSecs.includes(a.secretariaId))) &&
         (!this.setor() || a.servidorSetor === this.setor()) &&
         this.normalizar(a.servidorNome + " " + a.servidorMatricula).includes(
           this.normalizar(this.busca()),
         ),
-    ),
-  );
+    );
+  });
   filtrados = computed(() =>
     this.base().filter(
       (a) =>
@@ -249,16 +260,17 @@ export class FeriasComponent implements OnInit {
       this.paginaAtual() * 12,
     ),
   );
-  periodosFiltrados = computed(() =>
-    this.periodos().filter(
+  periodosFiltrados = computed(() => {
+    const selectedSecs = this.filterSecretarias();
+    return this.periodos().filter(
       (p) =>
-        (!this.secretaria() || p.secretariaId === Number(this.secretaria())) &&
+        (selectedSecs.length === 0 || (!!p.secretariaId && selectedSecs.includes(p.secretariaId))) &&
         (!this.setor() || p.servidorSetor === this.setor()) &&
         this.normalizar(p.servidorNome + " " + p.servidorMatricula).includes(
           this.normalizar(this.busca()),
         ),
-    ),
-  );
+    );
+  });
   saldos = computed(() =>
     this.servidoresFiltrados().map((s) => {
       const periodos = this.periodos().filter((p) => p.servidorId === s.id);
@@ -404,11 +416,14 @@ export class FeriasComponent implements OnInit {
       (m) => !this.mesEscala() || m.numero === Number(this.mesEscala()),
     ),
   );
-  tituloEscala = computed(
-    () =>
-      this.secretarias().find((s) => s.id === Number(this.secretaria()))
-        ?.nome || "Todas as secretarias",
-  );
+  tituloEscala = computed(() => {
+    const selected = this.filterSecretarias();
+    if (selected.length === 0) return "Todas as secretarias";
+    if (selected.length === 1) {
+      return this.secretarias().find((s) => s.id === selected[0])?.nome || "Secretaria";
+    }
+    return `${selected.length} secretarias selecionadas`;
+  });
   legendasPeriodos = computed(() => {
     const itens = new Map<string, string>();
     for (const a of this.base())
@@ -678,14 +693,63 @@ export class FeriasComponent implements OnInit {
     this.pagina.set(1);
     this.carregar();
   }
-  mudarSecretaria(v: number | null): void {
-    this.secretaria.set(v ? Number(v) : null);
+  toggleSecretariaDropdown(): void {
+    this.showSecretariaDropdown.update((v) => !v);
+    if (this.showSecretariaDropdown()) {
+      this.secretariaFilterSearch.set("");
+    }
+  }
+
+  toggleSecretariaFilter(id: number): void {
+    this.filterSecretarias.update((ids) => {
+      const exists = ids.includes(id);
+      return exists ? ids.filter((i) => i !== id) : [...ids, id];
+    });
     this.setor.set("");
     this.pagina.set(1);
   }
+
+  isSecretariaFilterSelected(id: number): boolean {
+    return this.filterSecretarias().includes(id);
+  }
+
+  selectAllSecretariasFilter(): void {
+    this.filterSecretarias.set(this.secretarias().map((s) => s.id));
+    this.setor.set("");
+    this.pagina.set(1);
+  }
+
+  clearSecretariaFilter(): void {
+    this.filterSecretarias.set([]);
+    this.setor.set("");
+    this.pagina.set(1);
+  }
+
+  removeSecretariaFilter(id: number): void {
+    this.filterSecretarias.update((ids) => ids.filter((i) => i !== id));
+    this.setor.set("");
+    this.pagina.set(1);
+  }
+
+  getSecretariaNome(id: number): string {
+    const sec = this.secretarias().find((s) => s.id === id);
+    return sec ? sec.sigla || sec.nome : "";
+  }
+
+  mudarSecretaria(v: number | null): void {
+    if (v) {
+      this.filterSecretarias.set([Number(v)]);
+    } else {
+      this.filterSecretarias.set([]);
+    }
+    this.setor.set("");
+    this.pagina.set(1);
+  }
+
   limparFiltros(): void {
     this.busca.set("");
-    this.secretaria.set(null);
+    this.filterSecretarias.set([]);
+    this.showSecretariaDropdown.set(false);
     this.setor.set("");
     this.mes.set(0);
     this.status.set("");
@@ -693,17 +757,28 @@ export class FeriasComponent implements OnInit {
     this.periodoDestaque.set("");
     this.pagina.set(1);
   }
+
   private pertenceSecretaria(s: Servant): boolean {
-    const sec = this.secretarias().find(
-      (x) => x.id === Number(this.secretaria()),
-    );
-    return (
-      !sec ||
-      s.secretariaId === sec.id ||
-      s.secretariaNome === sec.nome ||
-      s.secretaria === sec.nome ||
-      s.secretaria === sec.sigla
-    );
+    const selected = this.filterSecretarias();
+    if (selected.length === 0) return true;
+    return selected.some((secId) => {
+      const sec = this.secretarias().find((x) => x.id === secId);
+      if (!sec) return false;
+      return (
+        s.secretariaId === sec.id ||
+        s.secretariaNome === sec.nome ||
+        s.secretaria === sec.nome ||
+        s.secretaria === sec.sigla
+      );
+    });
+  }
+
+  @HostListener("document:click", ["$event"])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest(".custom-multiselect")) {
+      this.showSecretariaDropdown.set(false);
+    }
   }
   private normalizar(v: string): string {
     return v

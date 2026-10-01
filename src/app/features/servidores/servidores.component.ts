@@ -36,7 +36,9 @@ export class ServidoresComponent implements OnInit {
   statusList = signal<LookupItem[]>([]);
 
   searchTerm = signal<string>('');
-  selectedSecretariatFilter = signal<string>('');
+  filterSecretarias = signal<number[]>([]);
+  showSecretariaDropdown = signal<boolean>(false);
+  secretariaFilterSearch = signal<string>('');
   selectedStatusFilter = signal<string>('');
 
   @HostListener('document:keydown.escape')
@@ -45,6 +47,16 @@ export class ServidoresComponent implements OnInit {
       this.closeModal();
     } else if (this.isDeleteModalOpen()) {
       this.closeDeleteModal();
+    } else if (this.showSecretariaDropdown()) {
+      this.showSecretariaDropdown.set(false);
+    }
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.custom-multiselect')) {
+      this.showSecretariaDropdown.set(false);
     }
   }
 
@@ -74,10 +86,17 @@ export class ServidoresComponent implements OnInit {
     ativoId: [1, Validators.required]
   });
 
+  filteredSecretariasForFilter = computed(() => {
+    const search = this.secretariaFilterSearch().trim();
+    const list = this.secretariats();
+    if (!search) return list;
+    return list.filter(sec => matchesSearch([sec.sigla, sec.nome], search));
+  });
+
   filteredServants = computed(() => {
     let result = this.servants();
     const term = this.searchTerm();
-    const secFilter = this.selectedSecretariatFilter();
+    const selectedSecs = this.filterSecretarias();
     const statusFilter = this.selectedStatusFilter();
 
     if (term) {
@@ -86,14 +105,15 @@ export class ServidoresComponent implements OnInit {
       );
     }
 
-    if (secFilter) {
+    if (selectedSecs.length > 0) {
       result = result.filter(s => {
-        if (!s.secretaria) return false;
-        const sec = this.secretariats().find(sc => sc.nome === secFilter || sc.sigla === secFilter);
-        if (sec) {
-          return s.secretaria.toLowerCase() === sec.nome.toLowerCase() || s.secretaria.toLowerCase() === sec.sigla.toLowerCase();
-        }
-        return s.secretaria.toLowerCase() === secFilter.toLowerCase();
+        if (s.secretariaId && selectedSecs.includes(s.secretariaId)) return true;
+        return selectedSecs.some(id => {
+          const sec = this.secretariats().find(sc => sc.id === id);
+          if (!sec) return false;
+          const sSec = (s.secretaria || s.secretariaNome || s.secretariaSigla || '').toLowerCase().trim();
+          return sSec === sec.nome.toLowerCase().trim() || (sec.sigla && sSec === sec.sigla.toLowerCase().trim());
+        });
       });
     }
 
@@ -108,12 +128,52 @@ export class ServidoresComponent implements OnInit {
   });
 
   hasActiveFilters = computed(() => {
-    return !!(this.searchTerm() || this.selectedSecretariatFilter() || this.selectedStatusFilter());
+    return !!(this.searchTerm() || this.filterSecretarias().length > 0 || this.selectedStatusFilter());
   });
+
+  toggleSecretariaDropdown(): void {
+    this.showSecretariaDropdown.update(v => !v);
+    if (this.showSecretariaDropdown()) {
+      this.secretariaFilterSearch.set('');
+    }
+  }
+
+  toggleSecretariaFilter(id: number): void {
+    this.filterSecretarias.update(ids => {
+      const exists = ids.includes(id);
+      return exists ? ids.filter(i => i !== id) : [...ids, id];
+    });
+    this.currentPage.set(1);
+  }
+
+  isSecretariaFilterSelected(id: number): boolean {
+    return this.filterSecretarias().includes(id);
+  }
+
+  selectAllSecretariasFilter(): void {
+    this.filterSecretarias.set(this.secretariats().map(s => s.id));
+    this.currentPage.set(1);
+  }
+
+  clearSecretariaFilter(): void {
+    this.filterSecretarias.set([]);
+    this.currentPage.set(1);
+  }
+
+  removeSecretariaFilter(id: number): void {
+    this.filterSecretarias.update(ids => ids.filter(i => i !== id));
+    this.currentPage.set(1);
+  }
+
+  getSecretariaNome(id: number): string {
+    const sec = this.secretariats().find(s => s.id === id);
+    return sec ? (sec.sigla || sec.nome) : '';
+  }
 
   clearFilters(): void {
     this.searchTerm.set('');
-    this.selectedSecretariatFilter.set('');
+    this.filterSecretarias.set([]);
+    this.showSecretariaDropdown.set(false);
     this.selectedStatusFilter.set('');
     this.currentPage.set(1);
   }

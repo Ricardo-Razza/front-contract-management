@@ -135,18 +135,50 @@
             [ngModel]="busca()"
             (ngModelChange)="busca.set($event); pagina.set(1)"
         /></label>
-        <label
-          ><span>Secretaria</span
-          ><select
-            [ngModel]="secretaria()"
-            (ngModelChange)="mudarSecretaria($event)"
-          >
-            <option [ngValue]="null">Todas as secretarias</option>
-            @for (s of secretarias(); track s.id) {
-              <option [ngValue]="s.id">{{ s.sigla || s.nome }}</option>
+        <div class="filter-field-ferias">
+          <span class="filter-label-ferias">Secretaria</span>
+          <div class="custom-multiselect">
+            <button type="button" class="multiselect-trigger" [class.open]="showSecretariaDropdown()"
+                    (click)="toggleSecretariaDropdown(); $event.stopPropagation()">
+              <span class="trigger-text" [class.placeholder]="filterSecretarias().length === 0">
+                @if (filterSecretarias().length === 0) {
+                  Todas as secretarias
+                } @else if (filterSecretarias().length === 1) {
+                  {{ getSecretariaNome(filterSecretarias()[0]) }}
+                } @else {
+                  {{ filterSecretarias().length }} secretarias
+                }
+              </span>
+              <svg class="trigger-arrow" [class.open]="showSecretariaDropdown()" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+
+            @if (showSecretariaDropdown()) {
+              <div class="multiselect-popover" (click)="$event.stopPropagation()">
+                <div class="multiselect-header">
+                  <span class="multiselect-count">{{ filterSecretarias().length }} selecionada(s)</span>
+                  <div class="multiselect-actions">
+                    <button type="button" class="action-link" (click)="selectAllSecretariasFilter()">Todas</button>
+                    <button type="button" class="action-link" (click)="clearSecretariaFilter()">Limpar</button>
+                  </div>
+                </div>
+                <input type="text" class="multiselect-search" placeholder="Filtrar secretarias..."
+                       [ngModel]="secretariaFilterSearch()" (ngModelChange)="secretariaFilterSearch.set($event)" />
+                <div class="multiselect-list">
+                  @for (sec of filteredSecretariasForFilter(); track sec.id) {
+                    <label class="multiselect-item" [class.selected]="isSecretariaFilterSelected(sec.id)">
+                      <input type="checkbox" [checked]="isSecretariaFilterSelected(sec.id)"
+                             (change)="toggleSecretariaFilter(sec.id)" />
+                      <span class="item-sigla">{{ sec.sigla }}</span>
+                      <span class="item-nome">{{ sec.nome }}</span>
+                    </label>
+                  }
+                </div>
+              </div>
             }
-          </select></label
-        >
+          </div>
+        </div>
         <label
           ><span>Setor</span
           ><select
@@ -173,6 +205,21 @@
           Limpar
         </button>
       </div>
+      @if (filterSecretarias().length > 0 || busca() || setor()) {
+        <div class="filter-active-tags" style="padding: 10px 24px; border-bottom: 1px solid #edf1f6; background: #fafbfc;">
+          <span class="filter-tags-label">Filtros:</span>
+          @if (busca()) {
+            <span class="filter-tag">Busca: "{{ busca() }}" <button class="tag-remove" (click)="busca.set(''); pagina.set(1)">&#x2715;</button></span>
+          }
+          @for (secId of filterSecretarias(); track secId) {
+            <span class="filter-tag">Secretaria: {{ getSecretariaNome(secId) }} <button class="tag-remove" (click)="removeSecretariaFilter(secId)">&#x2715;</button></span>
+          }
+          @if (setor()) {
+            <span class="filter-tag">Setor: {{ setor() }} <button class="tag-remove" (click)="setor.set(''); pagina.set(1)">&#x2715;</button></span>
+          }
+          <button class="filter-clear-all" (click)="limparFiltros()">Limpar tudo</button>
+        </div>
+      }
       @if (aba() === "agendamentos") {
         <div class="section-heading">
           <div>

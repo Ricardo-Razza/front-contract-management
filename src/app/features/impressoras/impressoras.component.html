@@ -243,13 +243,48 @@
 
           <div class="inventory-primary-filters">
             <div class="drawer-field">
-              <label for="printer-secretaria">Secretaria</label>
-              <select id="printer-secretaria" [ngModel]="filterSecretaria()" (ngModelChange)="filterSecretaria.set($event); currentPage.set(1)">
-                <option value="">Todas as secretarias</option>
-                @for (sec of secretariats(); track sec.id) {
-                  <option [value]="sec.sigla">{{ sec.sigla }} — {{ sec.nome }}</option>
+              <label>Secretarias</label>
+              <div class="custom-multiselect">
+                <button type="button" class="multiselect-trigger" [class.open]="showSecretariaDropdown()"
+                        (click)="toggleSecretariaDropdown(); $event.stopPropagation()">
+                  <span class="trigger-text" [class.placeholder]="filterSecretarias().length === 0">
+                    @if (filterSecretarias().length === 0) {
+                      Todas as Secretarias
+                    } @else if (filterSecretarias().length === 1) {
+                      {{ getSecretariaNome(filterSecretarias()[0]) }}
+                    } @else {
+                      {{ filterSecretarias().length }} secretarias
+                    }
+                  </span>
+                  <svg class="trigger-arrow" [class.open]="showSecretariaDropdown()" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+
+                @if (showSecretariaDropdown()) {
+                  <div class="multiselect-popover" (click)="$event.stopPropagation()">
+                    <div class="multiselect-header">
+                      <span class="multiselect-count">{{ filterSecretarias().length }} selecionada(s)</span>
+                      <div class="multiselect-actions">
+                        <button type="button" class="action-link" (click)="selectAllSecretariasFilter()">Todas</button>
+                        <button type="button" class="action-link" (click)="clearSecretariaFilter()">Limpar</button>
+                      </div>
+                    </div>
+                    <input type="text" class="multiselect-search" placeholder="Filtrar secretarias..."
+                           [ngModel]="secretariaFilterSearch()" (ngModelChange)="secretariaFilterSearch.set($event)" />
+                    <div class="multiselect-list">
+                      @for (sec of filteredSecretariasForFilter(); track sec.id) {
+                        <label class="multiselect-item" [class.selected]="isSecretariaFilterSelected(sec.id)">
+                          <input type="checkbox" [checked]="isSecretariaFilterSelected(sec.id)"
+                                 (change)="toggleSecretariaFilter(sec.id)" />
+                          <span class="item-sigla">{{ sec.sigla }}</span>
+                          <span class="item-nome">{{ sec.nome }}</span>
+                        </label>
+                      }
+                    </div>
+                  </div>
                 }
-              </select>
+              </div>
             </div>
             <div class="drawer-field">
               <label for="printer-status">Situação</label>
@@ -335,6 +370,9 @@
               }
               @if (globalSearch()) {
                 <span class="active-tag">"{{ globalSearch() }}" <button (click)="globalSearch.set(''); currentPage.set(1)">&#x2715;</button></span>
+              }
+              @for (secId of filterSecretarias(); track secId) {
+                <span class="active-tag">{{ getSecretariaNome(secId) }} <button (click)="removeSecretariaFilter(secId)">&#x2715;</button></span>
               }
               @if (filterSecretaria()) {
                 <span class="active-tag">{{ filterSecretaria() }} <button (click)="filterSecretaria.set(''); currentPage.set(1)">&#x2715;</button></span>
@@ -816,15 +854,62 @@
             </div>
 
             <div class="filter-field">
-              <span class="filter-label">Secretaria</span>
-              <select aria-label="Secretaria" [ngModel]="filtroSecretariaLeituras()" (ngModelChange)="filtroSecretariaLeituras.set($event)">
-                <option value="">Todas as Secretarias</option>
-                @for (s of secretariats(); track s.id) {
-                  <option [value]="s.sigla">{{ s.sigla }} — {{ s.nome }}</option>
+              <span class="filter-label">Secretarias</span>
+              <div class="custom-multiselect">
+                <button type="button" class="multiselect-trigger" [class.open]="showSecretariaDropdownLeituras()"
+                        (click)="toggleSecretariaDropdownLeituras(); $event.stopPropagation()">
+                  <span class="trigger-text" [class.placeholder]="filtroSecretariasLeituras().length === 0">
+                    @if (filtroSecretariasLeituras().length === 0) {
+                      Todas as Secretarias
+                    } @else if (filtroSecretariasLeituras().length === 1) {
+                      {{ getSecretariaNome(filtroSecretariasLeituras()[0]) }}
+                    } @else {
+                      {{ filtroSecretariasLeituras().length }} secretarias
+                    }
+                  </span>
+                  <svg class="trigger-arrow" [class.open]="showSecretariaDropdownLeituras()" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+
+                @if (showSecretariaDropdownLeituras()) {
+                  <div class="multiselect-popover" (click)="$event.stopPropagation()">
+                    <div class="multiselect-header">
+                      <span class="multiselect-count">{{ filtroSecretariasLeituras().length }} selecionada(s)</span>
+                      <div class="multiselect-actions">
+                        <button type="button" class="action-link" (click)="selectAllSecretariasFilterLeituras()">Todas</button>
+                        <button type="button" class="action-link" (click)="clearSecretariaFilterLeituras()">Limpar</button>
+                      </div>
+                    </div>
+                    <input type="text" class="multiselect-search" placeholder="Filtrar secretarias..."
+                           [ngModel]="secretariaFilterSearchLeituras()" (ngModelChange)="secretariaFilterSearchLeituras.set($event)" />
+                    <div class="multiselect-list">
+                      @for (sec of filteredSecretariasForLeituras(); track sec.id) {
+                        <label class="multiselect-item" [class.selected]="isSecretariaFilterSelectedLeituras(sec.id)">
+                          <input type="checkbox" [checked]="isSecretariaFilterSelectedLeituras(sec.id)"
+                                 (change)="toggleSecretariaFilterLeituras(sec.id)" />
+                          <span class="item-sigla">{{ sec.sigla }}</span>
+                          <span class="item-nome">{{ sec.nome }}</span>
+                        </label>
+                      }
+                    </div>
+                  </div>
                 }
-              </select>
+              </div>
             </div>
           </div>
+          @if (filtroSecretariasLeituras().length > 0 || termoBuscaLeituras()) {
+            <div class="filter-active-tags" style="padding-top: 0.5rem;">
+              <span class="filter-tags-label">Filtros:</span>
+              @if (termoBuscaLeituras()) {
+                <span class="filter-tag">Busca: "{{ termoBuscaLeituras() }}" <button class="tag-remove" (click)="termoBuscaLeituras.set('')">&#x2715;</button></span>
+              }
+              @for (secId of filtroSecretariasLeituras(); track secId) {
+                <span class="filter-tag">Secretaria: {{ getSecretariaNome(secId) }} <button class="tag-remove" (click)="removeSecretariaFilterLeituras(secId)">&#x2715;</button></span>
+              }
+              <button class="filter-clear-all" (click)="termoBuscaLeituras.set(''); clearSecretariaFilterLeituras()">Limpar filtros</button>
+            </div>
+          }
         </div>
 
         <!-- BARRA DE RESUMO EXECUTIVO (PADRÃO SUB-CHIP) -->
@@ -1820,15 +1905,62 @@
           <!-- Linha 2: Grid Alinhado -->
           <div class="filter-grid">
             <div class="filter-field">
-              <span class="filter-label">Secretaria</span>
-              <select aria-label="Secretaria" [ngModel]="filtroSecretariaLocais()" (ngModelChange)="filtroSecretariaLocais.set($event)">
-                <option value="">Todas as Secretarias</option>
-                @for (sec of secretariats(); track sec.id) {
-                  <option [value]="sec.sigla">{{ sec.sigla }} — {{ sec.nome }}</option>
+              <span class="filter-label">Secretarias</span>
+              <div class="custom-multiselect">
+                <button type="button" class="multiselect-trigger" [class.open]="showSecretariaDropdownLocais()"
+                        (click)="toggleSecretariaDropdownLocais(); $event.stopPropagation()">
+                  <span class="trigger-text" [class.placeholder]="filtroSecretariasLocais().length === 0">
+                    @if (filtroSecretariasLocais().length === 0) {
+                      Todas as Secretarias
+                    } @else if (filtroSecretariasLocais().length === 1) {
+                      {{ getSecretariaNome(filtroSecretariasLocais()[0]) }}
+                    } @else {
+                      {{ filtroSecretariasLocais().length }} secretarias
+                    }
+                  </span>
+                  <svg class="trigger-arrow" [class.open]="showSecretariaDropdownLocais()" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+
+                @if (showSecretariaDropdownLocais()) {
+                  <div class="multiselect-popover" (click)="$event.stopPropagation()">
+                    <div class="multiselect-header">
+                      <span class="multiselect-count">{{ filtroSecretariasLocais().length }} selecionada(s)</span>
+                      <div class="multiselect-actions">
+                        <button type="button" class="action-link" (click)="selectAllSecretariasFilterLocais()">Todas</button>
+                        <button type="button" class="action-link" (click)="clearSecretariaFilterLocais()">Limpar</button>
+                      </div>
+                    </div>
+                    <input type="text" class="multiselect-search" placeholder="Filtrar secretarias..."
+                           [ngModel]="secretariaFilterSearchLocais()" (ngModelChange)="secretariaFilterSearchLocais.set($event)" />
+                    <div class="multiselect-list">
+                      @for (sec of filteredSecretariasForLocais(); track sec.id) {
+                        <label class="multiselect-item" [class.selected]="isSecretariaFilterSelectedLocais(sec.id)">
+                          <input type="checkbox" [checked]="isSecretariaFilterSelectedLocais(sec.id)"
+                                 (change)="toggleSecretariaFilterLocais(sec.id)" />
+                          <span class="item-sigla">{{ sec.sigla }}</span>
+                          <span class="item-nome">{{ sec.nome }}</span>
+                        </label>
+                      }
+                    </div>
+                  </div>
                 }
-              </select>
+              </div>
             </div>
           </div>
+          @if (filtroSecretariasLocais().length > 0 || buscaLocais()) {
+            <div class="filter-active-tags" style="padding-top: 0.5rem;">
+              <span class="filter-tags-label">Filtros:</span>
+              @if (buscaLocais()) {
+                <span class="filter-tag">Busca: "{{ buscaLocais() }}" <button class="tag-remove" (click)="buscaLocais.set('')">&#x2715;</button></span>
+              }
+              @for (secId of filtroSecretariasLocais(); track secId) {
+                <span class="filter-tag">Secretaria: {{ getSecretariaNome(secId) }} <button class="tag-remove" (click)="removeSecretariaFilterLocais(secId)">&#x2715;</button></span>
+              }
+              <button class="filter-clear-all" (click)="buscaLocais.set(''); clearSecretariaFilterLocais()">Limpar filtros</button>
+            </div>
+          }
         </div>
 
         <div class="table-card">
@@ -2510,7 +2642,7 @@
       <div class="modal-header">
         <div>
           <h2>{{ isEmpenhoEditMode() ? 'Editar Empenho' : 'Novo Empenho' }}</h2>
-          <p class="modal-subtitle">Dotação orçamentária para faturamento de outsourcing</p>
+          <p class="modal-subtitle">Dotação orçamentária para faturamento</p>
         </div>
         <button type="button" class="modal-close-btn" aria-label="Fechar janela" (click)="closeEmpenhoModal()">&times;</button>
       </div>
@@ -2601,7 +2733,7 @@
             <button type="button"
                     class="lightbox-btn-icon"
                     (click)="zoomOutPrint()"
-                    [disabled]="printZoomLevel() <= 0.5"
+                    [disabled]="printZoomLevel() <= 0.5 && printFitMode() === 'original'"
                     title="Diminuir Zoom (-)">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="11" cy="11" r="8"></circle>
@@ -2610,12 +2742,17 @@
               </svg>
             </button>
 
-            <span class="lightbox-zoom-level" title="Nível de zoom atual">{{ (printZoomLevel() * 100).toFixed(0) }}%</span>
+            <span class="lightbox-zoom-level"
+                  (click)="toggleFitMode()"
+                  [title]="printFitMode() === 'fit' ? 'Modo Ajustado à tela. Clique para 100% Tamanho Real.' : 'Zoom ' + (printZoomLevel() * 100).toFixed(0) + '%. Clique para ajustar à tela.'"
+                  style="cursor: pointer;">
+              {{ printFitMode() === 'fit' ? 'Ajustar' : (printZoomLevel() * 100).toFixed(0) + '%' }}
+            </span>
 
             <button type="button"
                     class="lightbox-btn-icon"
                     (click)="zoomInPrint()"
-                    [disabled]="printZoomLevel() >= 3"
+                    [disabled]="printZoomLevel() >= 3.5"
                     title="Aumentar Zoom (+)">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="11" cy="11" r="8"></circle>
@@ -2627,14 +2764,24 @@
 
             <button type="button"
                     class="lightbox-btn-icon"
-                    (click)="resetZoomPrint()"
-                    title="Ajustar à tela / Tamanho Original">
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M15 3h6v6"></path>
-                <path d="M9 21H3v-6"></path>
-                <path d="M21 3l-7 7"></path>
-                <path d="M3 21l7-7"></path>
-              </svg>
+                    [class.active]="printFitMode() === 'original'"
+                    (click)="toggleFitMode()"
+                    [title]="printFitMode() === 'fit' ? 'Exibir em Tamanho Real (100% Resolução Nativa)' : 'Ajustar à Tela'">
+              @if (printFitMode() === 'fit') {
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M15 3h6v6"></path>
+                  <path d="M9 21H3v-6"></path>
+                  <path d="M21 3l-7 7"></path>
+                  <path d="M3 21l7-7"></path>
+                </svg>
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 14h6v6"></path>
+                  <path d="M20 10h-6V4"></path>
+                  <path d="M14 10l7-7"></path>
+                  <path d="M3 21l7-7"></path>
+                </svg>
+              }
             </button>
 
             <button type="button"
@@ -2690,10 +2837,15 @@
       </div>
 
       <!-- VIEWPORT DA IMAGEM EM ALTA DEFINIÇÃO -->
-      <div class="lightbox-body">
+      <div class="lightbox-body" (wheel)="onPrintWheel($event)">
         <div class="lightbox-canvas">
           <img [src]="getUrlImagemColeta(printSelecionado()!)"
-               [style.transform]="'scale(' + printZoomLevel() + ') rotate(' + printRotation() + 'deg)'"
+               [class.mode-fit]="printFitMode() === 'fit'"
+               [class.mode-original]="printFitMode() === 'original'"
+               [style.transform]="printFitMode() === 'original' ? 'scale(' + printZoomLevel() + ') rotate(' + printRotation() + 'deg)' : 'rotate(' + printRotation() + 'deg)'"
+               (load)="onPrintImageLoaded($event)"
+               (click)="toggleFitMode()"
+               [title]="printFitMode() === 'fit' ? 'Clique para ver em 100% Tamanho Real (Resolução Nativa)' : 'Clique para ajustar à tela'"
                alt="Comprovante de Leitura do Painel da Impressora"
                class="lightbox-img" />
         </div>
@@ -2715,6 +2867,17 @@
             <span class="footer-badge-status status-success">
               <span class="status-dot"></span>
               Leitura Auditada
+            </span>
+          }
+
+          @if (printImgDimensions()) {
+            <span class="footer-dimension-badge" title="Resolução nativa da imagem capturada">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+              </svg>
+              {{ printImgDimensions()?.width }} &times; {{ printImgDimensions()?.height }} px
             </span>
           }
         </div>
