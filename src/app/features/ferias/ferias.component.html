@@ -332,24 +332,7 @@
               </tbody>
             </table>
           </div>
-          <footer class="pagination">
-            <span>Página {{ paginaAtual() }} de {{ totalPaginas() }}</span>
-            <div class="actions">
-              <button
-                class="button secondary small"
-                [disabled]="paginaAtual() === 1"
-                (click)="pagina.set(paginaAtual() - 1)"
-              >
-                Anterior</button
-              ><button
-                class="button secondary small"
-                [disabled]="paginaAtual() === totalPaginas()"
-                (click)="pagina.set(paginaAtual() + 1)"
-              >
-                Próxima
-              </button>
-            </div>
-          </footer>
+          <app-pagination [totalItems]="filtrados().length" [currentPage]="paginaAtual()" [pageSize]="pageSize()" (pageChange)="pagina.set($event)" (pageSizeChange)="pageSize.set($event); pagina.set(1)"></app-pagination>
         } @else {
           <div class="empty">
             <span class="empty-icon" aria-hidden="true">▦</span>
@@ -731,8 +714,9 @@
             + Novo período
           </button>
         </div>
+        <app-pagination [totalItems]="saldos().length" [currentPage]="paginaAtualSaldos()" [pageSize]="tamanhoSaldos()" (pageChange)="paginaSaldos.set($event)" (pageSizeChange)="tamanhoSaldos.set($event); paginaSaldos.set(1)"></app-pagination>
         <div class="balance-list">
-          @for (s of saldos(); track s.servidor.id) {
+          @for (s of saldosVisiveis(); track s.servidor.id) {
             <details class="balance-card">
               <summary>
                 <div class="person">

@@ -96,7 +96,7 @@ export class AtasComponent implements OnInit {
   sortColumn = signal<string>('id');
   sortDirection = signal<'asc' | 'desc'>('desc');
   currentPage = signal<number>(1);
-  pageSize = signal<number>(10);
+  pageSize = signal<number>(5);
 
   // ===== UI STATE =====
   loading = signal<boolean>(true);

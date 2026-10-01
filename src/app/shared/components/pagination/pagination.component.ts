@@ -15,8 +15,8 @@ import { CommonModule } from '@angular/common';
 
         <div class="pagination-controls">
           <div class="page-size-selector">
-            <label for="pageSize">Itens por página:</label>
-            <select id="pageSize" [value]="pageSize" (change)="onPageSizeChange($event)">
+            <label>Itens por página:</label>
+            <select aria-label="Itens por página" [value]="pageSize" (change)="onPageSizeChange($event)">
               @for (size of pageSizeOptions; track size) {
                 <option [value]="size">{{ size }}</option>
               }
@@ -202,14 +202,14 @@ import { CommonModule } from '@angular/common';
 export class PaginationComponent implements OnChanges {
   @Input() totalItems: number = 0;
   @Input() currentPage: number = 1;
-  @Input() pageSize: number = 10;
+  @Input() pageSize: number = 5;
   @Input() pageSizeOptions: number[] = [5, 10, 25, 50];
 
   @Output() pageChange = new EventEmitter<number>();
   @Output() pageSizeChange = new EventEmitter<number>();
 
   ngOnChanges(changes: SimpleChanges): void {
-    if ((changes['totalItems'] || changes['pageSize']) && this.totalItems > 0) {
+    if ((changes['totalItems'] || changes['pageSize'])) {
       if (this.currentPage > this.totalPages) {
         this.pageChange.emit(this.totalPages);
       }
@@ -217,7 +217,7 @@ export class PaginationComponent implements OnChanges {
   }
 
   get totalPages(): number {
-    return Math.max(1, Math.ceil(this.totalItems / (this.pageSize || 10)));
+    return Math.max(1, Math.ceil(this.totalItems / (this.pageSize || 5)));
   }
 
   get safeCurrentPage(): number {
@@ -257,5 +257,6 @@ export class PaginationComponent implements OnChanges {
     const select = event.target as HTMLSelectElement;
     const newSize = Number(select.value);
     this.pageSizeChange.emit(newSize);
+    this.pageChange.emit(1);
   }
 }

@@ -74,4 +74,13 @@
     background: transparent !important;
     padding: 0 !important;
   }
-}
+}
+
+app-sidebar { position: relative; z-index: 1100; flex-shrink: 0; }
+.main-content { min-width: 0; }
+.sidebar-backdrop { display: none; }
+@media (max-width: 1024px) {
+  app-sidebar { position: fixed; inset: 0 auto 0 0; }
+  .sidebar-backdrop { display: block; position: fixed; inset: 0; z-index: 1099; border: 0; background: rgba(15, 23, 42, .4); }
+}
+@media print { app-sidebar, .sidebar-backdrop { display: none !important; } }

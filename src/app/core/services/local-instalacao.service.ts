@@ -1,3 +1,4 @@
+import { InstalacaoHistorico } from '@core/models';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -17,6 +18,10 @@ export class LocalInstalacaoService {
       params = params.set('secretariaId', secretariaId.toString());
     }
     return this.http.get<LocalInstalacao[]>(this.apiUrl, { params });
+  }
+
+  getHistorico(id: number): Observable<InstalacaoHistorico[]> {
+    return this.http.get<InstalacaoHistorico[]>(`${this.apiUrl}/${id}/instalacoes`);
   }
 
   getById(id: number): Observable<LocalInstalacao> {

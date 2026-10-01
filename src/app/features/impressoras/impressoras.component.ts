@@ -1,3 +1,5 @@
+import { SeletorLocalComponent } from './seletor-local.component';
+import { HistoricoInstalacoesComponent } from './historico-instalacoes.component';
 import { Component, OnInit, OnDestroy, HostListener, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -43,6 +45,8 @@ import { LocalInstalacaoService } from '@core/services/local-instalacao.service'
     FormsModule,
     ReactiveFormsModule,
     PaginationComponent,
+    HistoricoInstalacoesComponent,
+    SeletorLocalComponent,
     ConfirmModalComponent,
     HeaderComponent
   ],
@@ -277,6 +281,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
   @HostListener('document:keydown.escape')
   onPrinterMenuEscape(): void {
+    this.historicoLocal.set(null);
     if (this.activePrinterMenuId() !== null) {
       this.closePrinterMenu();
       this.printerMenuTrigger?.focus();
@@ -455,8 +460,60 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   }
 
   // Paginação da tabela de inventário
+  paginaLocais = signal(1);
+  tamanhoLocais = signal(5);
+  paginaAtualLocais = computed(() => Math.min(this.paginaLocais(), Math.max(1, Math.ceil(this.filteredLocais().length / this.tamanhoLocais()))));
+  paginadosLocais = computed(() => this.filteredLocais().slice((this.paginaAtualLocais() - 1) * this.tamanhoLocais(), this.paginaAtualLocais() * this.tamanhoLocais()));
+
+  paginaLeituras = signal(1);
+  tamanhoLeituras = signal(5);
+  paginaAtualLeituras = computed(() => Math.min(this.paginaLeituras(), Math.max(1, Math.ceil(this.filteredLeituras().length / this.tamanhoLeituras()))));
+  paginadosLeituras = computed(() => this.filteredLeituras().slice((this.paginaAtualLeituras() - 1) * this.tamanhoLeituras(), this.paginaAtualLeituras() * this.tamanhoLeituras()));
+
+  paginaEmpenhos = signal(1);
+  tamanhoEmpenhos = signal(5);
+  paginaAtualEmpenhos = computed(() => Math.min(this.paginaEmpenhos(), Math.max(1, Math.ceil(this.empenhos().length / this.tamanhoEmpenhos()))));
+  paginadosEmpenhos = computed(() => this.empenhos().slice((this.paginaAtualEmpenhos() - 1) * this.tamanhoEmpenhos(), this.paginaAtualEmpenhos() * this.tamanhoEmpenhos()));
+
+  paginaColeta = signal(1);
+  tamanhoColeta = signal(5);
+  paginaAtualColeta = computed(() => Math.min(this.paginaColeta(), Math.max(1, Math.ceil(this.itensColetaFiltrados().length / this.tamanhoColeta()))));
+  paginadosColeta = computed(() => this.itensColetaFiltrados().slice((this.paginaAtualColeta() - 1) * this.tamanhoColeta(), this.paginaAtualColeta() * this.tamanhoColeta()));
+
+  paginaGrupos = signal(1);
+  tamanhoGrupos = signal(5);
+  paginaAtualGrupos = computed(() => Math.min(this.paginaGrupos(), Math.max(1, Math.ceil(this.printersGroupedBySecretaria().length / this.tamanhoGrupos()))));
+  paginadosGrupos = computed(() => this.printersGroupedBySecretaria().slice((this.paginaAtualGrupos() - 1) * this.tamanhoGrupos(), this.paginaAtualGrupos() * this.tamanhoGrupos()));
+
+  paginaContadores = signal(1);
+  tamanhoContadores = signal(5);
+  paginaAtualContadores = computed(() => Math.min(this.paginaContadores(), Math.max(1, Math.ceil(this.historicoLeiturasImpressora().length / this.tamanhoContadores()))));
+  paginadosContadores = computed(() => this.historicoLeiturasImpressora().slice((this.paginaAtualContadores() - 1) * this.tamanhoContadores(), this.paginaAtualContadores() * this.tamanhoContadores()));
+
+  paginasGrupo = signal<Record<string, number>>({});
+  tamanhosGrupo = signal<Record<string, number>>({});
+  paginaGrupo(sigla: string, total: number): number {
+    return Math.min(this.paginasGrupo()[sigla] || 1, Math.max(1, Math.ceil(total / (this.tamanhosGrupo()[sigla] || 5))));
+  }
+  impressorasDoGrupo(sigla: string, impressoras: Impressora[]): Impressora[] {
+    const size = this.tamanhosGrupo()[sigla] || 5;
+    const start = (this.paginaGrupo(sigla, impressoras.length) - 1) * size;
+    return impressoras.slice(start, start + size);
+  }
+  mudarPaginaGrupo(sigla: string, pagina: number): void {
+    this.paginasGrupo.update(p => ({ ...p, [sigla]: pagina }));
+  }
+  mudarTamanhoGrupo(sigla: string, tamanho: number): void {
+    this.tamanhosGrupo.update(p => ({ ...p, [sigla]: tamanho }));
+    this.mudarPaginaGrupo(sigla, 1);
+  }
+
+  paginaLotes = signal(1);
+  tamanhoLotes = signal(5);
+  paginaAtualLotes = computed(() => Math.min(this.paginaLotes(), Math.max(1, Math.ceil(this.lotes().length / this.tamanhoLotes()))));
+  lotesVisiveis = computed(() => this.lotes().slice((this.paginaAtualLotes() - 1) * this.tamanhoLotes(), this.paginaAtualLotes() * this.tamanhoLotes()));
   currentPage = signal<number>(1);
-  pageSize = signal<number>(15);
+  pageSize = signal<number>(5);
 
   // Controle de Modais de Impressoras
   isModalOpen = signal<boolean>(false);
@@ -471,7 +528,9 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   printerToDelete = signal<Impressora | null>(null);
 
   // Histórico de contadores da impressora selecionada
-  activeDetailsTab = signal<'GERAL' | 'LEITURAS'>('GERAL');
+  historicoLocal = signal<LocalInstalacao | null>(null);
+
+  activeDetailsTab = signal<'GERAL' | 'LEITURAS' | 'LOCAIS'>('GERAL');
   historicoLeiturasImpressora = signal<LeituraContador[]>([]);
   loadingHistorico = signal<boolean>(false);
 
@@ -515,7 +574,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     ip: [''],
     secretariaId: ['', Validators.required],
     empenhoId: [''],
-    localInstalacaoId: [''],
+    localInstalacaoId: ['', Validators.required],
     localInstalacao: ['', Validators.required],
     endereco: [''],
     responsavel: [''],
@@ -526,7 +585,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   });
 
   remanejarForm: FormGroup = this.fb.group({
-    localInstalacaoId: [''],
+    localInstalacaoId: ['', Validators.required],
     novaSecretariaId: ['', Validators.required],
     novoLocalInstalacao: ['', Validators.required],
     novoEndereco: [''],
@@ -849,36 +908,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
   // Lista completa e unificada de TODOS os locais existentes (CRUD + inventário de impressoras)
   todosLocaisDisponiveis = computed(() => {
-    const mapa = new Map<string, LocalInstalacao>();
-
-    // 1. Locais cadastrados no banco via CRUD
-    for (const l of this.locais()) {
-      if (l.nome && l.nome.trim()) {
-        const chave = `${(l.secretariaId || 0)}_${l.nome.toLowerCase().trim()}`;
-        mapa.set(chave, { ...l, nome: l.nome.trim() });
-      }
-    }
-
-    // 2. Locais existentes do inventário de impressoras já carregado
-    let pseudoId = -1;
-    for (const p of this.printers()) {
-      if (p.localInstalacao && p.localInstalacao.trim()) {
-        const chave = `${(p.secretariaId || 0)}_${p.localInstalacao.toLowerCase().trim()}`;
-        if (!mapa.has(chave)) {
-          mapa.set(chave, {
-            id: pseudoId--,
-            nome: p.localInstalacao.trim(),
-            secretariaId: p.secretariaId || 0,
-            secretariaNome: p.secretariaNome || '',
-            secretariaSigla: p.secretariaSigla || '',
-            endereco: p.endereco || '',
-            responsavel: p.responsavel || '',
-            ativo: true,
-            quantidadeImpressorasAtivas: 1
-          });
-        }
-      }
-    }
+    const mapa = new Map(this.locais().filter(l => l.ativo).map(l => [l.id, l]));
 
     return Array.from(mapa.values()).sort((a, b) => {
       const siglaA = a.secretariaSigla || '';
@@ -1141,19 +1171,15 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
   onLocalSelecionadoCadastro(valor: any): void {
     if (!valor) return;
-    const texto = String(valor).trim().toLowerCase();
-    const loc = this.todosLocaisDisponiveis().find(l =>
-      l.nome.toLowerCase().trim() === texto ||
-      String(l.id) === String(valor)
-    );
+    const loc = this.todosLocaisDisponiveis().find(l => l.id === Number(valor));
 
     if (loc) {
       this.form.patchValue({
         localInstalacao: loc.nome,
         localInstalacaoId: (loc.id && loc.id > 0) ? loc.id : '',
         secretariaId: loc.secretariaId || this.form.get('secretariaId')?.value,
-        endereco: loc.endereco || this.form.get('endereco')?.value || '',
-        responsavel: loc.responsavel || this.form.get('responsavel')?.value || ''
+        endereco: loc.endereco || '',
+        responsavel: loc.responsavel || ''
       });
       if (loc.secretariaId) {
         this.secretariaSelecionadaCadastro.set(loc.secretariaId);
@@ -1164,24 +1190,20 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   onSecretariaMudouCadastro(secretariaId: any): void {
     const secId = Number(secretariaId);
     this.secretariaSelecionadaCadastro.set(secId || null);
-    this.form.patchValue({ secretariaId: secId || '' });
+    this.form.patchValue({ secretariaId: secId || '', localInstalacaoId: '', localInstalacao: '', endereco: '', responsavel: '', empenhoId: '' });
   }
 
   onLocalSelecionadoRemanejar(valor: any): void {
     if (!valor) return;
-    const texto = String(valor).trim().toLowerCase();
-    const loc = this.todosLocaisDisponiveis().find(l =>
-      l.nome.toLowerCase().trim() === texto ||
-      String(l.id) === String(valor)
-    );
+    const loc = this.todosLocaisDisponiveis().find(l => l.id === Number(valor));
 
     if (loc) {
       this.remanejarForm.patchValue({
         novoLocalInstalacao: loc.nome,
         localInstalacaoId: (loc.id && loc.id > 0) ? loc.id : '',
         novaSecretariaId: loc.secretariaId || this.remanejarForm.get('novaSecretariaId')?.value,
-        novoEndereco: loc.endereco || this.remanejarForm.get('novoEndereco')?.value || '',
-        novoResponsavel: loc.responsavel || this.remanejarForm.get('novoResponsavel')?.value || ''
+        novoEndereco: loc.endereco || '',
+        novoResponsavel: loc.responsavel || ''
       });
       if (loc.secretariaId) {
         this.secretariaSelecionadaRemanejo.set(loc.secretariaId);
@@ -1192,7 +1214,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   onSecretariaMudouRemanejar(secretariaId: any): void {
     const secId = Number(secretariaId);
     this.secretariaSelecionadaRemanejo.set(secId || null);
-    this.remanejarForm.patchValue({ novaSecretariaId: secId || '' });
+    this.remanejarForm.patchValue({ novaSecretariaId: secId || '', localInstalacaoId: '', novoLocalInstalacao: '', novoEndereco: '', novoResponsavel: '' });
   }
 
   carregarLeiturasCompetencia(): void {
@@ -1278,8 +1300,8 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     this.secretariaSelecionadaCadastro.set(p.secretariaId || null);
 
     const localCorrespondente = this.todosLocaisDisponiveis().find(l =>
-      l.secretariaId === p.secretariaId &&
-      l.nome.toLowerCase().trim() === (p.localInstalacao || '').toLowerCase().trim()
+      l.id === p.localInstalacaoId || (l.secretariaId === p.secretariaId &&
+      l.nome.toLowerCase().trim() === (p.localInstalacao || '').toLowerCase().trim())
     );
 
     this.form.patchValue({
@@ -1317,7 +1339,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       if (this.form.get('modelo')?.invalid || this.form.get('fabricante')?.invalid || this.form.get('tipoImpressao')?.invalid) {
         this.activeModalStep.set(1);
         this.toast.error('Preencha os campos obrigatórios do equipamento (Modelo, Fabricante).');
-      } else if (this.form.get('secretariaId')?.invalid || this.form.get('localInstalacao')?.invalid) {
+      } else if (this.form.get('secretariaId')?.invalid || this.form.get('localInstalacaoId')?.invalid) {
         this.activeModalStep.set(2);
         this.toast.error('Informe a Secretaria e o Local de Instalação.');
       } else if (this.form.get('loteId')?.invalid || this.form.get('dataInstalacao')?.invalid) {
@@ -1330,6 +1352,12 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     }
 
     const payload = { ...this.form.value };
+    const original = this.selectedPrinter();
+    if (this.isEditMode() && original && (Number(payload.secretariaId) !== original.secretariaId || Number(payload.localInstalacaoId) !== original.localInstalacaoId)) {
+      this.activeModalStep.set(2);
+      this.toast.error('Para mudar o local, use a ação Remanejar. Ela preserva o histórico da impressora.');
+      return;
+    }
     if (!payload.localInstalacao && payload.localInstalacaoId) {
       const loc = this.todosLocaisDisponiveis().find(l => String(l.id) === String(payload.localInstalacaoId));
       if (loc) {
@@ -1369,8 +1397,8 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     this.secretariaSelecionadaRemanejo.set(p.secretariaId || null);
 
     const localCorrespondente = this.todosLocaisDisponiveis().find(l =>
-      l.secretariaId === p.secretariaId &&
-      l.nome.toLowerCase().trim() === (p.localInstalacao || '').toLowerCase().trim()
+      l.id === p.localInstalacaoId || (l.secretariaId === p.secretariaId &&
+      l.nome.toLowerCase().trim() === (p.localInstalacao || '').toLowerCase().trim())
     );
 
     this.remanejarForm.reset({

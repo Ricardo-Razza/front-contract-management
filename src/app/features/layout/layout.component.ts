@@ -1,4 +1,4 @@
-import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, ChangeDetectionStrategy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { SidebarComponent, ToastComponent } from '@shared';
@@ -13,6 +13,25 @@ import { SidebarComponent, ToastComponent } from '@shared';
 })
 export class LayoutComponent {
   isSidebarOpen = signal(false);
+
+  private hoverSuppressed = false;
+
+  @HostListener('document:pointermove', ['$event'])
+  onPointerMove(event: PointerEvent): void {
+    if (!(event.target instanceof Element) || !event.target.closest('.btn-hamburger')) {
+      this.hoverSuppressed = false;
+    }
+  }
+
+  openOnHover(event: PointerEvent): void {
+    if (event.pointerType === "mouse" && !this.hoverSuppressed) this.isSidebarOpen.set(true);
+  }
+
+  @HostListener("document:keydown.escape")
+  closeSidebar(): void {
+    this.hoverSuppressed = true;
+    this.isSidebarOpen.set(false);
+  }
 
   toggleSidebar(): void {
     this.isSidebarOpen.update(value => !value);

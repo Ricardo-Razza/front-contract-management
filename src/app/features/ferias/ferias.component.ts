@@ -20,7 +20,7 @@ import {
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { forkJoin, of, Subject, timer } from "rxjs";
 import { catchError, switchMap, tap } from "rxjs/operators";
-import { HeaderComponent, LoadingSkeletonComponent } from "@shared";
+import { HeaderComponent, LoadingSkeletonComponent, PaginationComponent } from "@shared";
 import {
   FeriasService,
   ServidorService,
@@ -78,6 +78,7 @@ export interface MesTimelineInfo {
     ReactiveFormsModule,
     HeaderComponent,
     LoadingSkeletonComponent,
+    PaginationComponent,
   ],
   templateUrl: "./ferias.component.html",
   styleUrls: ["./ferias.component.scss"],
@@ -111,7 +112,12 @@ export class FeriasComponent implements OnInit {
   secretaria = computed(() => (this.filterSecretarias().length === 1 ? this.filterSecretarias()[0] : null));
   setor = signal("");
   status = signal("");
+  paginaSaldos = signal(1);
+  tamanhoSaldos = signal(5);
+  paginaAtualSaldos = computed(() => Math.min(this.paginaSaldos(), Math.max(1, Math.ceil(this.saldos().length / this.tamanhoSaldos()))));
+  saldosVisiveis = computed(() => this.saldos().slice((this.paginaAtualSaldos() - 1) * this.tamanhoSaldos(), this.paginaAtualSaldos() * this.tamanhoSaldos()));
   pagina = signal(1);
+  pageSize = signal(5);
 
   filteredSecretariasForFilter = computed(() => {
     const search = this.secretariaFilterSearch().trim();
@@ -251,13 +257,13 @@ export class FeriasComponent implements OnInit {
     ),
   );
   totalPaginas = computed(() =>
-    Math.max(1, Math.ceil(this.filtrados().length / 12)),
+    Math.max(1, Math.ceil(this.filtrados().length / this.pageSize())),
   );
   paginaAtual = computed(() => Math.min(this.pagina(), this.totalPaginas()));
   visiveis = computed(() =>
     this.filtrados().slice(
-      (this.paginaAtual() - 1) * 12,
-      this.paginaAtual() * 12,
+      (this.paginaAtual() - 1) * this.pageSize(),
+      this.paginaAtual() * this.pageSize(),
     ),
   );
   periodosFiltrados = computed(() => {

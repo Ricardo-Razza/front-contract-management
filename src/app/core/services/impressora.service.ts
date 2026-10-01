@@ -1,3 +1,4 @@
+import { InstalacaoHistorico } from '@core/models';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, catchError, of, shareReplay } from 'rxjs';
@@ -33,6 +34,10 @@ export class ImpressoraService {
 
   getAll(): Observable<Impressora[]> {
     return this.http.get<Impressora[]>(this.apiUrl);
+  }
+
+  getHistorico(id: number): Observable<InstalacaoHistorico[]> {
+    return this.http.get<InstalacaoHistorico[]>(`${this.apiUrl}/${id}/instalacoes`);
   }
 
   getById(id: number): Observable<Impressora> {

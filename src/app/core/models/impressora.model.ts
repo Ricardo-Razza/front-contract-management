@@ -56,6 +56,7 @@ export interface Impressora {
 
   // Dados da Instalação Ativa
   instalacaoId?: number;
+  localInstalacaoId?: number;
   secretariaId?: number;
   secretariaNome?: string;
   secretariaSigla?: string;
@@ -406,4 +407,21 @@ export interface ColetaSessao {
   diretorioPrints?: string;
   urlDownloadZip?: string;
   itens: ColetaItem[];
+}
+
+export interface InstalacaoHistorico {
+  id: number;
+  impressoraId: number;
+  itemPedido?: number;
+  numeroSerie?: string;
+  fabricante: string;
+  modelo: string;
+  localInstalacaoId?: number;
+  localInstalacao: string;
+  secretariaId: number;
+  secretariaSigla?: string;
+  dataInstalacao: string;
+  dataRetirada?: string;
+  status: string;
+  motivoRetirada?: string;
 }

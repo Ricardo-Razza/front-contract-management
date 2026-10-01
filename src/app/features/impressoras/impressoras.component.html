@@ -622,10 +622,13 @@
               [currentPage]="currentPage()"
               [totalItems]="filteredPrinters().length"
               [pageSize]="pageSize()"
-              (pageChange)="currentPage.set($event)">
+              (pageChange)="currentPage.set($event)" (pageSizeChange)="pageSize.set($event); currentPage.set(1)">
             </app-pagination>
           }
 
+          @if (!loading() && viewMode() === 'secretaria') {
+            <app-pagination [totalItems]="printersGroupedBySecretaria().length" [currentPage]="paginaAtualGrupos()" [pageSize]="tamanhoGrupos()" (pageChange)="paginaGrupos.set($event)" (pageSizeChange)="tamanhoGrupos.set($event); paginaGrupos.set(1)"></app-pagination>
+          }
           <!-- MODO 2: VISÃO AGRUPADA POR SECRETARIA -->
           @if (!loading() && viewMode() === 'secretaria') {
             <div class="sec-group-container">
@@ -643,7 +646,7 @@
                 </div>
               </div>
 
-              @for (g of printersGroupedBySecretaria(); track g.sigla) {
+              @for (g of paginadosGrupos(); track g.sigla) {
                 <div class="sec-accordion-card" [class.is-expanded]="expandedSecretarias().has(g.sigla)">
                   <div class="sec-accordion-header" (click)="toggleSecretariaGroup(g.sigla)">
                     <div class="sec-header-left">
@@ -688,7 +691,7 @@
                             </tr>
                           </thead>
                           <tbody>
-                            @for (p of g.printers; track p.id) {
+                            @for (p of impressorasDoGrupo(g.sigla, g.printers); track p.id) {
                               <tr>
                                 <td class="text-center">
                                   <span class="printer-item-num">#{{ p.itemPedido || p.id }}</span>
@@ -787,6 +790,7 @@
                             }
                           </tbody>
                         </table>
+<app-pagination [totalItems]="g.printers.length" [currentPage]="paginaGrupo(g.sigla, g.printers.length)" [pageSize]="tamanhosGrupo()[g.sigla] || 5" (pageChange)="mudarPaginaGrupo(g.sigla, $event)" (pageSizeChange)="mudarTamanhoGrupo(g.sigla, $event)"></app-pagination>
                       </div>
                     </div>
                   }
@@ -959,7 +963,7 @@
                 </tr>
               </thead>
               <tbody>
-                @for (l of filteredLeituras(); track l.id) {
+                @for (l of paginadosLeituras(); track l.id) {
                   <tr>
                     <td class="text-center">
                       <span class="badge-item-order">#{{ l.itemPedido || l.impressoraId }}</span>
@@ -1008,6 +1012,7 @@
                 }
               </tbody>
             </table>
+<app-pagination [totalItems]="filteredLeituras().length" [currentPage]="paginaAtualLeituras()" [pageSize]="tamanhoLeituras()" (pageChange)="paginaLeituras.set($event)" (pageSizeChange)="tamanhoLeituras.set($event); paginaLeituras.set(1)"></app-pagination>
           </div>
         </div>
       </div>
@@ -1458,7 +1463,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  @for (emp of empenhos(); track emp.id) {
+                  @for (emp of paginadosEmpenhos(); track emp.id) {
                     <tr>
                       <td><strong>{{ emp.numeroEmpenho }}</strong></td>
                       <td><span class="sec-badge">{{ emp.secretariaSigla }}</span></td>
@@ -1490,6 +1495,7 @@
                   }
                 </tbody>
               </table>
+            <app-pagination [totalItems]="empenhos().length" [currentPage]="paginaAtualEmpenhos()" [pageSize]="tamanhoEmpenhos()" (pageChange)="paginaEmpenhos.set($event)" (pageSizeChange)="tamanhoEmpenhos.set($event); paginaEmpenhos.set(1)"></app-pagination>
             </div>
           </div>
         }
@@ -1600,8 +1606,9 @@
 
         <!-- ESPECIFICAÇÕES DOS LOTES -->
         <h4 style="margin: 1.5rem 0 1rem 0; font-size: 1rem; color: #1e293b;">Especificações Técnicas dos Lotes</h4>
+        <app-pagination [totalItems]="lotes().length" [currentPage]="paginaAtualLotes()" [pageSize]="tamanhoLotes()" (pageChange)="paginaLotes.set($event)" (pageSizeChange)="tamanhoLotes.set($event); paginaLotes.set(1)"></app-pagination>
         <div class="lotes-grid">
-          @for (lote of lotes(); track lote.id) {
+          @for (lote of lotesVisiveis(); track lote.id) {
             <div class="lote-spec-card">
               <div class="lote-spec-header">
                 <span class="badge-lote">LOTE 0{{ lote.numeroLote }}</span>
@@ -1814,7 +1821,7 @@
                 </tr>
               </thead>
               <tbody>
-                @for (item of itensColetaFiltrados(); track item.id) {
+                @for (item of paginadosColeta(); track item.id) {
                   <tr>
                     <td class="text-center">
                       <span class="badge-item-order">#{{ item.itemPedido || '-' }}</span>
@@ -1874,6 +1881,7 @@
                 }
               </tbody>
             </table>
+<app-pagination [totalItems]="itensColetaFiltrados().length" [currentPage]="paginaAtualColeta()" [pageSize]="tamanhoColeta()" (pageChange)="paginaColeta.set($event)" (pageSizeChange)="tamanhoColeta.set($event); paginaColeta.set(1)"></app-pagination>
           </div>
         </div>
       </div>
@@ -1981,7 +1989,7 @@
                 </tr>
               </thead>
               <tbody>
-                @for (loc of filteredLocais(); track loc.id) {
+                @for (loc of paginadosLocais(); track loc.id) {
                   <tr>
                     <td><strong>{{ loc.nome }}</strong></td>
                     <td><span class="sec-badge">{{ loc.secretariaSigla || 'SEC' }}</span></td>
@@ -2011,6 +2019,7 @@
                       </span>
                     </td>
                     <td class="col-acoes" style="text-align: right;">
+                      <button type="button" class="btn btn-outline" (click)="historicoLocal.set(loc)">Histórico</button>
                       <button type="button" class="btn-icon" (click)="abrirModalEditarLocal(loc)" title="Editar Local de Instalação">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -2037,6 +2046,7 @@
                 }
               </tbody>
             </table>
+<app-pagination [totalItems]="filteredLocais().length" [currentPage]="paginaAtualLocais()" [pageSize]="tamanhoLocais()" (pageChange)="paginaLocais.set($event)" (pageSizeChange)="tamanhoLocais.set($event); paginaLocais.set(1)"></app-pagination>
           </div>
         </div>
       </div>
@@ -2203,7 +2213,10 @@
 
               <div class="form-group full-width">
                 <label class="form-label">Local / Setor de Instalação *</label>
-                <input type="text" class="form-control" formControlName="localInstalacao" placeholder="Ex: Protocolo Geral, Recepção, Sala 12" />
+                <app-seletor-local id="local-cadastro" [locais]="locaisFiltradosParaCadastro()"
+                  [valor]="form.get('localInstalacaoId')?.value"
+                  (valorChange)="onLocalSelecionadoCadastro($event)"></app-seletor-local>
+                @if (!locaisFiltradosParaCadastro().length) { <small>Nenhum local disponível. Cadastre-o na aba Locais de Instalação.</small> }
               </div>
 
               <div class="form-group full-width">
@@ -2331,7 +2344,10 @@
 
             <div class="form-group full-width">
               <label class="form-label">Novo Local / Setor *</label>
-              <input type="text" class="form-control" formControlName="novoLocalInstalacao" placeholder="Ex: Posto de Saúde Central" />
+              <app-seletor-local id="local-remanejo" [locais]="locaisFiltradosParaRemanejo()"
+                  [valor]="remanejarForm.get('localInstalacaoId')?.value"
+                  (valorChange)="onLocalSelecionadoRemanejar($event)"></app-seletor-local>
+                @if (!locaisFiltradosParaRemanejo().length) { <small>Nenhum local disponível. Cadastre-o na aba Locais de Instalação.</small> }
             </div>
 
             <div class="form-group full-width">
@@ -2539,9 +2555,11 @@
         <button type="button" class="modal-nav-btn" [class.active]="activeDetailsTab() === 'LEITURAS'" (click)="activeDetailsTab.set('LEITURAS')">
           Histórico de Contadores ({{ historicoLeiturasImpressora().length }})
         </button>
+        <button type="button" class="modal-nav-btn" [class.active]="activeDetailsTab() === 'LOCAIS'" (click)="activeDetailsTab.set('LOCAIS')">Histórico de Locais</button>
       </div>
 
       <div class="modal-body">
+        @if (activeDetailsTab() === 'LOCAIS') { <app-historico-instalacoes [impressoraId]="selectedPrinter()!.id"></app-historico-instalacoes> }
         @if (activeDetailsTab() === 'GERAL') {
           <div class="details-grid-clean">
             <div class="detail-box">
@@ -2600,7 +2618,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  @for (h of historicoLeiturasImpressora(); track h.id) {
+                  @for (h of paginadosContadores(); track h.id) {
                     <tr>
                       <td><strong>{{ h.mesReferencia }}/{{ h.anoReferencia }}</strong></td>
                       <td>{{ formatDatePtBr(h.dataLeitura) || h.dataLeitura }}</td>
@@ -2621,6 +2639,7 @@
                   }
                 </tbody>
               </table>
+<app-pagination [totalItems]="historicoLeiturasImpressora().length" [currentPage]="paginaAtualContadores()" [pageSize]="tamanhoContadores()" (pageChange)="paginaContadores.set($event)" (pageSizeChange)="tamanhoContadores.set($event); paginaContadores.set(1)"></app-pagination>
             </div>
           </div>
         }
@@ -2969,3 +2988,16 @@
   (confirm)="executarExclusaoEmpenho()"
   (cancel)="isDeleteEmpenhoModalOpen.set(false)">
 </app-confirm-modal>
+
+@if (historicoLocal(); as local) {
+  <div class="modal-overlay" (click)="historicoLocal.set(null)">
+    <div class="modal-container modal-lg" role="dialog" aria-modal="true" aria-labelledby="historico-local-titulo" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div><h2 id="historico-local-titulo">Histórico de impressoras</h2><p>{{ local.nome }} — {{ local.secretariaSigla }}</p></div>
+        <button type="button" class="modal-close-btn" aria-label="Fechar histórico" (click)="historicoLocal.set(null)">&times;</button>
+      </div>
+      <div class="modal-body"><app-historico-instalacoes [localId]="local.id"></app-historico-instalacoes></div>
+      <div class="modal-footer"><button type="button" class="btn btn-outline" (click)="historicoLocal.set(null)">Fechar</button></div>
+    </div>
+  </div>
+}

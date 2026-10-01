@@ -1,4 +1,4 @@
-<button *ngIf="!isSidebarOpen()" class="btn-hamburger" (click)="toggleSidebar()" aria-label="Abrir menu"
+<button *ngIf="!isSidebarOpen()" class="btn-hamburger" (click)="isSidebarOpen.set(true)" (pointerenter)="openOnHover($event)" aria-label="Abrir menu"
   title="Abrir menu">
   <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -9,9 +9,12 @@
 </button>
 
 <div class="app-container">
-  <app-sidebar [isOpen]="isSidebarOpen()" (closeSidebar)="toggleSidebar()"></app-sidebar>
+  @if (isSidebarOpen()) {
+    <button class="sidebar-backdrop" aria-label="Fechar menu" (click)="closeSidebar()"></button>
+  }
+  <app-sidebar [isOpen]="isSidebarOpen()" (closeSidebar)="closeSidebar()" [attr.inert]="isSidebarOpen() ? null : ''"></app-sidebar>
 
-  <main class="main-content">
+  <main class="main-content" (pointerdown)="closeSidebar()">
     <router-outlet></router-outlet>
   </main>
 
