@@ -3,8 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PaginationComponent, OrderEquipePipe } from '@shared';
-import { AtaService, SecretariaService, ServidorService, LookupService, ToastService } from '@core/services';
-import { Agreement, Secretariat, LookupItem, Servant } from '@core/models';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { AtaService, SecretariaService, ServidorService, LookupService, ToastService, AnexoService } from '@core/services';
+import { Agreement, Secretariat, LookupItem, Servant, DocumentoAnexo, TIPOS_DOCUMENTO_LABELS } from '@core/models';
 import { includesNormalized, matchesSearch, exportToCsv, printFichaDocumento, parseDateSafe, formatDatePtBr } from '@core/utils';
 
 @Component({
@@ -36,6 +37,8 @@ export class AtasComponent implements OnInit {
   private toast = inject(ToastService);
   private fb = inject(FormBuilder);
   private elementRef = inject(ElementRef);
+  private anexoService = inject(AnexoService);
+  private sanitizer = inject(DomSanitizer);
 
   // ===== DADOS =====
   agreements = signal<Agreement[]>([]);
@@ -45,6 +48,22 @@ export class AtasComponent implements OnInit {
   funcoesList = signal<LookupItem[]>([]);
   servants = signal<Servant[]>([]);
   servidoresList = signal<{ id: number; nome: string }[]>([]);
+
+  // Repositório Digital de Anexos
+  anexosAta = signal<DocumentoAnexo[]>([]);
+  loadingAnexos = signal<boolean>(false);
+  isUploadModalOpen = signal<boolean>(false);
+  uploadingAnexo = signal<boolean>(false);
+  uploadTipo = signal<string>('CONTRATO_INTEGRA');
+  uploadDescricao = signal<string>('');
+  selectedFile = signal<File | null>(null);
+  tiposDocumento = TIPOS_DOCUMENTO_LABELS;
+  objectKeys = Object.keys;
+
+  // Visualização de Anexo
+  previewAnexo = signal<DocumentoAnexo | null>(null);
+  previewUrl = signal<SafeResourceUrl | null>(null);
+  isPreviewModalOpen = signal<boolean>(false);
 
   // Equipe de Ata (No Modal)
   openServidorDropdownIndex = signal<number | null>(null);
@@ -96,7 +115,11 @@ export class AtasComponent implements OnInit {
 
   @HostListener('document:keydown.escape')
   onEscapeKey(): void {
-    if (this.showSecretariaDropdown()) {
+    if (this.isPreviewModalOpen()) {
+      this.fecharPreviewModal();
+    } else if (this.isUploadModalOpen()) {
+      this.fecharModalUploadAnexo();
+    } else if (this.showSecretariaDropdown()) {
       this.showSecretariaDropdown.set(false);
     } else if (this.showPessoaSuggestions()) {
       this.showPessoaSuggestions.set(false);
@@ -727,11 +750,137 @@ export class AtasComponent implements OnInit {
   openDetailsModal(ata: Agreement): void {
     this.selectedAtaForDetails.set(ata);
     this.isDetailsModalOpen.set(true);
+    this.carregarAnexos(ata.id);
   }
 
   closeDetailsModal(): void {
     this.isDetailsModalOpen.set(false);
     this.selectedAtaForDetails.set(null);
+    this.anexosAta.set([]);
+    this.fecharPreviewModal();
+  }
+
+  carregarAnexos(ataId: number): void {
+    this.loadingAnexos.set(true);
+    this.anexoService.listarPorAta(ataId).subscribe({
+      next: (anexos) => {
+        this.anexosAta.set(anexos || []);
+        this.loadingAnexos.set(false);
+      },
+      error: (err) => {
+        console.error('Erro ao carregar anexos da ata:', err);
+        this.loadingAnexos.set(false);
+      }
+    });
+  }
+
+  abrirModalUploadAnexo(): void {
+    this.selectedFile.set(null);
+    this.uploadTipo.set('CONTRATO_INTEGRA');
+    this.uploadDescricao.set('');
+    this.isUploadModalOpen.set(true);
+  }
+
+  fecharModalUploadAnexo(): void {
+    this.isUploadModalOpen.set(false);
+    this.selectedFile.set(null);
+  }
+
+  onFileSelected(event: any): void {
+    const file = event.target?.files?.[0];
+    if (file) {
+      this.selectedFile.set(file);
+    }
+  }
+
+  enviarAnexo(): void {
+    const file = this.selectedFile();
+    const ata = this.selectedAtaForDetails();
+    if (!file || !ata) return;
+
+    this.uploadingAnexo.set(true);
+    this.anexoService.upload(file, this.uploadTipo(), this.uploadDescricao(), undefined, ata.id).subscribe({
+      next: () => {
+        this.toast.success('Documento anexado com sucesso!');
+        this.uploadingAnexo.set(false);
+        this.fecharModalUploadAnexo();
+        this.carregarAnexos(ata.id);
+      },
+      error: (err) => {
+        console.error('Erro ao fazer upload do anexo:', err);
+        this.toast.error('Erro ao fazer upload do documento.');
+        this.uploadingAnexo.set(false);
+      }
+    });
+  }
+
+  downloadAnexo(anexo?: DocumentoAnexo | null): void {
+    if (!anexo) return;
+    const url = this.anexoService.getUrlDownload(anexo.id);
+    window.open(url, '_blank');
+  }
+
+  visualizarAnexo(anexo: DocumentoAnexo): void {
+    this.previewAnexo.set(anexo);
+    const rawUrl = this.anexoService.getUrlVisualizar(anexo.id);
+    this.previewUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(rawUrl));
+    this.isPreviewModalOpen.set(true);
+  }
+
+  fecharPreviewModal(): void {
+    this.isPreviewModalOpen.set(false);
+    this.previewAnexo.set(null);
+    this.previewUrl.set(null);
+  }
+
+  abrirAnexoNovaAba(anexo?: DocumentoAnexo | null): void {
+    if (!anexo) return;
+    const url = this.anexoService.getUrlVisualizar(anexo.id);
+    window.open(url, '_blank');
+  }
+
+  isArquivoVisualizavel(anexo?: DocumentoAnexo | null): boolean {
+    if (!anexo) return false;
+    const nome = (anexo.nomeOriginal || '').toLowerCase();
+    const type = (anexo.contentType || '').toLowerCase();
+    return (
+      nome.endsWith('.pdf') ||
+      nome.endsWith('.png') ||
+      nome.endsWith('.jpg') ||
+      nome.endsWith('.jpeg') ||
+      type.includes('pdf') ||
+      type.includes('image')
+    );
+  }
+
+  excluirAnexo(anexo: DocumentoAnexo): void {
+    if (confirm(`Tem certeza que deseja excluir o anexo "${anexo.nomeOriginal}"?`)) {
+      this.anexoService.deletar(anexo.id).subscribe({
+        next: () => {
+          this.toast.success('Anexo excluído com sucesso!');
+          const ata = this.selectedAtaForDetails();
+          if (ata) {
+            this.carregarAnexos(ata.id);
+          }
+        },
+        error: (err) => {
+          console.error('Erro ao excluir anexo:', err);
+          this.toast.error('Erro ao excluir documento anexo.');
+        }
+      });
+    }
+  }
+
+  formatarTamanho(bytes?: number): string {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
+
+  getTipoDocumentoLabel(tipo: string): string {
+    return this.tiposDocumento[tipo] || tipo;
   }
 
   // ============ MÉTODOS DE SELEÇÃO DE SECRETARIAS ============

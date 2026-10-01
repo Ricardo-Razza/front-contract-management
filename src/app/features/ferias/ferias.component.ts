@@ -39,6 +39,7 @@ import {
   EscalaAnual,
   DiaInfo,
 } from "@core/models";
+import { exportToCsv, formatDatePtBr } from "@core/utils";
 
 import {
   montarEscala,
@@ -967,7 +968,310 @@ export class FeriasComponent implements OnInit {
       });
   }
   imprimir(): void {
-    window.print();
+    const agendamentos = this.base()
+      .filter((a) => a.status !== "CANCELADO")
+      .sort(
+        (a, b) =>
+          (a.dataInicio || "").localeCompare(b.dataInicio || "") ||
+          a.servidorNome.localeCompare(b.servidorNome),
+      );
+
+    const secNome =
+      this.secretarias().find((s) => s.id === Number(this.secretaria()))?.nome ||
+      "Todas as Secretarias Municipais";
+    const setorNome = this.setor() || "Todos os Setores";
+    const anoRef = this.ano();
+    const dataHoraEmissao = new Date().toLocaleString("pt-BR");
+    const totalServidores = new Set(agendamentos.map((a) => a.servidorId)).size;
+    const totalDias = agendamentos.reduce((acc, a) => acc + (a.dias || 0), 0);
+
+    const rowsHtml =
+      agendamentos.length === 0
+        ? `<tr><td colspan="10" style="text-align: center; padding: 20px; color: #64748b;">Nenhum agendamento de férias encontrado para os filtros selecionados.</td></tr>`
+        : agendamentos
+            .map(
+              (a, idx) => `
+        <tr>
+          <td style="text-align: center; font-weight: 600;">${idx + 1}</td>
+          <td style="text-align: center;"><code>${a.servidorMatricula}</code></td>
+          <td style="font-weight: 600; color: #0f172a;">${a.servidorNome}</td>
+          <td>${a.servidorCargo || "-"}</td>
+          <td>${a.secretariaSigla ? a.secretariaSigla + (a.servidorSetor ? " - " + a.servidorSetor : "") : a.servidorSetor || "-"}</td>
+          <td style="text-align: center; font-size: 7pt;">${a.periodoIdentificador || "-"}</td>
+          <td style="text-align: center; font-weight: 600;">${formatDatePtBr(a.dataInicio)} a ${formatDatePtBr(a.dataFim)}</td>
+          <td style="text-align: center; font-weight: 700; color: #1e40af;">${a.dias} d</td>
+          <td style="text-align: center;">${this.tipos[a.tipoAfastamento] || a.tipoAfastamento}</td>
+          <td style="text-align: center;"><span class="status-pill status-${a.status.toLowerCase()}">${this.situacoes[a.status] || a.status}</span></td>
+        </tr>
+      `,
+            )
+            .join("");
+
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Escala Anual de Férias ${anoRef} - Prefeitura de Imbé</title>
+  <style>
+    @page {
+      size: A4 landscape;
+      margin: 8mm 10mm;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      color: #0f172a;
+      font-size: 7.5pt;
+      line-height: 1.3;
+      background: #fff;
+    }
+    .header {
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 3mm;
+      margin-bottom: 3mm;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .header-left h1 {
+      font-size: 13pt;
+      font-weight: 800;
+      margin: 0 0 1mm 0;
+      letter-spacing: 0.02em;
+      color: #0f172a;
+    }
+    .header-left h2 {
+      font-size: 9pt;
+      font-weight: 700;
+      margin: 0 0 1mm 0;
+      color: #1e3a8a;
+    }
+    .header-left p {
+      font-size: 7.5pt;
+      margin: 0;
+      color: #475569;
+    }
+    .header-right {
+      text-align: right;
+      font-size: 7pt;
+      color: #475569;
+    }
+    .meta-bar {
+      display: flex;
+      justify-content: space-between;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 2mm 3mm;
+      margin-bottom: 3mm;
+      font-size: 7.5pt;
+      font-weight: 600;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 7pt;
+    }
+    th, td {
+      border: 1px solid #94a3b8;
+      padding: 1.6mm 2mm;
+    }
+    th {
+      background: #0f172a;
+      color: #ffffff;
+      font-weight: 700;
+      text-align: left;
+    }
+    tr:nth-child(even) {
+      background: #f8fafc;
+    }
+    code {
+      font-family: monospace;
+      font-size: 7.5pt;
+    }
+    .status-pill {
+      display: inline-block;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 6.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .status-planejado { background: #e0f2fe; color: #0369a1; }
+    .status-confirmado { background: #dcfce7; color: #15803d; }
+    .summary-footer {
+      margin-top: 3mm;
+      display: flex;
+      justify-content: space-between;
+      font-size: 7.5pt;
+      font-weight: 700;
+      padding: 1.5mm 0;
+      border-top: 1px solid #cbd5e1;
+    }
+    .signatures-block {
+      margin-top: 8mm;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10mm;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .signature-item {
+      text-align: center;
+    }
+    .signature-line {
+      width: 85%;
+      margin: 0 auto 1.5mm auto;
+      border-top: 1px solid #334155;
+    }
+    .signature-title {
+      font-size: 7pt;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .signature-sub {
+      font-size: 6.5pt;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <h1>PREFEITURA MUNICIPAL DE IMBÉ</h1>
+      <h2>SECRETARIA MUNICIPAL DE ADMINISTRAÇÃO — RECURSOS HUMANOS</h2>
+      <p>ESCALA OFICIAL ANUAL DE FÉRIAS E AFASTAMENTOS REGULAMENTARES — EXERCÍCIO ${anoRef}</p>
+    </div>
+    <div class="header-right">
+      <div><strong>Data de Emissão:</strong> ${dataHoraEmissao}</div>
+      <div>Sistema Integrado de Gestão de Contratos e RH</div>
+    </div>
+  </div>
+
+  <div class="meta-bar">
+    <div><strong>Lotação:</strong> ${secNome}</div>
+    <div><strong>Setor:</strong> ${setorNome}</div>
+    <div><strong>Servidores Programados:</strong> ${totalServidores}</div>
+    <div><strong>Total de Dias Agendados:</strong> ${totalDias} dias</div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25px; text-align: center;">#</th>
+        <th style="width: 55px; text-align: center;">Matrícula</th>
+        <th>Nome do Servidor</th>
+        <th>Cargo / Função</th>
+        <th>Secretaria / Lotação</th>
+        <th style="width: 80px; text-align: center;">Período Aquisitivo</th>
+        <th style="width: 120px; text-align: center;">Período de Férias</th>
+        <th style="width: 45px; text-align: center;">Dias</th>
+        <th style="width: 75px; text-align: center;">Tipo</th>
+        <th style="width: 75px; text-align: center;">Situação</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml}
+    </tbody>
+  </table>
+
+  <div class="summary-footer">
+    <div>Total de registros na escala: ${agendamentos.length}</div>
+    <div>Município de Imbé — RS | Documento Oficial de Afixação em Mural e Arquivo Funcional</div>
+  </div>
+
+  <div class="signatures-block">
+    <div class="signature-item">
+      <div class="signature-line"></div>
+      <div class="signature-title">Chefia Imediata / Supervisão</div>
+      <div class="signature-sub">De acordo com a escala programada</div>
+    </div>
+    <div class="signature-item">
+      <div class="signature-line"></div>
+      <div class="signature-title">Secretário Municipal / Diretor</div>
+      <div class="signature-sub">Homologação da Pasta</div>
+    </div>
+    <div class="signature-item">
+      <div class="signature-line"></div>
+      <div class="signature-title">Divisão de Recursos Humanos</div>
+      <div class="signature-sub">Registro no assentamento funcional</div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    const printWin = window.open("", "_blank", "width=1100,height=800");
+    if (!printWin) {
+      this.toast.error("Não foi possível abrir a janela de impressão. Permita popups.");
+      return;
+    }
+    printWin.document.open();
+    printWin.document.write(html);
+    printWin.document.close();
+    setTimeout(() => {
+      try {
+        printWin.focus();
+        printWin.print();
+      } catch (e) {
+        console.error("Erro na impressão:", e);
+      }
+    }, 400);
+  }
+
+  exportarEscalaCSV(): void {
+    const agendamentos = this.base()
+      .filter((a) => a.status !== "CANCELADO")
+      .sort(
+        (a, b) =>
+          (a.dataInicio || "").localeCompare(b.dataInicio || "") ||
+          a.servidorNome.localeCompare(b.servidorNome),
+      );
+
+    if (agendamentos.length === 0) {
+      this.toast.error("Nenhum agendamento para exportar com os filtros atuais.");
+      return;
+    }
+
+    const filename = `escala_ferias_${this.ano()}_${this.secretaria() ? "sec_" + this.secretaria() : "geral"}`;
+    exportToCsv(
+      filename,
+      [
+        { header: "Matrícula", accessor: (a) => a.servidorMatricula },
+        { header: "Servidor", accessor: (a) => a.servidorNome },
+        { header: "Cargo", accessor: (a) => a.servidorCargo || "" },
+        {
+          header: "Secretaria",
+          accessor: (a) => a.secretariaSigla || a.secretariaNome || "",
+        },
+        { header: "Setor", accessor: (a) => a.servidorSetor || "" },
+        {
+          header: "Período Aquisitivo",
+          accessor: (a) => a.periodoIdentificador || "Não informado",
+        },
+        {
+          header: "Data Início",
+          accessor: (a) => formatDatePtBr(a.dataInicio),
+        },
+        { header: "Data Fim", accessor: (a) => formatDatePtBr(a.dataFim) },
+        { header: "Dias", accessor: (a) => a.dias },
+        {
+          header: "Tipo Afastamento",
+          accessor: (a) => this.tipos[a.tipoAfastamento] || a.tipoAfastamento,
+        },
+        {
+          header: "Situação",
+          accessor: (a) => this.situacoes[a.status] || a.status,
+        },
+      ],
+      agendamentos,
+    );
+    this.toast.success("Planilha de escala exportada com sucesso!");
   }
   private focarPainel(): void {
     afterNextRender(

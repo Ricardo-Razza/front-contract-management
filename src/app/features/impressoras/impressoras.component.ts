@@ -202,6 +202,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
   // Dropdown de Ações por Linha e Acordeão de Faturas
   activePrinterMenuId = signal<number | null>(null);
+  selectedPrinterForMenu = signal<Impressora | null>(null);
   printerMenuPosition = signal({ left: 0, top: 0 });
   private printerMenuTrigger: HTMLElement | null = null;
   private readonly dismissPrinterMenuOnScroll = () => this.closePrinterMenu();
@@ -209,7 +210,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
   @HostListener('document:click')
   onDocumentClick(): void {
-    this.activePrinterMenuId.set(null);
+    this.closePrinterMenu();
   }
 
   @HostListener('document:keydown.escape')
@@ -225,27 +226,54 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     this.closePrinterMenu();
   }
 
-  togglePrinterMenu(printerId: number, event?: Event): void {
+  togglePrinterMenu(printer: Impressora, event?: Event): void {
     if (event) {
       event.stopPropagation();
     }
-    if (this.activePrinterMenuId() === printerId) {
-      this.activePrinterMenuId.set(null);
+    if (this.activePrinterMenuId() === printer.id) {
+      this.closePrinterMenu();
     } else {
       this.printerMenuTrigger = event?.currentTarget as HTMLElement | null;
       const rect = this.printerMenuTrigger?.getBoundingClientRect();
       if (rect) {
+        const menuWidth = 230;
+        const menuHeight = 250;
+        const margin = 8;
+
+        let left = rect.right - menuWidth;
+        if (left < margin) {
+          left = margin;
+        }
+        if (left + menuWidth > window.innerWidth - margin) {
+          left = window.innerWidth - menuWidth - margin;
+        }
+
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        let top: number;
+
+        if (spaceBelow >= menuHeight + margin || spaceBelow >= spaceAbove) {
+          top = rect.bottom + 4;
+          if (top + menuHeight > window.innerHeight - margin) {
+            top = Math.max(margin, window.innerHeight - menuHeight - margin);
+          }
+        } else {
+          top = Math.max(margin, rect.top - menuHeight - 4);
+        }
+
         this.printerMenuPosition.set({
-          left: Math.max(12, Math.min(rect.right - 240, window.innerWidth - 252)),
-          top: Math.max(12, Math.min(rect.bottom + 6, window.innerHeight - 292))
+          left: Math.round(left),
+          top: Math.round(top)
         });
       }
-      this.activePrinterMenuId.set(printerId);
+      this.selectedPrinterForMenu.set(printer);
+      this.activePrinterMenuId.set(printer.id);
     }
   }
 
   closePrinterMenu(): void {
     this.activePrinterMenuId.set(null);
+    this.selectedPrinterForMenu.set(null);
   }
 
   toggleInvoice(numeroEmpenho: string): void {
@@ -2047,6 +2075,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       let combinedHtml = '';
       cards.forEach(c => {
         const clone = c.cloneNode(true) as HTMLElement;
+        clone.classList.remove('collapsed-view');
         if (!this.incluirMedicaoImpressao()) {
           const medicaoSec = clone.querySelector('.doc-section-equipamentos');
           if (medicaoSec) {
@@ -2065,13 +2094,14 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     const card = document.getElementById('invoice-card-' + numeroEmpenho);
     if (card) {
       const clone = card.cloneNode(true) as HTMLElement;
+      clone.classList.remove('collapsed-view');
       if (!this.incluirMedicaoImpressao()) {
         const medicaoSec = clone.querySelector('.doc-section-equipamentos');
         if (medicaoSec) {
           medicaoSec.remove();
         }
       }
-      this.imprimirConteudoIsolado(clone.outerHTML, `Nota Fiscal Empenho ${numeroEmpenho} - Imbe 2026`, false);
+      this.imprimirConteudoIsolado(clone.outerHTML, `Espelho Fatura Oficial - Empenho ${numeroEmpenho} - Imbe`, false);
     } else {
       this.toast.error('Nota fiscal do empenho ' + numeroEmpenho + ' não encontrada.');
     }
