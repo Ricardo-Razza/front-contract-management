@@ -663,11 +663,6 @@ export class SidebarComponent {
     }
   }
 
-  @HostListener('mouseleave')
-  onHostMouseLeave(): void {
-    this.onMouseLeave();
-  }
-
   onCloseSidebar(event?: MouseEvent): void {
     if (event?.currentTarget instanceof HTMLElement) {
       event.currentTarget.blur();

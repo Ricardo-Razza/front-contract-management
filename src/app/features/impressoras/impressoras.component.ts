@@ -1,6 +1,6 @@
 import { SeletorLocalComponent } from './seletor-local.component';
 import { HistoricoInstalacoesComponent } from './historico-instalacoes.component';
-import { Component, OnInit, OnDestroy, HostListener, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ImpressoraService } from '@core/services/impressora.service';
@@ -51,7 +51,8 @@ import { LocalInstalacaoService } from '@core/services/local-instalacao.service'
     HeaderComponent
   ],
   templateUrl: './impressoras.component.html',
-  styleUrls: ['./impressoras.component.scss']
+  styleUrls: ['./impressoras.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ImpressorasComponent implements OnInit, OnDestroy {
   formatDatePtBr = formatDatePtBr;
@@ -173,9 +174,16 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     this.currentPage.set(1);
   }
 
+  secretariasMap = computed(() => {
+    const map = new Map<number, string>();
+    for (const s of this.secretariats()) {
+      map.set(s.id, s.sigla || s.nome);
+    }
+    return map;
+  });
+
   getSecretariaNome(id: number): string {
-    const sec = this.secretariats().find(s => s.id === id);
-    return sec ? (sec.sigla || sec.nome) : '';
+    return this.secretariasMap().get(id) || '';
   }
 
   activeFiltersCount = computed(() => {
@@ -268,13 +276,15 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event?: MouseEvent): void {
-    this.closePrinterMenu();
+    if (this.activePrinterMenuId() !== null) {
+      this.closePrinterMenu();
+    }
     if (event) {
       const target = event.target as HTMLElement;
       if (!target.closest('.custom-multiselect')) {
-        this.showSecretariaDropdown.set(false);
-        this.showSecretariaDropdownLeituras.set(false);
-        this.showSecretariaDropdownLocais.set(false);
+        if (this.showSecretariaDropdown()) this.showSecretariaDropdown.set(false);
+        if (this.showSecretariaDropdownLeituras()) this.showSecretariaDropdownLeituras.set(false);
+        if (this.showSecretariaDropdownLocais()) this.showSecretariaDropdownLocais.set(false);
       }
     }
   }
@@ -286,14 +296,16 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       this.closePrinterMenu();
       this.printerMenuTrigger?.focus();
     }
-    this.showSecretariaDropdown.set(false);
-    this.showSecretariaDropdownLeituras.set(false);
-    this.showSecretariaDropdownLocais.set(false);
+    if (this.showSecretariaDropdown()) this.showSecretariaDropdown.set(false);
+    if (this.showSecretariaDropdownLeituras()) this.showSecretariaDropdownLeituras.set(false);
+    if (this.showSecretariaDropdownLocais()) this.showSecretariaDropdownLocais.set(false);
   }
 
   @HostListener('window:resize')
   onPrinterMenuResize(): void {
-    this.closePrinterMenu();
+    if (this.activePrinterMenuId() !== null) {
+      this.closePrinterMenu();
+    }
   }
 
   togglePrinterMenu(printer: Impressora, event?: Event): void {
@@ -338,10 +350,15 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       }
       this.selectedPrinterForMenu.set(printer);
       this.activePrinterMenuId.set(printer.id);
+      document.addEventListener('scroll', this.dismissPrinterMenuOnScroll, { capture: true, passive: true });
     }
   }
 
   closePrinterMenu(): void {
+    if (this.activePrinterMenuId() === null && this.selectedPrinterForMenu() === null) {
+      return;
+    }
+    document.removeEventListener('scroll', this.dismissPrinterMenuOnScroll, true);
     this.activePrinterMenuId.set(null);
     this.selectedPrinterForMenu.set(null);
   }
@@ -1013,7 +1030,6 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    document.addEventListener('scroll', this.dismissPrinterMenuOnScroll, true);
     this.carregarDados();
   }
 

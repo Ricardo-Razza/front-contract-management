@@ -1038,7 +1038,7 @@
       <div class="form-group" style="margin-bottom: 1rem;">
         <label class="form-label required">Tipo do Documento</label>
         <select class="form-control" [ngModel]="uploadTipo()" (ngModelChange)="uploadTipo.set($event)">
-          @for (key of objectKeys(tiposDocumento); track key) {
+          @for (key of tiposDocumentoKeys; track key) {
             <option [value]="key">{{ tiposDocumento[key] }}</option>
           }
         </select>

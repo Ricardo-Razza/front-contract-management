@@ -1,18 +1,19 @@
 import { DOCUMENT } from '@angular/common';
-import { Component, DestroyRef, ElementRef, EventEmitter, HostListener, Input, OnChanges, Output, SimpleChanges, ViewChild, inject, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, EventEmitter, HostListener, Input, OnChanges, Output, SimpleChanges, ViewChild, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { LocalInstalacao } from '@core/models';
 import { matchesSearch } from '@core/utils';
 
 @Component({
   selector: 'app-seletor-local',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="custom-multiselect">
       <button #trigger type="button" class="multiselect-trigger" [class.open]="aberto()"
               [attr.aria-expanded]="aberto()" [attr.aria-controls]="id + '-opcoes'" aria-haspopup="true"
               aria-label="Selecionar local de instalação" (click)="alternar()">
-        <span class="trigger-text" [class.placeholder]="!selecionado">
-          {{ selecionado ? selecionado.nome + ' — ' + (selecionado.secretariaSigla || '') : 'Selecione um local cadastrado...' }}
+        <span class="trigger-text" [class.placeholder]="!selecionado()">
+          {{ selecionado() ? selecionado()!.nome + ' — ' + (selecionado()!.secretariaSigla || '') : 'Selecione um local cadastrado...' }}
         </span>
         <svg class="trigger-arrow" [class.open]="aberto()" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9" /></svg>
       </button>
@@ -22,7 +23,7 @@ import { matchesSearch } from '@core/utils';
                  aria-label="Buscar local" [value]="busca()" (input)="busca.set($any($event.target).value)"
                  (keydown.arrowdown)="focarOpcao($event)" />
           <div class="multiselect-list" [id]="id + '-opcoes'" role="group" aria-label="Locais cadastrados">
-            @for (local of filtrados; track local.id) {
+            @for (local of filtrados(); track local.id) {
               <button type="button" class="multiselect-item" [class.selected]="local.id === +valor"
                       [attr.aria-pressed]="local.id === +valor" (click)="selecionar(local)" (keydown)="navegar($event)">
                 <span class="item-sigla">{{ local.secretariaSigla }}</span>
@@ -58,22 +59,40 @@ export class SeletorLocalComponent implements OnChanges {
     campo?.nativeElement.focus();
   }
   private element = inject<ElementRef<HTMLElement>>(ElementRef);
+
+  aberto = signal(false);
+  busca = signal('');
+  locaisSignal = signal<LocalInstalacao[]>([]);
+  valorSignal = signal<number | string>('');
+
+  selecionado = computed(() => {
+    const v = Number(this.valorSignal());
+    return this.locaisSignal().find(l => l.id === v);
+  });
+
+  filtrados = computed(() => {
+    const termo = this.busca();
+    return this.locaisSignal().filter(l => matchesSearch([l.nome, l.endereco, l.secretariaNome, l.secretariaSigla], termo));
+  });
+
   constructor() {
     const document = inject(DOCUMENT);
     const listener = (event: MouseEvent) => this.cliqueFora(event);
-    // Capture also detects clicks inside modals that stop bubbling.
     document.addEventListener('click', listener, true);
     inject(DestroyRef).onDestroy(() => document.removeEventListener('click', listener, true));
   }
-  aberto = signal(false);
-  busca = signal('');
-  get selecionado(): LocalInstalacao | undefined { return this.locais.find(l => l.id === Number(this.valor)); }
-  get filtrados(): LocalInstalacao[] {
-    return this.locais.filter(l => matchesSearch([l.nome, l.endereco, l.secretariaNome, l.secretariaSigla], this.busca()));
-  }
+
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['locais']) { this.aberto.set(false); this.busca.set(''); }
+    if (changes['locais']) {
+      this.locaisSignal.set(this.locais || []);
+      this.aberto.set(false);
+      this.busca.set('');
+    }
+    if (changes['valor']) {
+      this.valorSignal.set(this.valor);
+    }
   }
+
   alternar(): void { this.busca.set(''); this.aberto.update(v => !v); }
   selecionar(local: LocalInstalacao): void {
     this.valorChange.emit(local.id);
@@ -81,7 +100,9 @@ export class SeletorLocalComponent implements OnChanges {
     this.trigger?.nativeElement.focus();
   }
   cliqueFora(event: MouseEvent): void {
-    if (event.target instanceof Node && !this.element.nativeElement.contains(event.target)) this.aberto.set(false);
+    if (this.aberto() && event.target instanceof Node && !this.element.nativeElement.contains(event.target)) {
+      this.aberto.set(false);
+    }
   }
   @HostListener('keydown.escape', ['$event'])
   fechar(event: Event): void {
@@ -89,7 +110,9 @@ export class SeletorLocalComponent implements OnChanges {
   }
   @HostListener('focusout', ['$event'])
   sair(event: FocusEvent): void {
-    if (event.relatedTarget instanceof Node && !this.element.nativeElement.contains(event.relatedTarget)) this.aberto.set(false);
+    if (this.aberto() && event.relatedTarget instanceof Node && !this.element.nativeElement.contains(event.relatedTarget)) {
+      this.aberto.set(false);
+    }
   }
   focarOpcao(event: Event): void {
     event.preventDefault(); this.element.nativeElement.querySelector<HTMLButtonElement>('.multiselect-item')?.focus();

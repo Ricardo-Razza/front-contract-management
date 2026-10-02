@@ -58,7 +58,8 @@ export class AtasComponent implements OnInit {
   uploadDescricao = signal<string>('');
   selectedFile = signal<File | null>(null);
   tiposDocumento = TIPOS_DOCUMENTO_LABELS;
-  objectKeys = Object.keys;
+  readonly tiposDocumentoKeys = Object.keys(TIPOS_DOCUMENTO_LABELS);
+  selectedSecretariasSet = signal<Set<number>>(new Set<number>());
 
   // Visualização de Anexo
   previewAnexo = signal<DocumentoAnexo | null>(null);
@@ -225,6 +226,7 @@ export class AtasComponent implements OnInit {
     const merged = Array.from(new Set([...currentSelected, ...allFilteredIds]));
     const control = this.form.get('secretariasIds');
     control?.setValue(merged);
+    this.selectedSecretariasSet.set(new Set(merged));
     control?.markAsTouched();
     control?.updateValueAndValidity();
   }
@@ -235,6 +237,7 @@ export class AtasComponent implements OnInit {
     const remaining = currentSelected.filter((id: number) => !filteredIds.has(id));
     const control = this.form.get('secretariasIds');
     control?.setValue(remaining);
+    this.selectedSecretariasSet.set(new Set(remaining));
     control?.markAsTouched();
     control?.updateValueAndValidity();
   }
@@ -885,8 +888,7 @@ export class AtasComponent implements OnInit {
 
   // ============ MÉTODOS DE SELEÇÃO DE SECRETARIAS ============
   isSecretariaSelected(secretariaId: number): boolean {
-    const ids = this.form.get('secretariasIds')?.value || [];
-    return ids.includes(secretariaId);
+    return this.selectedSecretariasSet().has(secretariaId);
   }
 
   toggleSecretaria(secretariaId: number): void {
@@ -895,13 +897,16 @@ export class AtasComponent implements OnInit {
 
     const currentValue = control.value || [];
     const index = currentValue.indexOf(secretariaId);
+    let nextValue: number[];
 
     if (index === -1) {
-      control.setValue([...currentValue, secretariaId]);
+      nextValue = [...currentValue, secretariaId];
     } else {
-      control.setValue(currentValue.filter((id: number) => id !== secretariaId));
+      nextValue = currentValue.filter((id: number) => id !== secretariaId);
     }
 
+    control.setValue(nextValue);
+    this.selectedSecretariasSet.set(new Set(nextValue));
     control.markAsTouched();
     control.updateValueAndValidity();
   }
@@ -929,6 +934,7 @@ export class AtasComponent implements OnInit {
       ativoId: 1,
       secretariasIds: []
     });
+    this.selectedSecretariasSet.set(new Set());
     this.isModalOpen.set(true);
   }
 
@@ -952,6 +958,9 @@ export class AtasComponent implements OnInit {
       (s.nome && s.nome.trim().toUpperCase() === ataSituacaoNorm)
     );
 
+    const secIds = ata.secretarias?.map(s => s.id) || [];
+    this.selectedSecretariasSet.set(new Set(secIds));
+
     this.form.patchValue({
       numero: ata.numero,
       ano: ata.ano,
@@ -963,7 +972,7 @@ export class AtasComponent implements OnInit {
       portariaDesignacao: ata.portariaDesignacao || '',
       dataDesignacao: ata.dataDesignacao ? ata.dataDesignacao.substring(0, 10) : '',
       ativoId: activeObj ? activeObj.id : 1,
-      secretariasIds: ata.secretarias?.map(s => s.id) || []
+      secretariasIds: secIds
     });
 
     if (ata.equipe && ata.equipe.length > 0) {

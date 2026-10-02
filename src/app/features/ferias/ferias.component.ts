@@ -1370,39 +1370,38 @@ export class FeriasComponent implements OnInit {
       injector: this.injector,
     });
   }
-  @HostListener("document:keydown", ["$event"]) teclado(
-    e: KeyboardEvent,
-  ): void {
+  @HostListener("document:keydown.escape") tecladoEscape(): void {
     if (!this.painel() && !this.cadastroPeriodo() && !this.cancelamento())
       return;
-    if (e.key === "Escape") {
-      if (this.cancelamento() && !this.cancelando()) {
-        this.cancelamento.set(null);
-        this.restaurarFoco();
-      } else if (this.cadastroPeriodo()) this.fecharPeriodo();
-      else this.fechar();
+    if (this.cancelamento() && !this.cancelando()) {
+      this.cancelamento.set(null);
+      this.restaurarFoco();
+    } else if (this.cadastroPeriodo()) this.fecharPeriodo();
+    else this.fechar();
+  }
+
+  @HostListener("document:keydown.tab", ["$event"]) tecladoTab(e: KeyboardEvent): void {
+    if (!this.painel() && !this.cadastroPeriodo() && !this.cancelamento())
+      return;
+    const dialog = document.querySelector('[role="dialog"]');
+    const els = Array.from(
+      dialog?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex="0"]',
+      ) || [],
+    );
+    const first = els[0],
+      last = els[els.length - 1];
+    if (!dialog?.contains(document.activeElement)) {
+      e.preventDefault();
+      first?.focus();
+      return;
     }
-    if (e.key === "Tab") {
-      const dialog = document.querySelector('[role="dialog"]');
-      const els = Array.from(
-        dialog?.querySelectorAll<HTMLElement>(
-          'button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex="0"]',
-        ) || [],
-      );
-      const first = els[0],
-        last = els[els.length - 1];
-      if (!dialog?.contains(document.activeElement)) {
-        e.preventDefault();
-        first?.focus();
-        return;
-      }
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last?.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first?.focus();
-      }
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last?.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first?.focus();
     }
   }
 }

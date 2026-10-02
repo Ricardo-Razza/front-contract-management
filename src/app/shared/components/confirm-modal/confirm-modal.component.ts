@@ -52,15 +52,14 @@ import { CommonModule } from '@angular/common';
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background-color: rgba(15, 23, 42, 0.68);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      background-color: rgba(15, 23, 42, 0.75);
       z-index: 1050;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 1rem;
       animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity;
     }
 
     .modal-card {
@@ -72,6 +71,8 @@ import { CommonModule } from '@angular/common';
       padding: 1.75rem;
       text-align: center;
       animation: scaleUp 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: translateZ(0);
+      contain: layout;
     }
 
     .modal-icon {

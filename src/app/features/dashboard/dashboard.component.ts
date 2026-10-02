@@ -221,10 +221,14 @@ export class DashboardComponent implements OnInit {
     };
   });
 
-  getChartYLabels(): (number | string)[] {
+  chartYLabels = computed<(number | string)[]>(() => {
     const max = this.monthlyStats().maxVal;
     const mid = max > 1 ? Math.round(max / 2) : '';
     return [max, mid, 0];
+  });
+
+  getChartYLabels(): (number | string)[] {
+    return this.chartYLabels();
   }
 
   ngOnInit(): void {

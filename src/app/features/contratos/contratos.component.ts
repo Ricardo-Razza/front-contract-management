@@ -53,7 +53,8 @@ export class ContratosComponent implements OnInit {
   uploadDescricao = signal<string>('');
   selectedFile = signal<File | null>(null);
   tiposDocumento = TIPOS_DOCUMENTO_LABELS;
-  objectKeys = Object.keys;
+  readonly tiposDocumentoKeys = Object.keys(TIPOS_DOCUMENTO_LABELS);
+  selectedSecretariasSet = signal<Set<number>>(new Set<number>());
 
   // Visualização de Anexo
   previewAnexo = signal<DocumentoAnexo | null>(null);
@@ -216,6 +217,7 @@ export class ContratosComponent implements OnInit {
     const current = control?.value || [];
     const merged = Array.from(new Set([...current, ...ids]));
     control?.setValue(merged);
+    this.selectedSecretariasSet.set(new Set(merged));
     control?.markAsTouched();
     control?.updateValueAndValidity();
   }
@@ -223,6 +225,7 @@ export class ContratosComponent implements OnInit {
   clearAllSecretarias(): void {
     const control = this.form.get('secretariasIds');
     control?.setValue([]);
+    this.selectedSecretariasSet.set(new Set());
     control?.markAsTouched();
     control?.updateValueAndValidity();
   }
@@ -434,8 +437,7 @@ export class ContratosComponent implements OnInit {
   // ============ MÉTODOS DE SELEÇÃO DE SECRETARIAS (NOVOS) ============
   
   isSecretariaSelected(secretariaId: number): boolean {
-    const ids = this.form.get('secretariasIds')?.value || [];
-    return ids.includes(secretariaId);
+    return this.selectedSecretariasSet().has(secretariaId);
   }
 
   toggleSecretaria(secretariaId: number): void {
@@ -444,13 +446,16 @@ export class ContratosComponent implements OnInit {
     
     const currentValue = control.value || [];
     const index = currentValue.indexOf(secretariaId);
+    let nextValue: number[];
     
     if (index === -1) {
-      control.setValue([...currentValue, secretariaId]);
+      nextValue = [...currentValue, secretariaId];
     } else {
-      control.setValue(currentValue.filter((id: number) => id !== secretariaId));
+      nextValue = currentValue.filter((id: number) => id !== secretariaId);
     }
     
+    control.setValue(nextValue);
+    this.selectedSecretariasSet.set(new Set(nextValue));
     control.markAsTouched();
     control.updateValueAndValidity();
   }
@@ -933,6 +938,7 @@ export class ContratosComponent implements OnInit {
       ativoId: 1,
       secretariasIds: []
     });
+    this.selectedSecretariasSet.set(new Set());
     this.isModalOpen.set(true);
   }
 
@@ -954,6 +960,9 @@ export class ContratosComponent implements OnInit {
       (s.nome && contrato.situacao && s.nome.trim().toUpperCase() === contrato.situacao.trim().toUpperCase())
     );
 
+    const secIds = contrato.secretarias?.map(s => s.id) || [];
+    this.selectedSecretariasSet.set(new Set(secIds));
+
     this.form.patchValue({
       numero: contrato.numero,
       ano: contrato.ano,
@@ -966,7 +975,7 @@ export class ContratosComponent implements OnInit {
       portariaDesignacao: contrato.portariaDesignacao || '',
       dataDesignacao: contrato.dataDesignacao ? contrato.dataDesignacao.substring(0, 10) : '',
       ativoId: activeObj ? activeObj.id : 1,
-      secretariasIds: contrato.secretarias?.map(s => s.id) || []
+      secretariasIds: secIds
     });
 
     if (contrato.equipe && contrato.equipe.length > 0) {

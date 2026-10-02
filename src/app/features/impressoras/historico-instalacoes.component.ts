@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, OnDestroy, inject, signal, computed } from '@angular/core';
+import { Component, Input, OnChanges, OnDestroy, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { InstalacaoHistorico } from '@core/models';
@@ -10,6 +10,7 @@ import { PaginationComponent } from '@shared/components/pagination/pagination.co
   selector: 'app-historico-instalacoes',
   standalone: true,
   imports: [CommonModule, PaginationComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (localId && impressoraConsultada()) {
       <button type="button" (click)="carregar()">← Voltar ao histórico do local</button>
@@ -46,6 +47,12 @@ import { PaginationComponent } from '@shared/components/pagination/pagination.co
 export class HistoricoInstalacoesComponent implements OnChanges, OnDestroy {
   @Input() impressoraId?: number;
   @Input() localId?: number;
+  private static readonly STATUS_MAP: Record<string, string> = {
+    ATIVA: 'Em uso',
+    REMANEJADA: 'Remanejada',
+    SUBSTITUIDA: 'Substituída',
+    RECOLHIDA: 'Recolhida'
+  };
   private impressoras = inject(ImpressoraService);
   private locais = inject(LocalInstalacaoService);
   private consulta?: Subscription;
@@ -58,7 +65,7 @@ export class HistoricoInstalacoesComponent implements OnChanges, OnDestroy {
   visiveis = computed(() => this.itens().slice((this.pagina() - 1) * this.tamanho(), this.pagina() * this.tamanho()));
   ngOnChanges(): void { this.carregar(); }
   ngOnDestroy(): void { this.consulta?.unsubscribe(); }
-  status(valor: string): string { return ({ ATIVA: 'Em uso', REMANEJADA: 'Remanejada', SUBSTITUIDA: 'Substituída', RECOLHIDA: 'Recolhida' } as Record<string, string>)[valor] || valor; }
+  status(valor: string): string { return HistoricoInstalacoesComponent.STATUS_MAP[valor] || valor; }
   carregar(impressoraId?: number): void {
     this.consulta?.unsubscribe();
     this.impressoraConsultada.set(impressoraId);

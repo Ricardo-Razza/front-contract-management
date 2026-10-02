@@ -208,12 +208,28 @@ export class PaginationComponent implements OnChanges {
   @Output() pageChange = new EventEmitter<number>();
   @Output() pageSizeChange = new EventEmitter<number>();
 
+  cachedVisiblePages: number[] = [];
+
   ngOnChanges(changes: SimpleChanges): void {
-    if ((changes['totalItems'] || changes['pageSize'])) {
+    this.updatePagination();
+    if (changes['totalItems'] || changes['pageSize']) {
       if (this.currentPage > this.totalPages) {
         this.pageChange.emit(this.totalPages);
       }
     }
+  }
+
+  private updatePagination(): void {
+    const total = this.totalPages;
+    const current = this.safeCurrentPage;
+    const delta = 2;
+    const range: number[] = [];
+
+    for (let i = Math.max(1, current - delta); i <= Math.min(total, current + delta); i++) {
+      range.push(i);
+    }
+
+    this.cachedVisiblePages = range;
   }
 
   get totalPages(): number {
@@ -235,16 +251,7 @@ export class PaginationComponent implements OnChanges {
   }
 
   get visiblePages(): number[] {
-    const total = this.totalPages;
-    const current = this.safeCurrentPage;
-    const delta = 2;
-    const range: number[] = [];
-
-    for (let i = Math.max(1, current - delta); i <= Math.min(total, current + delta); i++) {
-      range.push(i);
-    }
-
-    return range;
+    return this.cachedVisiblePages.length ? this.cachedVisiblePages : [1];
   }
 
   goToPage(page: number): void {
