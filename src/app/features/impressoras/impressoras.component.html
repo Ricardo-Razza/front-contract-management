@@ -34,13 +34,23 @@
             </svg>
             Exportar Medição
           </button>
-          <button class="btn btn-primary" (click)="openLeituraModal()">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Lançar Leitura
-          </button>
+          @if (itensAlteradosCount() > 0) {
+            <button type="button" class="btn btn-outline" (click)="descartarAlteracoes()" title="Descartar leituras alteradas">
+              Descartar
+            </button>
+            <button type="button" class="btn btn-primary" (click)="salvarTodasAlteracoes()" [disabled]="salvandoEmLote()" title="Salvar todas as alterações">
+              @if (salvandoEmLote()) {
+                <span class="spinner-inline"></span> Salvando...
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                  <polyline points="17 21 17 13 7 13 7 21"/>
+                  <polyline points="7 3 7 8 15 8"/>
+                </svg>
+                Salvar Alterações ({{ itensAlteradosCount() }})
+              }
+            </button>
+          }
         } @else if (activeTab() === 'COLETA') {
           @if (coletaSessao() && (coletaSessao()?.totalSucesso || 0) > 0) {
             <button type="button" class="btn btn-outline" (click)="baixarZipColeta()" title="Baixar pacote ZIP com todos os comprovantes">
@@ -833,7 +843,7 @@
           <div class="filter-grid">
             <div class="filter-field">
               <span class="filter-label">Mês de Referência</span>
-              <select aria-label="Mês de Referência" [ngModel]="mesCompetencia()" (ngModelChange)="mesCompetencia.set(+$event); carregarLeiturasCompetencia()">
+              <select aria-label="Mês de Referência" [ngModel]="mesCompetencia()" (ngModelChange)="mesCompetencia.set(+$event); carregarLeiturasCompetencia(); paginaLeituras.set(1)">
                 <option [ngValue]="1">01 — Janeiro</option>
                 <option [ngValue]="2">02 — Fevereiro</option>
                 <option [ngValue]="3">03 — Março</option>
@@ -851,7 +861,7 @@
 
             <div class="filter-field">
               <span class="filter-label">Exercício</span>
-              <select aria-label="Exercício" [ngModel]="anoCompetencia()" (ngModelChange)="anoCompetencia.set(+$event); carregarLeiturasCompetencia()">
+              <select aria-label="Exercício" [ngModel]="anoCompetencia()" (ngModelChange)="anoCompetencia.set(+$event); carregarLeiturasCompetencia(); paginaLeituras.set(1)">
                 <option [ngValue]="2026">2026</option>
                 <option [ngValue]="2025">2025</option>
               </select>
@@ -901,8 +911,28 @@
                 }
               </div>
             </div>
+
+            <div class="filter-field">
+              <span class="filter-label">Status da Medição</span>
+              <select aria-label="Status da Medição" [ngModel]="filtroStatusLeituras()" (ngModelChange)="filtroStatusLeituras.set($event); paginaLeituras.set(1)">
+                <option value="TODOS">Todos os Status</option>
+                <option value="PENDENTES">Pendentes de Digitação</option>
+                <option value="SALVOS">Já Preenchidos / Salvos</option>
+                <option value="ALTERADOS">Com Alterações Não Salvas</option>
+              </select>
+            </div>
+
+            <div class="filter-field">
+              <span class="filter-label">Tipo de Impressão</span>
+              <select aria-label="Tipo de Impressão" [ngModel]="filtroTipoLeituras()" (ngModelChange)="filtroTipoLeituras.set($event); paginaLeituras.set(1)">
+                <option value="TODOS">Todos os Tipos (Mono & Color)</option>
+                <option value="MONO">Somente Monocromáticas (P&B)</option>
+                <option value="COLOR">Somente Coloridas</option>
+              </select>
+            </div>
           </div>
-          @if (filtroSecretariasLeituras().length > 0 || termoBuscaLeituras()) {
+
+          @if (filtroSecretariasLeituras().length > 0 || termoBuscaLeituras() || filtroStatusLeituras() !== 'TODOS' || filtroTipoLeituras() !== 'TODOS') {
             <div class="filter-active-tags" style="padding-top: 0.5rem;">
               <span class="filter-tags-label">Filtros:</span>
               @if (termoBuscaLeituras()) {
@@ -911,22 +941,79 @@
               @for (secId of filtroSecretariasLeituras(); track secId) {
                 <span class="filter-tag">Secretaria: {{ getSecretariaNome(secId) }} <button class="tag-remove" (click)="removeSecretariaFilterLeituras(secId)">&#x2715;</button></span>
               }
-              <button class="filter-clear-all" (click)="termoBuscaLeituras.set(''); clearSecretariaFilterLeituras()">Limpar filtros</button>
+              @if (filtroStatusLeituras() !== 'TODOS') {
+                <span class="filter-tag">Status: {{ filtroStatusLeituras() === 'PENDENTES' ? 'Pendentes' : filtroStatusLeituras() === 'SALVOS' ? 'Salvos' : 'Alterados' }} <button class="tag-remove" (click)="filtroStatusLeituras.set('TODOS')">&#x2715;</button></span>
+              }
+              @if (filtroTipoLeituras() !== 'TODOS') {
+                <span class="filter-tag">Tipo: {{ filtroTipoLeituras() === 'MONO' ? 'Monocromáticas' : 'Coloridas' }} <button class="tag-remove" (click)="filtroTipoLeituras.set('TODOS')">&#x2715;</button></span>
+              }
+              <button class="filter-clear-all" (click)="termoBuscaLeituras.set(''); clearSecretariaFilterLeituras(); filtroStatusLeituras.set('TODOS'); filtroTipoLeituras.set('TODOS'); paginaLeituras.set(1)">Limpar filtros</button>
             </div>
           }
         </div>
 
-        <!-- BARRA DE RESUMO EXECUTIVO (PADRÃO SUB-CHIP) -->
-        <div class="summary-bar-container">
+        <!-- BANNER DE ALTERAÇÕES PENDENTES DE SALVAMENTO -->
+        @if (itensAlteradosCount() > 0) {
+          <div class="batch-unsaved-alert">
+            <div class="alert-content">
+              <span class="alert-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </span>
+              <div>
+                <strong>{{ itensAlteradosCount() }} leitura(s) com alterações não salvas</strong>
+                <p>As alterações feitas nas células ainda não foram gravadas na competência de {{ nomeMesCompetencia() }}.</p>
+              </div>
+            </div>
+            <div class="alert-actions">
+              <button type="button" class="btn btn-sm btn-outline-danger" (click)="descartarAlteracoes()" [disabled]="salvandoEmLote()">
+                Descartar alterações
+              </button>
+              <button type="button" class="btn btn-sm btn-save-batch" (click)="salvarTodasAlteracoes()" [disabled]="salvandoEmLote()">
+                @if (salvandoEmLote()) {
+                  <span class="spinner-inline"></span> Salvando...
+                } @else {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                    <polyline points="17 21 17 13 7 13 7 21"/>
+                    <polyline points="7 3 7 8 15 8"/>
+                  </svg>
+                  Salvar Todas as Alterações ({{ itensAlteradosCount() }})
+                }
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- BARRA DE RESUMO EXECUTIVO (PADRÃO SUB-CHIP COM PROGRESSO) -->
+        <div class="summary-bar-container grade-summary-bar">
+          <div class="summary-item progress-summary">
+            <div class="progress-info">
+              <span class="summary-item-label">Preenchimento:</span>
+              <span class="progress-text"><strong>{{ totalSalvosGrade() }}</strong> / {{ totalEquipamentosGrade() }} ({{ percentualConcluidoGrade() }}%)</span>
+            </div>
+            <div class="progress-bar-track" [title]="percentualConcluidoGrade() + '% concluído'">
+              <div class="progress-bar-fill" [style.width.%]="percentualConcluidoGrade()"></div>
+            </div>
+          </div>
+          <span class="summary-divider"></span>
           <div class="summary-item">
             <span class="summary-item-label">Produção Mono:</span>
-            <span class="sub-chip chip-gray tabular-nums"><strong>{{ totalCopiasMonoMes() | number }}</strong> páginas</span>
+            <span class="sub-chip chip-gray tabular-nums"><strong>{{ totalCopiasMonoMes() | number }}</strong> págs</span>
+          </div>
+          <span class="summary-divider"></span>
+          <div class="summary-item">
+            <span class="summary-item-label">Produção Color:</span>
+            <span class="sub-chip chip-purple tabular-nums"><strong>{{ totalCopiasColorMes() | number }}</strong> págs</span>
           </div>
           <span class="summary-divider"></span>
           <div class="summary-item">
             <span class="summary-item-label">Excedente:</span>
             <span class="sub-chip tabular-nums" [class.chip-orange]="totalExcedenteMes() > 0" [class.chip-green]="totalExcedenteMes() === 0">
-              <strong>{{ totalExcedenteMes() | number }}</strong> páginas
+              <strong>{{ totalExcedenteMes() | number }}</strong> págs
             </span>
           </div>
           <span class="summary-divider"></span>
@@ -938,85 +1025,316 @@
           </div>
         </div>
 
-        <!-- TABELA DE MEDIÇÃO MENSAL -->
+        <!-- TABELA DE GRADE INTERATIVA DE MEDIÇÃO MENSAL -->
         <div class="table-card">
           <div class="table-header-toolbar">
-            <span class="result-count">{{ filteredLeituras().length }} medições da competência de {{ nomeMesCompetencia() }}</span>
+            <div class="toolbar-left">
+              <span class="result-count"><strong>{{ filteredGradeLeituras().length }}</strong> equipamentos listados na competência de <strong>{{ nomeMesCompetencia() }}</strong></span>
+              <span class="toolbar-hint">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                Digite a leitura no campo e pressione <kbd>Enter</kbd> para salvar e avançar para o próximo.
+              </span>
+            </div>
+            <div class="toolbar-right">
+              @if (itensAlteradosCount() > 0) {
+                <button type="button" class="btn btn-sm btn-primary" (click)="salvarTodasAlteracoes()" [disabled]="salvandoEmLote()">
+                  @if (salvandoEmLote()) {
+                    <span class="spinner-inline"></span> Salvando...
+                  } @else {
+                    Salvar Alterações ({{ itensAlteradosCount() }})
+                  }
+                </button>
+              }
+            </div>
           </div>
 
-          <div class="table-responsive">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th style="width: 70px;" class="text-center">Item</th>
-                  <th>Secretaria</th>
-                  <th>Local de Instalação</th>
-                  <th>Modelo</th>
-                  <th>IP</th>
-                  <th style="text-align: right;">Leitura Ant.</th>
-                  <th style="text-align: right;">Leitura Atual</th>
-                  <th style="text-align: right;">Cópias</th>
-                  <th style="text-align: right;">Franquia</th>
-                  <th style="text-align: right;">Excedente</th>
-                  <th style="text-align: right;">Locação</th>
-                  <th style="text-align: right;">Total R$</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (l of paginadosLeituras(); track l.id) {
-                  <tr>
-                    <td class="text-center">
-                      <span class="badge-item-order">#{{ l.itemPedido || l.impressoraId }}</span>
-                    </td>
-                    <td><span class="sec-badge">{{ l.secretariaSigla || '—' }}</span></td>
-                    <td><strong class="location-name">{{ l.localInstalacao }}</strong></td>
-                    <td>
-                      {{ l.impressoraModelo }}
-                      @if (l.origemLeitura === 'SWAP_RETIRADA') {
-                        <span class="badge-mini badge-swap" [title]="l.observacoes || 'Retirada por substituição'">Swap</span>
-                      }
-                    </td>
-                    <td><code class="ip-code">{{ l.impressoraIp || '—' }}</code></td>
-                    <td style="text-align: right;" class="tabular-nums">{{ l.leituraMonoAnterior | number }}</td>
-                    <td style="text-align: right;" class="tabular-nums"><strong>{{ l.leituraMonoAtual | number }}</strong></td>
-                    <td style="text-align: right;" class="tabular-nums"><strong>{{ l.copiasMono | number }}</strong></td>
-                    <td style="text-align: right;" class="tabular-nums text-muted">{{ l.franquiaMonoAplicada | number }}</td>
-                    <td style="text-align: right;" class="tabular-nums">
-                      @if (l.excedenteMono > 0) {
-                        <span class="badge-status status-inactive" title="Consumo acima da franquia contratada">
-                          <span class="dot"></span>+{{ l.excedenteMono | number }}
+          <div class="table-responsive grade-table-wrapper">
+            @if (loadingGrade()) {
+              <div class="loading-state-grade">
+                <div class="spinner-grade"></div>
+                <p>Carregando grade de medição de {{ nomeMesCompetencia() }}...</p>
+              </div>
+            } @else {
+              <table class="data-table grade-leituras-table">
+                <thead>
+                  <tr class="header-grouped">
+                    <th colspan="5" class="group-col group-info">Identificação do Equipamento</th>
+                    <th colspan="3" class="group-col group-mono">Contador Preto & Branco (Mono)</th>
+                    <th colspan="3" class="group-col group-color">Contador Colorido (Color)</th>
+                    <th colspan="2" class="group-col group-calc">Franquia & Excedente</th>
+                    <th colspan="2" class="group-col group-status">Status & Ação</th>
+                  </tr>
+                  <tr class="header-columns">
+                    <th style="width: 55px;" class="text-center">Item</th>
+                    <th style="width: 85px;">Sec.</th>
+                    <th>Local de Instalação</th>
+                    <th>Modelo & Tipo</th>
+                    <th style="width: 110px;">IP</th>
+
+                    <!-- Grupo Mono -->
+                    <th style="width: 90px; text-align: right;" title="Leitura do mês anterior">Ant. Mono</th>
+                    <th style="width: 125px; text-align: center;" class="th-input-mono" title="Informe a leitura atual monocromática">Leitura Mono *</th>
+                    <th style="width: 80px; text-align: right;" title="Cópias mono produzidas no mês">Cópias</th>
+
+                    <!-- Grupo Color -->
+                    <th style="width: 90px; text-align: right;" title="Leitura colorida do mês anterior">Ant. Color</th>
+                    <th style="width: 125px; text-align: center;" class="th-input-color" title="Informe a leitura colorida atual (apenas para máquinas coloridas)">Leitura Color</th>
+                    <th style="width: 80px; text-align: right;" title="Cópias coloridas produzidas no mês">Cópias</th>
+
+                    <!-- Franquia & Excedente -->
+                    <th style="width: 95px; text-align: right;">Franquia</th>
+                    <th style="width: 85px; text-align: right;">Excedente</th>
+
+                    <!-- Status & Ação -->
+                    <th style="width: 95px;" class="text-center">Status</th>
+                    <th style="width: 65px;" class="text-center">Ação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of paginadosGradeLeituras(); track item.impressoraId) {
+                    <tr [class.row-dirty]="item.editado"
+                        [class.row-saved-success]="item.sucesso"
+                        [class.row-color-printer]="item.tipoImpressao === 'COLOR'">
+                      <!-- Item -->
+                      <td class="text-center">
+                        <span class="badge-item-order" [title]="'Impressora ID #' + item.impressoraId">
+                          #{{ item.itemPedido || item.impressoraId }}
                         </span>
-                      } @else {
-                        <span class="text-muted">0</span>
-                      }
-                    </td>
-                    <td style="text-align: right;" class="tabular-nums">R$ {{ l.valorLocacao | number:'1.2-2' }}</td>
-                    <td style="text-align: right;" class="tabular-nums">
-                      <strong>R$ {{ l.valorTotal | number:'1.2-2' }}</strong>
-                    </td>
-                  </tr>
-                } @empty {
-                  <tr>
-                    <td colspan="12">
-                      <div class="empty-state">
-                        <div class="empty-state-icon">
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-                            <path d="M12 20v-6M6 20V10M18 20V4"></path>
-                          </svg>
+                      </td>
+
+                      <!-- Secretaria -->
+                      <td>
+                        <span class="sec-badge" [title]="item.secretariaNome || item.secretariaSigla">
+                          {{ item.secretariaSigla || '—' }}
+                        </span>
+                      </td>
+
+                      <!-- Local de Instalação -->
+                      <td>
+                        <div class="cell-location">
+                          <strong class="location-name">{{ item.localInstalacao }}</strong>
+                          @if (item.responsavel) {
+                            <span class="location-resp">{{ item.responsavel }}</span>
+                          }
                         </div>
-                        <h4>Nenhuma leitura registrada</h4>
-                        <p>Nenhuma leitura foi encontrada para a competência de {{ nomeMesCompetencia() }}.</p>
-                      </div>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-<app-pagination [totalItems]="filteredLeituras().length" [currentPage]="paginaAtualLeituras()" [pageSize]="tamanhoLeituras()" (pageChange)="paginaLeituras.set($event)" (pageSizeChange)="tamanhoLeituras.set($event); paginaLeituras.set(1)"></app-pagination>
+                      </td>
+
+                      <!-- Modelo & Tipo -->
+                      <td>
+                        <div class="cell-model">
+                          <span class="model-name">{{ item.modelo }}</span>
+                          @if (item.tipoImpressao === 'COLOR') {
+                            <span class="badge-type-color" title="Impressora Colorida (Contadores Mono e Color unificados na mesma linha)">COLOR</span>
+                          } @else {
+                            <span class="badge-type-mono" title="Impressora Monocromática (Apenas contador Mono)">MONO</span>
+                          }
+                        </div>
+                      </td>
+
+                      <!-- IP -->
+                      <td>
+                        @if (item.ip) {
+                          <a class="ip-link" [href]="'http://' + item.ip" target="_blank" rel="noopener" [title]="'Abrir painel web da impressora ' + item.ip">
+                            <code class="ip-code">{{ item.ip }}</code>
+                            <svg class="external-icon" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                              <polyline points="15 3 21 3 21 9"></polyline>
+                              <line x1="10" y1="14" x2="21" y2="3"></line>
+                            </svg>
+                          </a>
+                        } @else {
+                          <span class="text-muted">—</span>
+                        }
+                      </td>
+
+                      <!-- Anterior Mono -->
+                      <td style="text-align: right;" class="tabular-nums col-previous">
+                        {{ item.leituraMonoAnterior | number }}
+                      </td>
+
+                      <!-- Leitura Mono Atual (Input) -->
+                      <td class="cell-input text-center">
+                        <div class="input-inline-wrap">
+                          <input type="text"
+                                 inputmode="numeric"
+                                 class="input-inline-leitura input-mono"
+                                 [class.is-dirty]="item.editado && item.leituraMonoAtual !== item.valorOriginalMono"
+                                 [class.is-saved]="item.sucesso"
+                                 [value]="item.leituraMonoAtual !== null && item.leituraMonoAtual !== undefined ? item.leituraMonoAtual : ''"
+                                 placeholder="Mono..."
+                                 (input)="onLeituraMonoChange(item, $any($event.target).value)"
+                                 (keydown.enter)="salvarLinhaLeitura(item); focarProximoInput($event)"
+                                 [disabled]="item.salvando"
+                                 title="Leitura Mono Atual — Pressione Enter para salvar" />
+                        </div>
+                      </td>
+
+                      <!-- Cópias Mono -->
+                      <td style="text-align: right;" class="tabular-nums col-copias">
+                        @if (item.leituraMonoAtual !== null && item.leituraMonoAtual !== undefined) {
+                          <strong [class.text-danger]="(item.copiasMono || 0) > (item.franquiaMono || 0)">
+                            {{ item.copiasMono | number }}
+                          </strong>
+                        } @else {
+                          <span class="text-muted">—</span>
+                        }
+                      </td>
+
+                      <!-- Anterior Color -->
+                      <td style="text-align: right;" class="tabular-nums col-previous">
+                        @if (item.tipoImpressao === 'COLOR') {
+                          {{ item.leituraColorAnterior | number }}
+                        } @else {
+                          <span class="text-muted-dash">—</span>
+                        }
+                      </td>
+
+                      <!-- Leitura Color Atual (Input se Color, dash se Mono) -->
+                      <td class="cell-input text-center">
+                        @if (item.tipoImpressao === 'COLOR') {
+                          <div class="input-inline-wrap">
+                            <input type="text"
+                                   inputmode="numeric"
+                                   class="input-inline-leitura input-color"
+                                   [class.is-dirty]="item.editado && item.leituraColorAtual !== item.valorOriginalColor"
+                                   [class.is-saved]="item.sucesso"
+                                   [value]="item.leituraColorAtual !== null && item.leituraColorAtual !== undefined ? item.leituraColorAtual : ''"
+                                   placeholder="Color..."
+                                   (input)="onLeituraColorChange(item, $any($event.target).value)"
+                                   (keydown.enter)="salvarLinhaLeitura(item); focarProximoInput($event)"
+                                   [disabled]="item.salvando"
+                                   title="Leitura Color Atual — Pressione Enter para salvar" />
+                          </div>
+                        } @else {
+                          <div class="cell-disabled-mono" title="Impressora Monocromática (Sem contador colorido)">
+                            <span class="dash-disabled">—</span>
+                          </div>
+                        }
+                      </td>
+
+                      <!-- Cópias Color -->
+                      <td style="text-align: right;" class="tabular-nums col-copias">
+                        @if (item.tipoImpressao === 'COLOR') {
+                          @if (item.leituraColorAtual !== null && item.leituraColorAtual !== undefined) {
+                            <strong [class.text-danger]="(item.copiasColor || 0) > (item.franquiaColor || 0)">
+                              {{ item.copiasColor | number }}
+                            </strong>
+                          } @else {
+                            <span class="text-muted">—</span>
+                          }
+                        } @else {
+                          <span class="text-muted-dash">—</span>
+                        }
+                      </td>
+
+                      <!-- Franquia -->
+                      <td style="text-align: right;" class="tabular-nums col-franquia text-muted">
+                        @if (item.tipoImpressao === 'COLOR') {
+                          <div class="franquia-stacked" title="Mono: {{ item.franquiaMono | number }} / Color: {{ item.franquiaColor | number }}">
+                            <span>M: {{ item.franquiaMono | number }}</span>
+                            <span class="color-indicator">C: {{ item.franquiaColor | number }}</span>
+                          </div>
+                        } @else {
+                          <span>{{ item.franquiaMono | number }}</span>
+                        }
+                      </td>
+
+                      <!-- Excedente -->
+                      <td style="text-align: right;" class="tabular-nums col-excedente">
+                        @if ((item.excedenteMono || 0) + (item.excedenteColor || 0) > 0) {
+                          <span class="badge-status status-inactive" title="Mono: +{{ item.excedenteMono | number }} | Color: +{{ item.excedenteColor | number }}">
+                            <span class="dot"></span>+{{ ((item.excedenteMono || 0) + (item.excedenteColor || 0)) | number }}
+                          </span>
+                        } @else {
+                          <span class="text-muted">0</span>
+                        }
+                      </td>
+
+                      <!-- Status -->
+                      <td class="text-center">
+                        @if (item.editado) {
+                          <span class="badge-status-pill pill-modified" title="Alterado no navegador — salve a linha ou em lote">
+                            <span class="dot-pulse"></span> Editado
+                          </span>
+                        } @else if (item.status === 'SALVO') {
+                          <span class="badge-status-pill pill-saved" title="Leitura registrada no sistema">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Salvo
+                          </span>
+                        } @else {
+                          <span class="badge-status-pill pill-pending" title="Aguardando digitação da leitura">
+                            Pendente
+                          </span>
+                        }
+                      </td>
+
+                      <!-- Ação individual: Salvar Linha -->
+                      <td class="text-center">
+                        <button type="button"
+                                class="btn-row-save"
+                                [class.btn-row-dirty]="item.editado"
+                                [class.btn-row-success]="item.sucesso"
+                                (click)="salvarLinhaLeitura(item)"
+                                [disabled]="item.salvando"
+                                title="Salvar leitura do Item #{{ item.itemPedido || item.impressoraId }} (Enter)">
+                          @if (item.salvando) {
+                            <span class="spinner-inline"></span>
+                          } @else if (item.sucesso) {
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          } @else if (item.editado) {
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                              <polyline points="7 3 7 8 15 8"></polyline>
+                            </svg>
+                          } @else {
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                              <polyline points="7 3 7 8 15 8"></polyline>
+                            </svg>
+                          }
+                        </button>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="15">
+                        <div class="empty-state">
+                          <div class="empty-state-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                              <path d="M12 20v-6M6 20V10M18 20V4"></path>
+                            </svg>
+                          </div>
+                          <h4>Nenhum equipamento encontrado</h4>
+                          <p>Nenhuma impressora corresponde aos filtros selecionados para a competência de {{ nomeMesCompetencia() }}.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+            <app-pagination [totalItems]="filteredGradeLeituras().length"
+                            [currentPage]="paginaAtualLeituras()"
+                            [pageSize]="tamanhoLeituras()"
+                            [pageSizeOptions]="[25, 50, 100, 150]"
+                            (pageChange)="paginaLeituras.set($event)"
+                            (pageSizeChange)="tamanhoLeituras.set($event); paginaLeituras.set(1)">
+            </app-pagination>
           </div>
         </div>
       </div>
     }
+
 
     <!-- ============================================================ -->
     <!-- TAB 3: NOTAS FISCAIS & MÓDULO FINANCEIRO UNIFICADO           -->

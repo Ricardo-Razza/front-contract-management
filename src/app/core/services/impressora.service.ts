@@ -13,6 +13,7 @@ import {
   EmpenhoDTO,
   LeituraContador,
   LeituraContadorDTO,
+  ItemGradeLeitura,
   ExecucaoMensal,
   EspelhoFatura,
   BalancoFranquias,
@@ -117,6 +118,19 @@ export class ImpressoraService {
 
   lancarLeitura(dto: LeituraContadorDTO): Observable<LeituraContador> {
     return this.http.post<LeituraContador>(`${this.apiUrl}/leituras`, dto);
+  }
+
+  getGradeLeituras(mes: number, ano: number): Observable<ItemGradeLeitura[]> {
+    const params = new HttpParams()
+      .set('mes', mes.toString())
+      .set('ano', ano.toString());
+    return this.http.get<ItemGradeLeitura[]>(`${this.apiUrl}/leituras/grade`, { params }).pipe(
+      catchError(() => of([]))
+    );
+  }
+
+  salvarLeiturasLote(dtos: LeituraContadorDTO[]): Observable<LeituraContador[]> {
+    return this.http.post<LeituraContador[]>(`${this.apiUrl}/leituras/lote`, dtos);
   }
 
   getExecucaoMensal(ano: number = 2026): Observable<ExecucaoMensal> {

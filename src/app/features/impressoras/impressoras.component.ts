@@ -16,6 +16,8 @@ import {
   EmpenhoImpressao,
   EmpenhoDTO,
   LeituraContador,
+  LeituraContadorDTO,
+  ItemGradeLeitura,
   Secretariat,
   ExecucaoMensal,
   EmpenhoExecucao,
@@ -439,6 +441,14 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   showSecretariaDropdownLeituras = signal<boolean>(false);
   secretariaFilterSearchLeituras = signal<string>('');
 
+  // Estado da Grade Interativa de Leituras Mensais (sem modal obrigatório)
+  gradeLeituras = signal<ItemGradeLeitura[]>([]);
+  loadingGrade = signal<boolean>(false);
+  salvandoEmLote = signal<boolean>(false);
+  filtroStatusLeituras = signal<'TODOS' | 'PENDENTES' | 'SALVOS' | 'ALTERADOS'>('TODOS');
+  filtroTipoLeituras = signal<'TODOS' | 'MONO' | 'COLOR'>('TODOS');
+  itensAlteradosCount = computed(() => this.gradeLeituras().filter(item => item.editado).length);
+
   filteredSecretariasForLeituras = computed(() => {
     const search = this.secretariaFilterSearchLeituras().trim();
     const list = this.secretariats();
@@ -483,9 +493,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   paginadosLocais = computed(() => this.filteredLocais().slice((this.paginaAtualLocais() - 1) * this.tamanhoLocais(), this.paginaAtualLocais() * this.tamanhoLocais()));
 
   paginaLeituras = signal(1);
-  tamanhoLeituras = signal(5);
-  paginaAtualLeituras = computed(() => Math.min(this.paginaLeituras(), Math.max(1, Math.ceil(this.filteredLeituras().length / this.tamanhoLeituras()))));
-  paginadosLeituras = computed(() => this.filteredLeituras().slice((this.paginaAtualLeituras() - 1) * this.tamanhoLeituras(), this.paginaAtualLeituras() * this.tamanhoLeituras()));
+  tamanhoLeituras = signal(25);
 
   paginaEmpenhos = signal(1);
   tamanhoEmpenhos = signal(5);
@@ -758,9 +766,9 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     return list.slice(start, start + this.pageSize());
   });
 
-  // Filtragem de Leituras da Competência
-  filteredLeituras = computed(() => {
-    let list = this.leituras();
+  // Filtragem da Grade de Medição Mensal
+  filteredGradeLeituras = computed(() => {
+    let list = this.gradeLeituras();
     const rawSearch = this.termoBuscaLeituras().trim();
 
     if (rawSearch) {
@@ -776,17 +784,18 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
         } else {
           const search = rawSearch.toLowerCase();
           list = list.filter(l =>
-            (l.impressoraIp && l.impressoraIp.toLowerCase() === search) ||
-            (l.impressoraModelo && l.impressoraModelo.toLowerCase().includes(search))
+            (l.ip && l.ip.toLowerCase() === search) ||
+            (l.modelo && l.modelo.toLowerCase().includes(search))
           );
         }
       } else {
         const search = rawSearch.toLowerCase();
         list = list.filter(l =>
-          (l.impressoraModelo && l.impressoraModelo.toLowerCase().includes(search)) ||
+          (l.modelo && l.modelo.toLowerCase().includes(search)) ||
           (l.localInstalacao && l.localInstalacao.toLowerCase().includes(search)) ||
-          (l.impressoraIp && l.impressoraIp.toLowerCase().includes(search)) ||
-          (l.secretariaSigla && l.secretariaSigla.toLowerCase().includes(search))
+          (l.ip && l.ip.toLowerCase().includes(search)) ||
+          (l.secretariaSigla && l.secretariaSigla.toLowerCase().includes(search)) ||
+          (l.fabricante && l.fabricante.toLowerCase().includes(search))
         );
       }
     }
@@ -796,21 +805,60 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       list = list.filter(l => {
         return selected.some(id => {
           const sec = this.secretariats().find(s => s.id === id);
-          return sec && (l.secretariaSigla === sec.sigla || l.secretariaSigla === sec.nome);
+          return sec && (l.secretariaSigla === sec.sigla || l.secretariaSigla === sec.nome || l.secretariaId === id);
         });
       });
     } else if (this.filtroSecretariaLeituras()) {
       list = list.filter(l => l.secretariaSigla === this.filtroSecretariaLeituras());
     }
 
+    if (this.filtroStatusLeituras() === 'PENDENTES') {
+      list = list.filter(l => l.status === 'PENDENTE' || l.leituraMonoAtual === null || l.leituraMonoAtual === undefined);
+    } else if (this.filtroStatusLeituras() === 'SALVOS') {
+      list = list.filter(l => l.status === 'SALVO' && !l.editado);
+    } else if (this.filtroStatusLeituras() === 'ALTERADOS') {
+      list = list.filter(l => l.editado);
+    }
+
+    if (this.filtroTipoLeituras() === 'MONO') {
+      list = list.filter(l => l.tipoImpressao === 'MONO');
+    } else if (this.filtroTipoLeituras() === 'COLOR') {
+      list = list.filter(l => l.tipoImpressao === 'COLOR');
+    }
+
     return list;
   });
 
+  filteredLeituras = computed(() => this.filteredGradeLeituras() as any);
+
+  // Paginação da grade de medições
+  paginaAtualLeituras = computed(() => {
+    const total = this.filteredGradeLeituras().length;
+    const size = this.tamanhoLeituras();
+    return Math.min(this.paginaLeituras(), Math.max(1, Math.ceil(total / size)));
+  });
+
+  paginadosGradeLeituras = computed(() => {
+    const page = this.paginaAtualLeituras();
+    const size = this.tamanhoLeituras();
+    return this.filteredGradeLeituras().slice((page - 1) * size, page * size);
+  });
+
+  paginadosLeituras = computed(() => this.paginadosGradeLeituras() as any);
+
   // Métricas do Faturamento Mensal das Leituras
-  totalCopiasMonoMes = computed(() => this.leituras().reduce((sum, l) => sum + (l.copiasMono || 0), 0));
-  totalCopiasColorMes = computed(() => this.leituras().reduce((sum, l) => sum + (l.copiasColor || 0), 0));
-  totalExcedenteMes = computed(() => this.leituras().reduce((sum, l) => sum + (l.excedenteMono || 0) + (l.excedenteColor || 0), 0));
-  totalValorFaturaMes = computed(() => this.leituras().reduce((sum, l) => sum + (l.valorTotal || 0), 0));
+  totalEquipamentosGrade = computed(() => this.gradeLeituras().length);
+  totalSalvosGrade = computed(() => this.gradeLeituras().filter(l => l.status === 'SALVO').length);
+  totalPendentesGrade = computed(() => this.gradeLeituras().filter(l => l.status === 'PENDENTE' || l.leituraMonoAtual === null || l.leituraMonoAtual === undefined).length);
+  totalCopiasMonoMes = computed(() => this.gradeLeituras().reduce((sum, l) => sum + (l.copiasMono || 0), 0));
+  totalCopiasColorMes = computed(() => this.gradeLeituras().reduce((sum, l) => sum + (l.copiasColor || 0), 0));
+  totalExcedenteMes = computed(() => this.gradeLeituras().reduce((sum, l) => sum + (l.excedenteMono || 0) + (l.excedenteColor || 0), 0));
+  totalValorFaturaMes = computed(() => this.gradeLeituras().reduce((sum, l) => sum + (l.valorTotal || 0), 0));
+  percentualConcluidoGrade = computed(() => {
+    const total = this.totalEquipamentosGrade();
+    if (total === 0) return 0;
+    return Math.min(100, Math.round((this.totalSalvosGrade() / total) * 100));
+  });
 
   // Métricas Computadas dos Empenhos
   totalEmpenhadoGeral = computed(() => this.empenhos().reduce((sum, e) => sum + (e.valorTotal || 0), 0));
@@ -1049,6 +1097,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     this.carregarEmpenhos();
     this.carregarImpressoras();
     this.carregarLocais();
+    this.carregarGradeLeituras();
   }
 
   carregarEmpenhos(): void {
@@ -1234,15 +1283,205 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   }
 
   carregarLeiturasCompetencia(): void {
+    this.carregarGradeLeituras();
     this.impressoraService.getLeituras(this.mesCompetencia(), this.anoCompetencia()).subscribe({
       next: list => this.leituras.set(list),
       error: () => this.toast.error('Erro ao carregar leituras da competência.')
     });
   }
 
+  carregarGradeLeituras(): void {
+    this.loadingGrade.set(true);
+    this.impressoraService.getGradeLeituras(this.mesCompetencia(), this.anoCompetencia()).subscribe({
+      next: (grade) => {
+        const items = grade.map(item => ({
+          ...item,
+          valorOriginalMono: item.leituraMonoAtual,
+          valorOriginalColor: item.leituraColorAtual,
+          editado: false,
+          salvando: false,
+          sucesso: false
+        }));
+        this.gradeLeituras.set(items);
+        this.loadingGrade.set(false);
+      },
+      error: () => {
+        this.toast.error('Erro ao carregar grade de medição.');
+        this.loadingGrade.set(false);
+      }
+    });
+  }
+
+  onLeituraMonoChange(item: ItemGradeLeitura, valorStr: any): void {
+    const str = String(valorStr ?? '').trim();
+    const valor = str === '' ? null : Math.max(0, parseInt(str.replace(/\D/g, ''), 10) || 0);
+    item.leituraMonoAtual = valor;
+
+    if (valor !== null && valor !== undefined) {
+      item.copiasMono = Math.max(0, valor - (item.leituraMonoAnterior || 0));
+    } else {
+      item.copiasMono = 0;
+    }
+
+    item.editado = (item.leituraMonoAtual !== item.valorOriginalMono) || (item.leituraColorAtual !== item.valorOriginalColor);
+    item.sucesso = false;
+    this.recalcularExcedenteEValorItem(item);
+    this.gradeLeituras.update(lista => [...lista]);
+  }
+
+  onLeituraColorChange(item: ItemGradeLeitura, valorStr: any): void {
+    const str = String(valorStr ?? '').trim();
+    const valor = str === '' ? null : Math.max(0, parseInt(str.replace(/\D/g, ''), 10) || 0);
+    item.leituraColorAtual = valor;
+
+    if (valor !== null && valor !== undefined) {
+      item.copiasColor = Math.max(0, valor - (item.leituraColorAnterior || 0));
+    } else {
+      item.copiasColor = 0;
+    }
+
+    item.editado = (item.leituraMonoAtual !== item.valorOriginalMono) || (item.leituraColorAtual !== item.valorOriginalColor);
+    item.sucesso = false;
+    this.recalcularExcedenteEValorItem(item);
+    this.gradeLeituras.update(lista => [...lista]);
+  }
+
+  private recalcularExcedenteEValorItem(item: ItemGradeLeitura): void {
+    const fMono = item.franquiaMono || 0;
+    const fColor = item.franquiaColor || 0;
+    item.excedenteMono = Math.max(0, (item.copiasMono || 0) - fMono);
+    item.excedenteColor = Math.max(0, (item.copiasColor || 0) - fColor);
+  }
+
+  salvarLinhaLeitura(item: ItemGradeLeitura): void {
+    if (item.leituraMonoAtual === null || item.leituraMonoAtual === undefined) {
+      this.toast.warning(`Informe a leitura mono para o Item #${item.itemPedido || item.impressoraId}`);
+      return;
+    }
+
+    if (item.leituraMonoAtual < item.leituraMonoAnterior) {
+      this.toast.warning(`Leitura Mono (${item.leituraMonoAtual}) não pode ser menor que a anterior (${item.leituraMonoAnterior}) para o Item #${item.itemPedido || item.impressoraId}`);
+      return;
+    }
+
+    if (item.tipoImpressao === 'COLOR' && item.leituraColorAtual !== null && item.leituraColorAtual !== undefined) {
+      if (item.leituraColorAtual < item.leituraColorAnterior) {
+        this.toast.warning(`Leitura Color (${item.leituraColorAtual}) não pode ser menor que a anterior (${item.leituraColorAnterior}) para o Item #${item.itemPedido || item.impressoraId}`);
+        return;
+      }
+    }
+
+    item.salvando = true;
+    const dto: LeituraContadorDTO = {
+      impressoraId: item.impressoraId,
+      mesReferencia: this.mesCompetencia(),
+      anoReferencia: this.anoCompetencia(),
+      dataLeitura: getTodayLocalDateString(),
+      leituraMonoAtual: item.leituraMonoAtual,
+      leituraColorAtual: item.tipoImpressao === 'COLOR' ? (item.leituraColorAtual ?? 0) : 0,
+      origemLeitura: 'MANUAL',
+      observacoes: item.observacoes
+    };
+
+    this.impressoraService.lancarLeitura(dto).subscribe({
+      next: (resp) => {
+        item.salvando = false;
+        item.editado = false;
+        item.sucesso = true;
+        item.status = 'SALVO';
+        item.leituraId = resp.id;
+        item.valorOriginalMono = item.leituraMonoAtual;
+        item.valorOriginalColor = item.leituraColorAtual;
+        item.copiasMono = resp.copiasMono;
+        item.copiasColor = resp.copiasColor;
+        item.excedenteMono = resp.excedenteMono;
+        item.excedenteColor = resp.excedenteColor;
+        item.valorLocacao = resp.valorLocacao;
+        item.valorTotal = resp.valorTotal;
+        this.toast.success(`Leitura do Item #${item.itemPedido || item.impressoraId} salva!`);
+        this.gradeLeituras.update(lista => [...lista]);
+        setTimeout(() => {
+          item.sucesso = false;
+          this.gradeLeituras.update(lista => [...lista]);
+        }, 3000);
+      },
+      error: (err) => {
+        item.salvando = false;
+        this.toast.error(`Erro ao salvar leitura do Item #${item.itemPedido || item.impressoraId}: ` + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  salvarTodasAlteracoes(): void {
+    const alterados = this.gradeLeituras().filter(item => item.editado);
+    if (alterados.length === 0) {
+      this.toast.info('Nenhuma leitura foi alterada.');
+      return;
+    }
+
+    for (const item of alterados) {
+      if (item.leituraMonoAtual === null || item.leituraMonoAtual === undefined) {
+        this.toast.warning(`Informe a leitura mono para o Item #${item.itemPedido || item.impressoraId}`);
+        return;
+      }
+      if (item.leituraMonoAtual < item.leituraMonoAnterior) {
+        this.toast.warning(`Leitura Mono do Item #${item.itemPedido || item.impressoraId} não pode ser menor que a anterior.`);
+        return;
+      }
+      if (item.tipoImpressao === 'COLOR' && item.leituraColorAtual !== null && item.leituraColorAtual !== undefined) {
+        if (item.leituraColorAtual < item.leituraColorAnterior) {
+          this.toast.warning(`Leitura Color do Item #${item.itemPedido || item.impressoraId} não pode ser menor que a anterior.`);
+          return;
+        }
+      }
+    }
+
+    this.salvandoEmLote.set(true);
+    const dtos: LeituraContadorDTO[] = alterados.map(item => ({
+      impressoraId: item.impressoraId,
+      mesReferencia: this.mesCompetencia(),
+      anoReferencia: this.anoCompetencia(),
+      dataLeitura: getTodayLocalDateString(),
+      leituraMonoAtual: item.leituraMonoAtual!,
+      leituraColorAtual: item.tipoImpressao === 'COLOR' ? (item.leituraColorAtual ?? 0) : 0,
+      origemLeitura: 'MANUAL',
+      observacoes: item.observacoes
+    }));
+
+    this.impressoraService.salvarLeiturasLote(dtos).subscribe({
+      next: (resps) => {
+        this.salvandoEmLote.set(false);
+        this.toast.success(`${resps.length} leitura(s) salvas com sucesso!`);
+        this.carregarGradeLeituras();
+      },
+      error: (err) => {
+        this.salvandoEmLote.set(false);
+        this.toast.error('Erro ao salvar leituras em lote: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  descartarAlteracoes(): void {
+    this.carregarGradeLeituras();
+    this.toast.info('Alterações descartadas.');
+  }
+
+  focarProximoInput(event: Event): void {
+    const target = event.target as HTMLElement;
+    const inputs = Array.from(document.querySelectorAll<HTMLInputElement>('.input-inline-leitura:not([disabled])'));
+    const index = inputs.indexOf(target as HTMLInputElement);
+    if (index >= 0 && index < inputs.length - 1) {
+      inputs[index + 1].focus();
+      inputs[index + 1].select();
+    }
+  }
+
   trocarAba(tab: 'INVENTARIO' | 'LEITURAS' | 'FINANCEIRO' | 'LOTES' | 'COLETA' | 'LOCAIS'): void {
     this.activeTab.set(tab);
-    if (tab === 'LEITURAS' && this.leituras().length === 0) {
+    if (tab === 'LEITURAS') {
+      if (this.gradeLeituras().length === 0) {
+        this.carregarGradeLeituras();
+      }
       this.carregarLeiturasCompetencia();
     } else if (tab === 'FINANCEIRO') {
       this.inicializarFinanceiroSeNecessario();
@@ -1726,21 +1965,27 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   }
 
   exportarMedicaoCSV(): void {
-    const list = this.filteredLeituras();
+    const list = this.filteredGradeLeituras();
     const columns = [
-      { header: 'Item', accessor: (l: LeituraContador) => l.itemPedido || '' },
-      { header: 'Secretaria', accessor: (l: LeituraContador) => l.secretariaSigla || '' },
-      { header: 'Local Instalacao', accessor: (l: LeituraContador) => l.localInstalacao || '' },
-      { header: 'Modelo', accessor: (l: LeituraContador) => l.impressoraModelo || '' },
-      { header: 'IP', accessor: (l: LeituraContador) => l.impressoraIp || '' },
-      { header: 'Leitura Anterior', accessor: (l: LeituraContador) => (l.leituraMonoAnterior || 0).toLocaleString('pt-BR') },
-      { header: 'Leitura Atual', accessor: (l: LeituraContador) => (l.leituraMonoAtual || 0).toLocaleString('pt-BR') },
-      { header: 'Copias Mono', accessor: (l: LeituraContador) => (l.copiasMono || 0).toLocaleString('pt-BR') },
-      { header: 'Franquia Aplicada', accessor: (l: LeituraContador) => (l.franquiaMonoAplicada || 0).toLocaleString('pt-BR') },
-      { header: 'Excedente Mono', accessor: (l: LeituraContador) => (l.excedenteMono || 0).toLocaleString('pt-BR') },
-      { header: 'Valor Locacao', accessor: (l: LeituraContador) => (l.valorLocacao || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Valor Excedente', accessor: (l: LeituraContador) => (l.valorExcedenteMono || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Total a Pagar', accessor: (l: LeituraContador) => (l.valorTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+      { header: 'Item', accessor: (l: ItemGradeLeitura) => l.itemPedido || l.impressoraId || '' },
+      { header: 'Secretaria', accessor: (l: ItemGradeLeitura) => l.secretariaSigla || '' },
+      { header: 'Local Instalacao', accessor: (l: ItemGradeLeitura) => l.localInstalacao || '' },
+      { header: 'Modelo', accessor: (l: ItemGradeLeitura) => l.modelo || '' },
+      { header: 'Tipo', accessor: (l: ItemGradeLeitura) => l.tipoImpressao || '' },
+      { header: 'IP', accessor: (l: ItemGradeLeitura) => l.ip || '' },
+      { header: 'Leitura Mono Anterior', accessor: (l: ItemGradeLeitura) => (l.leituraMonoAnterior || 0).toLocaleString('pt-BR') },
+      { header: 'Leitura Mono Atual', accessor: (l: ItemGradeLeitura) => l.leituraMonoAtual !== null && l.leituraMonoAtual !== undefined ? Number(l.leituraMonoAtual).toLocaleString('pt-BR') : '' },
+      { header: 'Copias Mono', accessor: (l: ItemGradeLeitura) => (l.copiasMono || 0).toLocaleString('pt-BR') },
+      { header: 'Franquia Mono', accessor: (l: ItemGradeLeitura) => (l.franquiaMono || 0).toLocaleString('pt-BR') },
+      { header: 'Excedente Mono', accessor: (l: ItemGradeLeitura) => (l.excedenteMono || 0).toLocaleString('pt-BR') },
+      { header: 'Leitura Color Anterior', accessor: (l: ItemGradeLeitura) => l.tipoImpressao === 'COLOR' ? (l.leituraColorAnterior || 0).toLocaleString('pt-BR') : '' },
+      { header: 'Leitura Color Atual', accessor: (l: ItemGradeLeitura) => l.tipoImpressao === 'COLOR' && l.leituraColorAtual !== null && l.leituraColorAtual !== undefined ? Number(l.leituraColorAtual).toLocaleString('pt-BR') : '' },
+      { header: 'Copias Color', accessor: (l: ItemGradeLeitura) => l.tipoImpressao === 'COLOR' ? (l.copiasColor || 0).toLocaleString('pt-BR') : '' },
+      { header: 'Franquia Color', accessor: (l: ItemGradeLeitura) => l.tipoImpressao === 'COLOR' ? (l.franquiaColor || 0).toLocaleString('pt-BR') : '' },
+      { header: 'Excedente Color', accessor: (l: ItemGradeLeitura) => l.tipoImpressao === 'COLOR' ? (l.excedenteColor || 0).toLocaleString('pt-BR') : '' },
+      { header: 'Valor Locacao', accessor: (l: ItemGradeLeitura) => (l.valorLocacao || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Valor Total', accessor: (l: ItemGradeLeitura) => (l.valorTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      { header: 'Status', accessor: (l: ItemGradeLeitura) => l.status || '' }
     ];
     exportToCsv('medicao_impressoras_' + this.mesCompetencia() + '_' + this.anoCompetencia(), columns, list);
     this.toast.success('Medição mensal exportada em .CSV com sucesso!');

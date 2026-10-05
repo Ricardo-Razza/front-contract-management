@@ -425,3 +425,42 @@ export interface InstalacaoHistorico {
   status: string;
   motivoRetirada?: string;
 }
+
+export interface ItemGradeLeitura {
+  impressoraId: number;
+  itemPedido?: number;
+  fabricante: string;
+  modelo: string;
+  tipoImpressao: string; // 'MONO' | 'COLOR'
+  ip?: string;
+  secretariaId?: number;
+  secretariaSigla?: string;
+  secretariaNome?: string;
+  localInstalacao?: string;
+  numeroLote?: number;
+  franquiaMono: number;
+  franquiaColor: number;
+
+  leituraId?: number;
+  dataLeitura?: string;
+  leituraMonoAnterior: number;
+  leituraMonoAtual?: number | null;
+  copiasMono: number;
+  leituraColorAnterior: number;
+  leituraColorAtual?: number | null;
+  copiasColor: number;
+  excedenteMono: number;
+  excedenteColor: number;
+  valorLocacao: number;
+  valorTotal: number;
+  origemLeitura?: string;
+  status: 'SALVO' | 'PENDENTE';
+  observacoes?: string;
+
+  // Propriedades transientes de interface
+  valorOriginalMono?: number | null;
+  valorOriginalColor?: number | null;
+  editado?: boolean;
+  salvando?: boolean;
+  sucesso?: boolean;
+}
