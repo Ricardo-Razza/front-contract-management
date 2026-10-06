@@ -3150,7 +3150,7 @@
           <button type="button"
                   class="lightbox-btn-action"
                   (click)="downloadPrintImage(printSelecionado()!)"
-                  title="Baixar comprovante de print">
+                  title="Baixar comprovante de coleta">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
               <polyline points="7 10 12 15 17 10"></polyline>
@@ -3163,13 +3163,13 @@
              target="_blank"
              rel="noopener noreferrer"
              class="lightbox-btn-action"
-             title="Abrir imagem original em nova guia">
+             title="Abrir comprovante em nova guia">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
               <polyline points="15 3 21 3 21 9"></polyline>
               <line x1="10" y1="14" x2="21" y2="3"></line>
             </svg>
-            <span>Abrir Original</span>
+            <span>Abrir Comprovante</span>
           </a>
 
           <!-- Botão Fechar Elegante -->
@@ -3195,7 +3195,7 @@
                (load)="onPrintImageLoaded($event)"
                (click)="toggleFitMode()"
                [title]="printFitMode() === 'fit' ? 'Clique para ver em 100% Tamanho Real (Resolução Nativa)' : 'Clique para ajustar à tela'"
-               alt="Comprovante de Leitura do Painel da Impressora"
+               alt="Comprovante de coleta dos contadores da impressora"
                class="lightbox-img" />
         </div>
       </div>
@@ -3209,7 +3209,7 @@
               <polyline points="12 6 12 12 16 14"></polyline>
             </svg>
             <span>Contador Geral Extraído:</span>
-            <strong class="counter-highlight">{{ printSelecionado()?.contadorTotal || 'Não extraído' }}</strong>
+            <strong class="counter-highlight">{{ printSelecionado()?.contadorTotal ?? 'Não extraído' }}</strong>
           </div>
 
           @if (printSelecionado()?.status === 'SUCESSO') {
