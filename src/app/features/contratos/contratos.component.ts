@@ -90,7 +90,7 @@ export class ContratosComponent implements OnInit {
   sortColumn = signal<string>('id');
   sortDirection = signal<'asc' | 'desc'>('desc');
   currentPage = signal<number>(1);
-  pageSize = signal<number>(5);
+  pageSize = signal<number>(25);
 
   loading = signal<boolean>(true);
   submitting = signal<boolean>(false);

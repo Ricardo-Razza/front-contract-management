@@ -113,11 +113,11 @@ export class FeriasComponent implements OnInit {
   setor = signal("");
   status = signal("");
   paginaSaldos = signal(1);
-  tamanhoSaldos = signal(5);
+  tamanhoSaldos = signal(25);
   paginaAtualSaldos = computed(() => Math.min(this.paginaSaldos(), Math.max(1, Math.ceil(this.saldos().length / this.tamanhoSaldos()))));
   saldosVisiveis = computed(() => this.saldos().slice((this.paginaAtualSaldos() - 1) * this.tamanhoSaldos(), this.paginaAtualSaldos() * this.tamanhoSaldos()));
   pagina = signal(1);
-  pageSize = signal(5);
+  pageSize = signal(25);
 
   filteredSecretariasForFilter = computed(() => {
     const search = this.secretariaFilterSearch().trim();

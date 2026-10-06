@@ -61,7 +61,7 @@ export class HistoricoInstalacoesComponent implements OnChanges, OnDestroy {
   erro = signal(false);
   impressoraConsultada = signal<number | undefined>(undefined);
   pagina = signal(1);
-  tamanho = signal(5);
+  tamanho = signal(25);
   visiveis = computed(() => this.itens().slice((this.pagina() - 1) * this.tamanho(), this.pagina() * this.tamanho()));
   ngOnChanges(): void { this.carregar(); }
   ngOnDestroy(): void { this.consulta?.unsubscribe(); }

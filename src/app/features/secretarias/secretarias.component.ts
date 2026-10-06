@@ -45,7 +45,7 @@ export class SecretariasComponent implements OnInit {
   sortColumn = signal<string>('nome');
   sortDirection = signal<'asc' | 'desc'>('asc');
   currentPage = signal<number>(1);
-  pageSize = signal<number>(5);
+  pageSize = signal<number>(25);
 
   loading = signal<boolean>(true);
   submitting = signal<boolean>(false);

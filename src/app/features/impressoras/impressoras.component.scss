@@ -1789,6 +1789,44 @@
     .filter-actions-btn {
       margin-left: auto;
     }
+
+    .btn-select-printers-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0 0.85rem;
+      height: 38px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #1e293b;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+
+      &:hover {
+        border-color: #3b82f6;
+        color: #2563eb;
+        background: #f8fafc;
+      }
+
+      .badge-mini-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 22px;
+        height: 20px;
+        padding: 0 6px;
+        border-radius: 10px;
+        background: #eff6ff;
+        color: #2563eb;
+        font-size: 11px;
+        font-weight: 700;
+        border: 1px solid #bfdbfe;
+      }
+    }
   }
 }
 

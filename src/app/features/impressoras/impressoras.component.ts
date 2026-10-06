@@ -488,7 +488,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
   // Paginação da tabela de inventário
   paginaLocais = signal(1);
-  tamanhoLocais = signal(5);
+  tamanhoLocais = signal(25);
   paginaAtualLocais = computed(() => Math.min(this.paginaLocais(), Math.max(1, Math.ceil(this.filteredLocais().length / this.tamanhoLocais()))));
   paginadosLocais = computed(() => this.filteredLocais().slice((this.paginaAtualLocais() - 1) * this.tamanhoLocais(), this.paginaAtualLocais() * this.tamanhoLocais()));
 
@@ -496,32 +496,32 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   tamanhoLeituras = signal(25);
 
   paginaEmpenhos = signal(1);
-  tamanhoEmpenhos = signal(5);
+  tamanhoEmpenhos = signal(25);
   paginaAtualEmpenhos = computed(() => Math.min(this.paginaEmpenhos(), Math.max(1, Math.ceil(this.empenhos().length / this.tamanhoEmpenhos()))));
   paginadosEmpenhos = computed(() => this.empenhos().slice((this.paginaAtualEmpenhos() - 1) * this.tamanhoEmpenhos(), this.paginaAtualEmpenhos() * this.tamanhoEmpenhos()));
 
   paginaColeta = signal(1);
-  tamanhoColeta = signal(5);
+  tamanhoColeta = signal(25);
   paginaAtualColeta = computed(() => Math.min(this.paginaColeta(), Math.max(1, Math.ceil(this.itensColetaFiltrados().length / this.tamanhoColeta()))));
   paginadosColeta = computed(() => this.itensColetaFiltrados().slice((this.paginaAtualColeta() - 1) * this.tamanhoColeta(), this.paginaAtualColeta() * this.tamanhoColeta()));
 
   paginaGrupos = signal(1);
-  tamanhoGrupos = signal(5);
+  tamanhoGrupos = signal(25);
   paginaAtualGrupos = computed(() => Math.min(this.paginaGrupos(), Math.max(1, Math.ceil(this.printersGroupedBySecretaria().length / this.tamanhoGrupos()))));
   paginadosGrupos = computed(() => this.printersGroupedBySecretaria().slice((this.paginaAtualGrupos() - 1) * this.tamanhoGrupos(), this.paginaAtualGrupos() * this.tamanhoGrupos()));
 
   paginaContadores = signal(1);
-  tamanhoContadores = signal(5);
+  tamanhoContadores = signal(25);
   paginaAtualContadores = computed(() => Math.min(this.paginaContadores(), Math.max(1, Math.ceil(this.historicoLeiturasImpressora().length / this.tamanhoContadores()))));
   paginadosContadores = computed(() => this.historicoLeiturasImpressora().slice((this.paginaAtualContadores() - 1) * this.tamanhoContadores(), this.paginaAtualContadores() * this.tamanhoContadores()));
 
   paginasGrupo = signal<Record<string, number>>({});
   tamanhosGrupo = signal<Record<string, number>>({});
   paginaGrupo(sigla: string, total: number): number {
-    return Math.min(this.paginasGrupo()[sigla] || 1, Math.max(1, Math.ceil(total / (this.tamanhosGrupo()[sigla] || 5))));
+    return Math.min(this.paginasGrupo()[sigla] || 1, Math.max(1, Math.ceil(total / (this.tamanhosGrupo()[sigla] || 25))));
   }
   impressorasDoGrupo(sigla: string, impressoras: Impressora[]): Impressora[] {
-    const size = this.tamanhosGrupo()[sigla] || 5;
+    const size = this.tamanhosGrupo()[sigla] || 25;
     const start = (this.paginaGrupo(sigla, impressoras.length) - 1) * size;
     return impressoras.slice(start, start + size);
   }
@@ -534,11 +534,11 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   }
 
   paginaLotes = signal(1);
-  tamanhoLotes = signal(5);
+  tamanhoLotes = signal(25);
   paginaAtualLotes = computed(() => Math.min(this.paginaLotes(), Math.max(1, Math.ceil(this.lotes().length / this.tamanhoLotes()))));
   lotesVisiveis = computed(() => this.lotes().slice((this.paginaAtualLotes() - 1) * this.tamanhoLotes(), this.paginaAtualLotes() * this.tamanhoLotes()));
   currentPage = signal<number>(1);
-  pageSize = signal<number>(5);
+  pageSize = signal<number>(25);
 
   // Controle de Modais de Impressoras
   isModalOpen = signal<boolean>(false);
@@ -575,8 +575,16 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   mesColeta = signal<number>(8);
   secretariaFiltroColeta = signal<number | null>(null);
   empenhoFiltroColeta = signal<number | null>(null);
-  filtroStatusColeta = signal<'TODOS' | 'SUCESSO' | 'OFFLINE' | 'ERRO'>('TODOS');
-  termoBuscaColeta = signal<string>('');
+
+  // Seleção e visualização de impressoras para a varredura
+  modalSelecaoImpressorasAberto = signal<boolean>(false);
+  // Exibe a seleção padrão de todas as impressoras ativas desde a abertura da tela.
+  selecaoConfirmadaColeta = signal<number[] | null>([]);
+  coletarTodasImpressoras = signal<boolean>(true);
+  impressorasSelecionadasColeta = signal<number[]>([]);
+  buscaImpressoraModalColeta = signal<string>('');
+  filtroRedeModalColeta = signal<'TODAS' | 'COM_IP' | 'SEM_IP'>('TODAS');
+  filtroSecretariaModalColeta = signal<number | null>(null);
 
   // Modal de cadastro/edição: navegação e busca
   activeModalStep = signal<number>(1);
@@ -866,43 +874,115 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   totalMaquinasEmpenhadas = computed(() => this.empenhos().reduce((sum, e) => sum + (e.quantidadeImpressoras || 0), 0));
 
   // Métricas e Filtragem da Coleta Automática
-  itensColetaFiltrados = computed(() => {
-    const sessao = this.coletaSessao();
-    if (!sessao || !sessao.itens) return [];
-    let list = sessao.itens;
+  impressorasAtivasParaColeta = computed(() => {
+    return this.printers().filter(p => p.ativo);
+  });
 
-    const statusFiltro = this.filtroStatusColeta();
-    if (statusFiltro !== 'TODOS') {
-      list = list.filter(i => i.status === statusFiltro);
+  impressorasElegiveisParaColeta = computed(() => {
+    const secretariaId = this.secretariaFiltroColeta();
+    const empenhoId = this.empenhoFiltroColeta();
+    return this.impressorasAtivasParaColeta().filter(p =>
+      (secretariaId === null || p.secretariaId === secretariaId) &&
+      (empenhoId === null || p.empenhoId === empenhoId)
+    );
+  });
+
+  idsImpressorasSelecionadasEfetivas = computed(() => {
+    const ativas = this.impressorasFiltradasModalColeta();
+    if (this.coletarTodasImpressoras()) {
+      return ativas.map(p => p.id);
     }
+    const selecionadas = new Set(this.impressorasSelecionadasColeta());
+    return ativas.filter(p => selecionadas.has(p.id)).map(p => p.id);
+  });
 
-    const search = this.termoBuscaColeta().toLowerCase().trim();
-    if (search) {
-      list = list.filter(i =>
-        (i.modelo && i.modelo.toLowerCase().includes(search)) ||
-        (i.ip && i.ip.toLowerCase().includes(search)) ||
-        (i.localInstalacao && i.localInstalacao.toLowerCase().includes(search)) ||
-        (i.secretariaSigla && i.secretariaSigla.toLowerCase().includes(search)) ||
-        (i.itemPedido && i.itemPedido.toString().includes(search))
+  todasImpressorasSelecionadasColeta = computed(() => {
+    const ativas = this.impressorasFiltradasModalColeta();
+    if (ativas.length === 0) return true;
+    if (this.coletarTodasImpressoras()) return true;
+    const selecionadas = this.idsImpressorasSelecionadasEfetivas();
+    return ativas.length === selecionadas.length && ativas.every(p => selecionadas.includes(p.id));
+  });
+
+  totalImpressorasSelecionadasColeta = computed(() => {
+    return this.idsImpressorasSelecionadasEfetivas().length;
+  });
+
+  impressorasFiltradasModalColeta = computed(() => {
+    let list = this.impressorasElegiveisParaColeta();
+    const secId = this.filtroSecretariaModalColeta();
+    if (secId) {
+      list = list.filter(p => p.secretariaId === secId);
+    }
+    const rede = this.filtroRedeModalColeta();
+    if (rede === 'COM_IP') {
+      list = list.filter(p => p.ip && /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(p.ip.trim()));
+    } else if (rede === 'SEM_IP') {
+      list = list.filter(p => !p.ip || !/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(p.ip.trim()));
+    }
+    const busca = this.buscaImpressoraModalColeta().toLowerCase().trim();
+    if (busca) {
+      list = list.filter(p =>
+        (p.modelo && p.modelo.toLowerCase().includes(busca)) ||
+        (p.ip && p.ip.toLowerCase().includes(busca)) ||
+        (p.numeroSerie && p.numeroSerie.toLowerCase().includes(busca)) ||
+        (p.itemPedido && p.itemPedido.toString().includes(busca)) ||
+        (p.secretariaSigla && p.secretariaSigla.toLowerCase().includes(busca)) ||
+        (p.localInstalacao && p.localInstalacao.toLowerCase().includes(busca))
       );
     }
-
     return list;
   });
 
-  totalItensColetaSucesso = computed(() => {
-    const s = this.coletaSessao();
-    return s?.itens?.filter(i => i.status === 'SUCESSO').length || 0;
+  totalComIpParaColeta = computed(() => {
+    return this.impressorasElegiveisParaColeta().filter(p => p.ip && /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(p.ip.trim())).length;
   });
 
-  totalItensColetaOffline = computed(() => {
-    const s = this.coletaSessao();
-    return s?.itens?.filter(i => i.status === 'OFFLINE').length || 0;
+  totalSemIpParaColeta = computed(() => {
+    return this.impressorasElegiveisParaColeta().filter(p => !p.ip || !/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(p.ip.trim())).length;
   });
 
-  totalItensColetaErro = computed(() => {
-    const s = this.coletaSessao();
-    return s?.itens?.filter(i => i.status === 'ERRO').length || 0;
+  todasFiltradasModalMarcadas = computed(() => {
+    const filtradas = this.impressorasFiltradasModalColeta();
+    if (filtradas.length === 0) return false;
+    const selecionadas = this.idsImpressorasSelecionadasEfetivas();
+    return selecionadas.length === filtradas.length && filtradas.every(p => selecionadas.includes(p.id));
+  });
+
+  itensExibidosColeta = computed<ColetaItem[]>(() => {
+    const itens = this.coletaSessao()?.itens || [];
+    const confirmadas = this.selecaoConfirmadaColeta() === null ? null : this.idsImpressorasSelecionadasEfetivas();
+    if (confirmadas === null) return itens;
+    const porImpressora = new Map(itens.map(i => [i.impressoraId, i]));
+    const selecionadas = new Set(confirmadas);
+    return this.printers().filter(p => selecionadas.has(p.id)).map(p => porImpressora.get(p.id) || {
+      // Linha de prévia: não representa um item persistido nem permite requisições por ID.
+      id: -p.id,
+      sessaoId: 0,
+      impressoraId: p.id,
+      itemPedido: p.itemPedido,
+      ip: p.ip || '',
+      modelo: p.modelo,
+      secretariaSigla: p.secretariaSigla,
+      localInstalacao: p.localInstalacao,
+      numeroSerie: p.numeroSerie,
+      status: 'PENDENTE' as const,
+      mensagem: 'Impressora selecionada. Inicie a coleta para obter o contador e o comprovante.'
+    });
+  });
+
+  itensColetaFiltrados = computed(() => {
+    return this.itensExibidosColeta();
+  });
+
+  metricasColeta = computed(() => {
+    const itens = this.itensColetaFiltrados();
+    return {
+      total: itens.length,
+      sucesso: itens.filter(i => i.status === 'SUCESSO').length,
+      falhas: itens.filter(i => i.status === 'OFFLINE' || i.status === 'ERRO').length,
+      pendentes: itens.filter(i => i.status === 'PENDENTE').length
+    };
   });
 
   // Métricas e Filtragem do CRUD de Locais de Instalação
@@ -1113,6 +1193,9 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     this.impressoraService.getAll().subscribe({
       next: list => {
         this.printers.set(list);
+        if (this.coletarTodasImpressoras()) {
+          this.impressorasSelecionadasColeta.set(list.filter(p => p.ativo).map(p => p.id));
+        }
         this.loading.set(false);
       },
       error: () => {
@@ -2781,9 +2864,102 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     });
   }
 
+  onSecretariaFiltroColetaChange(val: any): void {
+    const id = (val === null || val === 'null' || val === undefined || val === '') ? null : Number(val);
+    this.secretariaFiltroColeta.set(id);
+    this.filtroSecretariaModalColeta.set(id);
+    this.coletarTodasImpressoras.set(true);
+    this.paginaColeta.set(1);
+  }
+
+  onFiltroSecretariaModalChange(val: any): void {
+    const id = (val === null || val === 'null' || val === undefined || val === '') ? null : Number(val);
+    this.filtroSecretariaModalColeta.set(id);
+    // O filtro do modal substitui a secretaria anterior do escopo da coleta.
+    this.secretariaFiltroColeta.set(id);
+    this.paginaColeta.set(1);
+  }
+
+  abrirModalSelecaoImpressoras(): void {
+    this.filtroSecretariaModalColeta.set(this.secretariaFiltroColeta());
+    if (this.coletarTodasImpressoras()) {
+      this.impressorasSelecionadasColeta.set(this.impressorasElegiveisParaColeta().map(p => p.id));
+    }
+    this.modalSelecaoImpressorasAberto.set(true);
+  }
+
+  fecharModalSelecaoImpressoras(): void {
+    this.modalSelecaoImpressorasAberto.set(false);
+  }
+
+  confirmarSelecaoImpressorasColeta(): void {
+    this.selecaoConfirmadaColeta.set([...this.idsImpressorasSelecionadasEfetivas()]);
+    this.paginaColeta.set(1);
+    this.fecharModalSelecaoImpressoras();
+  }
+
+  isImpressoraSelecionadaColeta(id: number): boolean {
+    return this.idsImpressorasSelecionadasEfetivas().includes(id);
+  }
+
+  alternarSelecaoImpressoraColeta(id: number): void {
+    const current = [...this.idsImpressorasSelecionadasEfetivas()];
+    const ativas = this.impressorasFiltradasModalColeta();
+    let updated: number[];
+    if (current.includes(id)) {
+      updated = current.filter(x => x !== id);
+    } else {
+      updated = [...current, id];
+    }
+    this.impressorasSelecionadasColeta.set(updated);
+    this.coletarTodasImpressoras.set(updated.length === ativas.length);
+  }
+
+  selecionarTodasImpressorasColeta(): void {
+    this.marcarFiltradasModalColeta();
+  }
+
+  desmarcarTodasImpressorasColeta(): void {
+    this.coletarTodasImpressoras.set(false);
+    this.impressorasSelecionadasColeta.set([]);
+  }
+
+  selecionarApenasComIpColeta(): void {
+    this.filtroRedeModalColeta.set('COM_IP');
+    this.marcarFiltradasModalColeta();
+  }
+
+  marcarFiltradasModalColeta(): void {
+    const filtradas = this.impressorasFiltradasModalColeta().map(p => p.id);
+    this.impressorasSelecionadasColeta.set(filtradas);
+    this.coletarTodasImpressoras.set(true);
+  }
+
+  desmarcarFiltradasModalColeta(): void {
+    const filtradas = this.impressorasFiltradasModalColeta().map(p => p.id);
+    const current = this.idsImpressorasSelecionadasEfetivas();
+    const restante = current.filter(id => !filtradas.includes(id));
+    this.coletarTodasImpressoras.set(false);
+    this.impressorasSelecionadasColeta.set(restante);
+  }
+
+  alternarSelecaoFiltradasModalColeta(): void {
+    if (this.todasFiltradasModalMarcadas()) {
+      this.desmarcarFiltradasModalColeta();
+    } else {
+      this.marcarFiltradasModalColeta();
+    }
+  }
+
   iniciarColetaAutomatica(): void {
     if (this.coletaAtiva()?.emAndamento) {
       this.toast.info('Já existe uma sessão de coleta em andamento.');
+      return;
+    }
+
+    const selecionadas = this.idsImpressorasSelecionadasEfetivas();
+    if (selecionadas.length === 0) {
+      this.toast.info('Selecione pelo menos uma impressora para iniciar a coleta.');
       return;
     }
 
@@ -2791,7 +2967,8 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       ano: this.anoColeta(),
       mes: this.mesColeta(),
       empenhoId: this.empenhoFiltroColeta() || undefined,
-      secretariaId: this.secretariaFiltroColeta() || undefined
+      secretariaId: this.secretariaFiltroColeta() || undefined,
+      impressoraIds: selecionadas
     };
 
     this.loadingColeta.set(true);
@@ -2799,6 +2976,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       next: (progresso) => {
         this.coletaAtiva.set(progresso);
         this.toast.success('Coleta de contadores iniciada em segundo plano!');
+        if (progresso.ultimaMensagem?.includes('ignorada(s)')) this.toast.info(progresso.ultimaMensagem);
         this.iniciarPollingColeta();
         this.carregarSessaoColeta(progresso.sessaoId, false);
         this.loadingColeta.set(false);
@@ -2899,7 +3077,8 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   }
 
   recoletarItem(item: ColetaItem): void {
-    if (!item || !item.id) return;
+    if (!item || item.id <= 0 || item.sessaoId <= 0) return;
+    const statusAnterior = item.status;
     this.toast.info(`Tentando reconectar ao IP ${item.ip}...`);
     item.status = 'PENDENTE';
     this.impressoraService.recoletarItem(item.id).subscribe({
@@ -2912,7 +3091,8 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
         }, 3500);
       },
       error: (err) => {
-        this.toast.error('Erro ao recoletar equipamento: ' + err.message);
+        item.status = statusAnterior;
+        this.toast.error('Erro ao recoletar equipamento: ' + (err.error?.message || err.message));
       }
     });
   }
@@ -2928,7 +3108,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
         this.iniciarPollingColeta();
       },
       error: (err) => {
-        this.toast.error('Erro ao reconectar falhas: ' + err.message);
+        this.toast.error('Erro ao reconectar falhas: ' + (err.error?.message || err.message));
       }
     });
   }
@@ -3027,6 +3207,9 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
   getUrlImagemColeta(item: ColetaItem): string {
     if (!item || !item.sessaoId || !item.nomeArquivo) return '';
-    return this.impressoraService.getUrlImagemColeta(item.sessaoId, item.nomeArquivo);
+    const url = this.impressoraService.getUrlImagemColeta(item.sessaoId, item.nomeArquivo);
+    return item.modelo?.toUpperCase().includes('PANTUM')
+      ? `${url}?comprovante=snmp-v1&coleta=${encodeURIComponent(item.dataColeta || '')}`
+      : url;
   }
 }

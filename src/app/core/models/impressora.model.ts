@@ -354,6 +354,7 @@ export interface IniciarColetaRequest {
   mes: number;
   empenhoId?: number;
   secretariaId?: number;
+  impressoraIds?: number[];
 }
 
 export interface ColetaProgresso {
@@ -392,6 +393,9 @@ export interface ColetaItem {
   copiasCopiador?: number;
   copiasScanner?: number;
   dataColeta?: string;
+  nivelToner?: number;
+  numeroSerie?: string;
+  metodoColeta?: string;
 }
 
 export interface ColetaSessao {

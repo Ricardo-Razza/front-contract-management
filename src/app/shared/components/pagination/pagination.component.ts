@@ -202,7 +202,7 @@ import { CommonModule } from '@angular/common';
 export class PaginationComponent implements OnChanges {
   @Input() totalItems: number = 0;
   @Input() currentPage: number = 1;
-  @Input() pageSize: number = 5;
+  @Input() pageSize: number = 25;
   @Input() pageSizeOptions: number[] = [5, 10, 25, 50];
 
   @Output() pageChange = new EventEmitter<number>();
@@ -233,7 +233,7 @@ export class PaginationComponent implements OnChanges {
   }
 
   get totalPages(): number {
-    return Math.max(1, Math.ceil(this.totalItems / (this.pageSize || 5)));
+    return Math.max(1, Math.ceil(this.totalItems / (this.pageSize || 25)));
   }
 
   get safeCurrentPage(): number {

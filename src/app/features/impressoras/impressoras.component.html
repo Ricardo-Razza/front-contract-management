@@ -800,7 +800,7 @@
                             }
                           </tbody>
                         </table>
-<app-pagination [totalItems]="g.printers.length" [currentPage]="paginaGrupo(g.sigla, g.printers.length)" [pageSize]="tamanhosGrupo()[g.sigla] || 5" (pageChange)="mudarPaginaGrupo(g.sigla, $event)" (pageSizeChange)="mudarTamanhoGrupo(g.sigla, $event)"></app-pagination>
+<app-pagination [totalItems]="g.printers.length" [currentPage]="paginaGrupo(g.sigla, g.printers.length)" [pageSize]="tamanhosGrupo()[g.sigla] || 25" (pageChange)="mudarPaginaGrupo(g.sigla, $event)" (pageSizeChange)="mudarTamanhoGrupo(g.sigla, $event)"></app-pagination>
                       </div>
                     </div>
                   }
@@ -1994,13 +1994,26 @@
             </div>
 
             <div class="filter-field">
-              <span class="filter-label">Secretaria (Opcional)</span>
-              <select aria-label="Secretaria (Opcional)" [ngModel]="secretariaFiltroColeta()" (ngModelChange)="secretariaFiltroColeta.set($event ? +$event : null)">
-                <option [value]="null">Todas as Secretarias</option>
-                @for (sec of secretariats(); track sec.id) {
-                  <option [value]="sec.id">{{ sec.sigla }} — {{ sec.nome }}</option>
-                }
-              </select>
+              <span class="filter-label">Equipamentos a Coletar</span>
+              <button type="button" class="btn-select-printers-trigger"
+                      (click)="abrirModalSelecaoImpressoras()"
+                      title="Selecionar quais impressoras participarão da varredura">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                  <line x1="8" y1="21" x2="16" y2="21"></line>
+                  <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+                <span>
+                  @if (todasImpressorasSelecionadasColeta()) {
+                    Todas as Filtradas ({{ impressorasFiltradasModalColeta().length }})
+                  } @else {
+                    {{ totalImpressorasSelecionadasColeta() }} de {{ impressorasFiltradasModalColeta().length }} selecionadas
+                  }
+                </span>
+                <span class="badge-mini-count">
+                  {{ totalImpressorasSelecionadasColeta() }}
+                </span>
+              </button>
             </div>
 
             <div class="filter-actions-btn">
@@ -2031,16 +2044,9 @@
           </div>
         }
 
-        <!-- MÉTRICAS DA SESSÃO (3 CARDS SEMÂNTICOS E CLICÁVEIS) -->
+        <!-- MÉTRICAS DAS IMPRESSORAS EXIBIDAS, CONSIDERANDO TODOS OS FILTROS -->
         <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 1.25rem;">
-          <div class="metric-card" role="button" tabindex="0"
-               (keydown.enter)="filtroStatusColeta.set('TODOS')"
-               (keydown.space)="$event.preventDefault(); filtroStatusColeta.set('TODOS')"
-               [attr.aria-pressed]="filtroStatusColeta() === 'TODOS'"
-               [class.active-filter]="filtroStatusColeta() === 'TODOS'"
-               (click)="filtroStatusColeta.set('TODOS')"
-               style="cursor: pointer;"
-               title="Clique para listar todos os dispositivos mapeados">
+<div class="metric-card">
             <div class="metric-accent accent-blue"></div>
             <div class="metric-icon icon-blue">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
@@ -2050,22 +2056,15 @@
               </svg>
             </div>
             <div class="metric-body">
-              <span class="metric-label">Dispositivos Mapeados</span>
-              <span class="metric-value">{{ coletaSessao()?.totalImpressoras ?? 0 }}</span>
+              <span class="metric-label">Impressoras na Tabela</span>
+              <span class="metric-value">{{ metricasColeta().total }}</span>
               <div class="metric-sub">
-                <span class="sub-chip chip-gray">Varredura direta via IP</span>
+                <span class="sub-chip chip-gray">Considera os filtros atuais</span>
               </div>
             </div>
           </div>
 
-          <div class="metric-card" role="button" tabindex="0"
-               (keydown.enter)="filtroStatusColeta.set(filtroStatusColeta() === 'SUCESSO' ? 'TODOS' : 'SUCESSO')"
-               (keydown.space)="$event.preventDefault(); filtroStatusColeta.set(filtroStatusColeta() === 'SUCESSO' ? 'TODOS' : 'SUCESSO')"
-               [attr.aria-pressed]="filtroStatusColeta() === 'SUCESSO'"
-               [class.active-filter]="filtroStatusColeta() === 'SUCESSO'"
-               (click)="filtroStatusColeta.set(filtroStatusColeta() === 'SUCESSO' ? 'TODOS' : 'SUCESSO')"
-               style="cursor: pointer;"
-               title="Clique para filtrar apenas coletas bem-sucedidas">
+<div class="metric-card">
             <div class="metric-accent accent-green"></div>
             <div class="metric-icon icon-green">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
@@ -2075,22 +2074,14 @@
             </div>
             <div class="metric-body">
               <span class="metric-label">Leituras com Sucesso</span>
-              <span class="metric-value" style="color: #15803d;">{{ coletaSessao()?.totalSucesso || 0 }}</span>
+              <span class="metric-value" style="color: #15803d;">{{ metricasColeta().sucesso }}</span>
               <div class="metric-sub">
                 <span class="sub-chip chip-green">Hodômetros capturados</span>
               </div>
             </div>
           </div>
 
-          <div class="metric-card" role="button" tabindex="0"
-               (keydown.enter)="filtroStatusColeta.set(filtroStatusColeta() === 'OFFLINE' ? 'TODOS' : 'OFFLINE')"
-               (keydown.space)="$event.preventDefault(); filtroStatusColeta.set(filtroStatusColeta() === 'OFFLINE' ? 'TODOS' : 'OFFLINE')"
-               [attr.aria-pressed]="filtroStatusColeta() === 'OFFLINE'"
-               [class.active-filter]="filtroStatusColeta() === 'OFFLINE'"
-               [class.metric-card--alert]="(coletaSessao()?.totalFalhas || 0) > 0"
-               (click)="filtroStatusColeta.set(filtroStatusColeta() === 'OFFLINE' ? 'TODOS' : 'OFFLINE')"
-               style="cursor: pointer;"
-               title="Clique para filtrar equipamentos offline ou com falha">
+<div class="metric-card" [class.metric-card--alert]="metricasColeta().falhas > 0">
             <div class="metric-accent accent-orange"></div>
             <div class="metric-icon icon-orange">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
@@ -2101,28 +2092,33 @@
             </div>
             <div class="metric-body">
               <span class="metric-label">Offline / Falhas</span>
-              <span class="metric-value" [class.value-orange]="(coletaSessao()?.totalFalhas || 0) > 0">{{ coletaSessao()?.totalFalhas || 0 }}</span>
+              <span class="metric-value" [class.value-orange]="metricasColeta().falhas > 0">{{ metricasColeta().falhas }}</span>
               <div class="metric-sub">
-                <span class="sub-chip chip-orange">Demanda anotação manual</span>
+                <span class="sub-chip chip-orange">Offline ou erro na coleta</span>
               </div>
             </div>
           </div>
+
+<div class="metric-card">
+          <div class="metric-accent accent-blue"></div>
+          <div class="metric-icon icon-blue">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <circle cx="12" cy="12" r="9"></circle>
+              <polyline points="12 7 12 12 15 14"></polyline>
+            </svg>
+          </div>
+          <div class="metric-body">
+            <span class="metric-label">Aguardando Coleta</span>
+            <span class="metric-value">{{ metricasColeta().pendentes }}</span>
+            <div class="metric-sub"><span class="sub-chip chip-gray">Selecionadas ou em processamento</span></div>
+          </div>
+        </div>
         </div>
 
         <!-- TABELA DE RESULTADOS DA COLETA (PADRÃO TABLE-CARD) -->
         <div class="table-card">
           <div class="table-header-toolbar">
-            <span class="result-count">
-              {{ itensColetaFiltrados().length }} itens da varredura
-              @if (filtroStatusColeta() !== 'TODOS') {
-                (filtrado por {{ filtroStatusColeta() }})
-              }
-            </span>
-            @if (filtroStatusColeta() !== 'TODOS') {
-              <button type="button" class="btn-clear-empty" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;" (click)="filtroStatusColeta.set('TODOS')">
-                Remover filtro de status
-              </button>
-            }
+            <span class="result-count">{{ itensColetaFiltrados().length }} impressoras selecionadas</span>
           </div>
 
           <div class="table-responsive">
@@ -2153,17 +2149,33 @@
                         </div>
                       </div>
                     </td>
-                    <td><strong>{{ item.modelo }}</strong></td>
+                    <td>
+                      <strong>{{ item.modelo }}</strong>
+                      @if (item.numeroSerie) {
+                        <div style="font-size: 0.725rem; color: #64748b; font-family: monospace;">S/N: {{ item.numeroSerie }}</div>
+                      }
+                    </td>
                     <td style="text-align: right;" class="tabular-nums">
-                      <strong>{{ item.contadorTotal || item.contadorMono || '—' }}</strong>
+                      <strong>{{ item.contadorTotal ?? item.contadorMono ?? '—' }}</strong>
+                      @if (item.nivelToner !== undefined && item.nivelToner !== null) {
+                        <div style="font-size: 0.725rem; font-weight: 600; margin-top: 2px;"
+                             [style.color]="item.nivelToner <= 15 ? '#dc2626' : (item.nivelToner <= 30 ? '#d97706' : '#16a34a')">
+                          Toner: {{ item.nivelToner }}%
+                        </div>
+                      }
                     </td>
                     <td class="text-center">
                       @if (item.status === 'SUCESSO') {
                         <span class="badge-status status-active"><span class="dot"></span>Coletado</span>
+                        @if (item.metodoColeta) {
+                          <div style="font-size: 0.65rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin-top: 2px;">
+                            {{ item.metodoColeta }}
+                          </div>
+                        }
                       } @else if (item.status === 'OFFLINE') {
                         <span class="badge-status status-inactive"><span class="dot"></span>Offline</span>
                       } @else {
-                        <span class="badge-status status-pending"><span class="dot"></span>{{ item.status }}</span>
+                        <span class="badge-status status-pending"><span class="dot"></span>{{ item.sessaoId === 0 ? 'Aguardando coleta' : item.status }}</span>
                       }
                     </td>
                     <td class="col-acoes" style="text-align: center;">
@@ -2191,7 +2203,7 @@
                             <polyline points="12 6 12 12 16 14"></polyline>
                           </svg>
                         </div>
-                        <h4>Nenhum item na sessão de coleta</h4>
+                        <h4>Nenhuma impressora para exibir</h4>
                         <p>Inicie a coleta em lote acima ou ajuste os filtros da pesquisa.</p>
                       </div>
                     </td>
@@ -3316,6 +3328,178 @@
       </div>
       <div class="modal-body"><app-historico-instalacoes [localId]="local.id"></app-historico-instalacoes></div>
       <div class="modal-footer"><button type="button" class="btn btn-outline" (click)="historicoLocal.set(null)">Fechar</button></div>
+    </div>
+  </div>
+}
+
+<!-- ============================================================ -->
+<!-- MODAL: SELEÇÃO DE IMPRESSORAS PARA COLETA                    -->
+<!-- ============================================================ -->
+@if (modalSelecaoImpressorasAberto()) {
+  <div class="modal-overlay" (click)="fecharModalSelecaoImpressoras()">
+    <div class="modal-container modal-selecao-coleta" style="max-width: 940px;" (click)="$event.stopPropagation()">
+      <div class="modal-header" style="display: flex; align-items: flex-start; justify-content: space-between; padding: 1.15rem 1.5rem; border-bottom: 1px solid #e2e8f0;">
+        <div class="modal-title-wrap">
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #0f172a;">
+              Selecionar Impressoras para Coleta Automática
+            </h3>
+          </div>
+          <p style="margin: 0.25rem 0 0; font-size: 0.825rem; color: #64748b;">
+            Por padrão, todas as máquinas ativas participam da varredura. Você pode marcar ou desmarcar livremente.
+          </p>
+        </div>
+        <button type="button" class="btn-clear-empty" style="font-size: 1.25rem; line-height: 1; padding: 0.25rem 0.5rem; cursor: pointer;" (click)="fecharModalSelecaoImpressoras()" aria-label="Fechar modal">✕</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1rem 1.5rem; display: flex; flex-direction: column; gap: 0.85rem; max-height: calc(85vh - 140px); overflow-y: auto;">
+        <!-- BARRA DE PESQUISA E FILTROS RÁPIDOS -->
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+          <div class="filter-search-box" style="flex: 1; min-width: 250px; margin: 0;">
+            <span class="filter-search-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </span>
+            <input type="text"
+                   placeholder="Buscar por modelo, IP, S/N, local ou item..."
+                   [ngModel]="buscaImpressoraModalColeta()"
+                   (ngModelChange)="buscaImpressoraModalColeta.set($event)"
+                   style="height: 36px; font-size: 13px;" />
+            @if (buscaImpressoraModalColeta()) {
+              <button type="button" class="filter-clear-btn" aria-label="Limpar pesquisa" (click)="buscaImpressoraModalColeta.set('')">&#x2715;</button>
+            }
+          </div>
+
+          <select aria-label="Secretaria"
+                  [ngModel]="filtroSecretariaModalColeta()"
+                  (ngModelChange)="onFiltroSecretariaModalChange($event)"
+                  style="height: 36px; font-size: 13px; border-radius: 7px; border: 1px solid #cbd5e1; padding: 0 0.75rem; background: #fff;">
+            <option [ngValue]="null">Todas as Secretarias</option>
+            @for (sec of secretariats(); track sec.id) {
+              <option [ngValue]="sec.id">{{ sec.sigla }} — {{ sec.nome }}</option>
+            }
+          </select>
+
+          <div class="segmented-control" style="height: 36px; display: inline-flex; border: 1px solid #cbd5e1; border-radius: 7px; overflow: hidden; background: #f8fafc;">
+            <button type="button" class="segment-btn" [class.active]="filtroRedeModalColeta() === 'TODAS'" (click)="filtroRedeModalColeta.set('TODAS')" style="padding: 0 0.75rem; border: none; font-size: 12px; cursor: pointer;">
+              Todas ({{ impressorasElegiveisParaColeta().length }})
+            </button>
+            <button type="button" class="segment-btn" [class.active]="filtroRedeModalColeta() === 'COM_IP'" (click)="filtroRedeModalColeta.set('COM_IP')" style="padding: 0 0.75rem; border: none; font-size: 12px; cursor: pointer;">
+              Com IP ({{ totalComIpParaColeta() }})
+            </button>
+            <button type="button" class="segment-btn" [class.active]="filtroRedeModalColeta() === 'SEM_IP'" (click)="filtroRedeModalColeta.set('SEM_IP')" style="padding: 0 0.75rem; border: none; font-size: 12px; cursor: pointer;">
+              USB / Sem IP ({{ totalSemIpParaColeta() }})
+            </button>
+          </div>
+        </div>
+
+        <!-- AÇÕES EM MASSA E CONTADOR -->
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; background: #f8fafc; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1px solid #e2e8f0; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <button type="button" class="btn btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.75rem;" (click)="selecionarTodasImpressorasColeta()">
+              Marcar Filtradas ({{ impressorasFiltradasModalColeta().length }})
+            </button>
+            <button type="button" class="btn btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.75rem;" (click)="desmarcarTodasImpressorasColeta()">
+              Desmarcar Todas
+            </button>
+            <button type="button" class="btn btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.75rem;" (click)="selecionarApenasComIpColeta()">
+              Apenas com IP ({{ totalComIpParaColeta() }})
+            </button>
+            @if (impressorasFiltradasModalColeta().length !== impressorasElegiveisParaColeta().length) {
+              <button type="button" class="btn btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.75rem; background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe;" (click)="marcarFiltradasModalColeta()">
+                Marcar Visíveis ({{ impressorasFiltradasModalColeta().length }})
+              </button>
+              <button type="button" class="btn btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.75rem;" (click)="desmarcarFiltradasModalColeta()">
+                Desmarcar Visíveis
+              </button>
+            }
+          </div>
+
+          <div style="font-size: 0.825rem; font-weight: 600; color: #1e293b;">
+            <span style="color: #2563eb;">{{ totalImpressorasSelecionadasColeta() }}</span> de {{ impressorasFiltradasModalColeta().length }} selecionadas
+          </div>
+        </div>
+
+        <!-- TABELA DE SELEÇÃO -->
+        <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; max-height: 400px; overflow-y: auto;">
+          <table class="data-table" style="margin: 0; width: 100%;">
+            <thead style="position: sticky; top: 0; background: #f8fafc; z-index: 2;">
+              <tr>
+                <th style="width: 44px; text-align: center;">
+                  <input type="checkbox"
+                         [checked]="todasFiltradasModalMarcadas()"
+                         (change)="alternarSelecaoFiltradasModalColeta()"
+                         title="Alternar seleção das impressoras visíveis" />
+                </th>
+                <th style="width: 60px; text-align: center;">Item</th>
+                <th>Modelo</th>
+                <th>IP de Rede</th>
+                <th>Secretaria & Local</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (imp of impressorasFiltradasModalColeta(); track imp.id) {
+                <tr [style.background]="isImpressoraSelecionadaColeta(imp.id) ? '#f0fdf4' : 'transparent'"
+                    (click)="alternarSelecaoImpressoraColeta(imp.id)"
+                    style="cursor: pointer;">
+                  <td style="text-align: center;" (click)="$event.stopPropagation()">
+                    <input type="checkbox"
+                           [checked]="isImpressoraSelecionadaColeta(imp.id)"
+                           (change)="alternarSelecaoImpressoraColeta(imp.id)" />
+                  </td>
+                  <td style="text-align: center;">
+                    <span class="badge-item-order">#{{ imp.itemPedido || '-' }}</span>
+                  </td>
+                  <td>
+                    <strong>{{ imp.modelo }}</strong>
+                    @if (imp.numeroSerie) {
+                      <div style="font-size: 0.7rem; color: #64748b; font-family: monospace;">S/N: {{ imp.numeroSerie }}</div>
+                    }
+                  </td>
+                  <td>
+                    @if (imp.ip && imp.ip !== 'USB' && !imp.ip.toLowerCase().includes('andrius')) {
+                      <code class="ip-code">{{ imp.ip }}</code>
+                    } @else {
+                      <span class="badge-status status-pending" style="font-size: 0.7rem;">{{ imp.ip || 'Sem IP' }}</span>
+                    }
+                  </td>
+                  <td>
+                    <div class="sec-row">
+                      <span class="sec-badge">{{ imp.secretariaSigla || 'SEC' }}</span>
+                      <span style="font-size: 0.8rem; color: #334155;">{{ imp.localInstalacao || 'Local não informado' }}</span>
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5" style="text-align: center; padding: 2rem; color: #64748b;">
+                    Nenhuma impressora encontrada com os filtros aplicados.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1.5rem; border-top: 1px solid #e2e8f0; background: #fff; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
+        <span style="font-size: 0.825rem; color: #64748b;">
+          <strong>{{ totalImpressorasSelecionadasColeta() }}</strong> equipamentos serão varridos nesta coleta.
+        </span>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" class="btn btn-outline" (click)="fecharModalSelecaoImpressoras()">Cancelar</button>
+          <button type="button" class="btn btn-primary" (click)="confirmarSelecaoImpressorasColeta()">
+            Confirmar Seleção ({{ totalImpressorasSelecionadasColeta() }})
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 }
