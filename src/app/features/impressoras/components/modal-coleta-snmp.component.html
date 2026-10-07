@@ -1,166 +1,65 @@
 <div class="modal-overlay" (click)="context.fecharModalSelecaoImpressoras()">
-    <div class="modal-container modal-selecao-coleta" style="max-width: 940px;" (click)="$event.stopPropagation()">
-      <div class="modal-header" style="display: flex; align-items: flex-start; justify-content: space-between; padding: 1.15rem 1.5rem; border-bottom: 1px solid #e2e8f0;">
-        <div class="modal-title-wrap">
-          <div style="display: flex; align-items: center; gap: 0.6rem;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-              <line x1="8" y1="21" x2="16" y2="21"></line>
-              <line x1="12" y1="17" x2="12" y2="21"></line>
-            </svg>
-            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #0f172a;">
-              Selecionar Impressoras para Coleta Automática
-            </h3>
-          </div>
-          <p style="margin: 0.25rem 0 0; font-size: 0.825rem; color: #64748b;">
-            Por padrão, todas as máquinas ativas participam da varredura. Você pode marcar ou desmarcar livremente.
-          </p>
+  <section class="selection-dialog" role="dialog" aria-modal="true" aria-labelledby="coleta-selecao-titulo" aria-describedby="coleta-selecao-ajuda" (click)="$event.stopPropagation()">
+    <header class="selection-header">
+      <div><h3 id="coleta-selecao-titulo">Selecionar impressoras para coleta</h3><p id="coleta-selecao-ajuda">Filtrar muda apenas o que você vê. Impressoras desmarcadas continuam desmarcadas ao voltar para todas.</p></div>
+      <button type="button" class="close-button" (click)="context.fecharModalSelecaoImpressoras()" aria-label="Cancelar e fechar seleção">×</button>
+    </header>
+
+    <div class="selection-body">
+      <section class="filter-panel" aria-label="Filtros de impressoras">
+        <div class="filter-heading"><strong>Encontrar equipamentos</strong><button type="button" class="text-button" (click)="context.limparFiltrosModalColeta()" title="Limpar todos os filtros sem alterar a seleção">Ver todas / limpar filtros</button></div>
+        <label class="search-field"><span>Busca</span><input id="coleta-busca" type="search" placeholder="Item, modelo, IP, série, secretaria ou local..." [ngModel]="context.buscaImpressoraModalColeta()" (ngModelChange)="context.buscaImpressoraModalColeta.set($event); context.paginaSelecaoColeta.set(1)"></label>
+        <div class="filters-grid">
+          <label><span>Secretaria</span><select [ngModel]="context.filtroSecretariaModalColeta()" (ngModelChange)="context.onFiltroSecretariaModalChange($event)"><option [ngValue]="null">Todas as secretarias</option>@for (sec of context.secretariats(); track sec.id) { <option [ngValue]="sec.id">{{ sec.sigla }} — {{ sec.nome }}</option> }</select></label>
+          <label><span>Empenho</span><select [ngModel]="context.filtroEmpenhoModalColeta()" (ngModelChange)="context.filtroEmpenhoModalColeta.set($event); context.paginaSelecaoColeta.set(1)"><option [ngValue]="null">Todos os empenhos</option>@for (emp of context.empenhos(); track emp.id) { <option [ngValue]="emp.id">{{ emp.numeroEmpenho }} — {{ emp.secretariaSigla }}</option> }</select></label>
+          <label><span>Lote</span><select [ngModel]="context.filtroLoteModalColeta()" (ngModelChange)="context.filtroLoteModalColeta.set($event); context.paginaSelecaoColeta.set(1)"><option [ngValue]="null">Todos os lotes</option>@for (lote of context.lotes(); track lote.id) { <option [ngValue]="lote.id">Lote {{ lote.numeroLote }} — {{ lote.descricao }}</option> }</select></label>
+          <label><span>Tipo de impressão</span><select [ngModel]="context.filtroTipoModalColeta()" (ngModelChange)="context.filtroTipoModalColeta.set($event); context.paginaSelecaoColeta.set(1)"><option value="TODOS">Mono e coloridas</option><option value="MONO">Monocromáticas</option><option value="COLOR">Coloridas</option></select></label>
+          <label><span>Conexão</span><select [ngModel]="context.filtroRedeModalColeta()" (ngModelChange)="context.filtroRedeModalColeta.set($event); context.paginaSelecaoColeta.set(1)"><option value="TODAS">Todas as conexões</option><option value="COM_IP">Com IP válido ({{ context.totalComIpParaColeta() }})</option><option value="SEM_IP">USB / sem IP válido ({{ context.totalSemIpParaColeta() }})</option></select></label>
+          <label><span>Seleção</span><select [ngModel]="context.filtroSelecaoModalColeta()" (ngModelChange)="context.filtroSelecaoModalColeta.set($event); context.paginaSelecaoColeta.set(1)"><option value="TODAS">Marcadas e desmarcadas</option><option value="MARCADAS">Somente marcadas</option><option value="DESMARCADAS">Somente desmarcadas</option></select></label>
         </div>
-        <button type="button" class="btn-clear-empty" style="font-size: 1.25rem; line-height: 1; padding: 0.25rem 0.5rem; cursor: pointer;" (click)="context.fecharModalSelecaoImpressoras()" aria-label="Fechar modal">✕</button>
+      </section>
+
+      <div class="selection-summary" role="status">
+        <div><strong>{{ context.totalImpressorasSelecionadasColeta() }} selecionadas</strong><span> de {{ context.impressorasElegiveisParaColeta().length }} impressoras ativas</span></div>
+        <div>{{ context.totalSelecionadasFiltradasColeta() }} marcadas no filtro atual · {{ context.totalSelecionadasOcultasColeta() }} fora do filtro</div>
+        <button type="button" class="text-button" (click)="context.verSelecionadasColeta()">Ver minha seleção</button>
       </div>
 
-      <div class="modal-body" style="padding: 1rem 1.5rem; display: flex; flex-direction: column; gap: 0.85rem; max-height: calc(85vh - 140px); overflow-y: auto;">
-        <!-- BARRA DE PESQUISA E FILTROS RÁPIDOS -->
-        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-          <div class="filter-search-box" style="flex: 1; min-width: 250px; margin: 0;">
-            <span class="filter-search-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-            </span>
-            <input type="text"
-                   placeholder="Buscar por modelo, IP, S/N, local ou item..."
-                   [ngModel]="context.buscaImpressoraModalColeta()"
-                   (ngModelChange)="context.buscaImpressoraModalColeta.set($event)"
-                   style="height: 36px; font-size: 13px;" />
-            @if (context.buscaImpressoraModalColeta()) {
-              <button type="button" class="filter-clear-btn" aria-label="Limpar pesquisa" (click)="context.buscaImpressoraModalColeta.set('')">&#x2715;</button>
-            }
-          </div>
-
-          <select aria-label="Secretaria"
-                  [ngModel]="context.filtroSecretariaModalColeta()"
-                  (ngModelChange)="context.onFiltroSecretariaModalChange($event)"
-                  style="height: 36px; font-size: 13px; border-radius: 7px; border: 1px solid #cbd5e1; padding: 0 0.75rem; background: #fff;">
-            <option [ngValue]="null">Todas as Secretarias</option>
-            @for (sec of context.secretariats(); track sec.id) {
-              <option [ngValue]="sec.id">{{ sec.sigla }} — {{ sec.nome }}</option>
-            }
-          </select>
-
-          <div class="segmented-control" style="height: 36px; display: inline-flex; border: 1px solid #cbd5e1; border-radius: 7px; overflow: hidden; background: #f8fafc;">
-            <button type="button" class="segment-btn" [class.active]="context.filtroRedeModalColeta() === 'TODAS'" (click)="context.filtroRedeModalColeta.set('TODAS')" style="padding: 0 0.75rem; border: none; font-size: 12px; cursor: pointer;">
-              Todas ({{ context.impressorasElegiveisParaColeta().length }})
-            </button>
-            <button type="button" class="segment-btn" [class.active]="context.filtroRedeModalColeta() === 'COM_IP'" (click)="context.filtroRedeModalColeta.set('COM_IP')" style="padding: 0 0.75rem; border: none; font-size: 12px; cursor: pointer;">
-              Com IP ({{ context.totalComIpParaColeta() }})
-            </button>
-            <button type="button" class="segment-btn" [class.active]="context.filtroRedeModalColeta() === 'SEM_IP'" (click)="context.filtroRedeModalColeta.set('SEM_IP')" style="padding: 0 0.75rem; border: none; font-size: 12px; cursor: pointer;">
-              USB / Sem IP ({{ context.totalSemIpParaColeta() }})
-            </button>
-          </div>
+      <div class="selection-toolbar">
+        <div class="filtered-actions" role="group" aria-label="Alterar somente as impressoras filtradas">
+          <button type="button" class="btn btn-outline" [disabled]="context.impressorasFiltradasModalColeta().length === 0 || context.todasFiltradasModalMarcadas()" (click)="context.marcarFiltradasModalColeta()">Marcar filtradas ({{ context.impressorasFiltradasModalColeta().length }})</button>
+          <button type="button" class="btn btn-outline" [disabled]="context.totalSelecionadasFiltradasColeta() === 0" (click)="context.desmarcarFiltradasModalColeta()">Desmarcar filtradas</button>
         </div>
+        <details class="global-actions">
+          <summary>Alterar seleção global</summary>
+          <div class="global-menu"><p>Estas ações substituem a seleção de todas as impressoras, inclusive fora dos filtros.</p><button type="button" (click)="context.selecionarTodasImpressorasColeta()">Marcar todas as impressoras</button><button type="button" (click)="context.desmarcarTodasImpressorasColeta()">Desmarcar todas as impressoras</button><button type="button" (click)="context.selecionarApenasComIpColeta()">Selecionar somente com IP válido</button></div>
+        </details>
+      </div>
 
-        <!-- AÇÕES EM MASSA E CONTADOR -->
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; background: #f8fafc; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1px solid #e2e8f0; flex-wrap: wrap;">
-          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-            <button type="button" class="btn btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.75rem;" (click)="context.selecionarTodasImpressorasColeta()">
-              Marcar Filtradas ({{ context.impressorasFiltradasModalColeta().length }})
-            </button>
-            <button type="button" class="btn btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.75rem;" (click)="context.desmarcarTodasImpressorasColeta()">
-              Desmarcar Todas
-            </button>
-            <button type="button" class="btn btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.75rem;" (click)="context.selecionarApenasComIpColeta()">
-              Apenas com IP ({{ context.totalComIpParaColeta() }})
-            </button>
-            @if (context.impressorasFiltradasModalColeta().length !== context.impressorasElegiveisParaColeta().length) {
-              <button type="button" class="btn btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.75rem; background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe;" (click)="context.marcarFiltradasModalColeta()">
-                Marcar Visíveis ({{ context.impressorasFiltradasModalColeta().length }})
-              </button>
-              <button type="button" class="btn btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.75rem;" (click)="context.desmarcarFiltradasModalColeta()">
-                Desmarcar Visíveis
-              </button>
-            }
-          </div>
-
-          <div style="font-size: 0.825rem; font-weight: 600; color: #1e293b;">
-            <span style="color: #2563eb;">{{ context.totalImpressorasSelecionadasColeta() }}</span> de {{ context.impressorasFiltradasModalColeta().length }} selecionadas
-          </div>
-        </div>
-
-        <!-- TABELA DE SELEÇÃO -->
-        <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; max-height: 400px; overflow-y: auto;">
-          <table class="data-table" style="margin: 0; width: 100%;">
-            <thead style="position: sticky; top: 0; background: #f8fafc; z-index: 2;">
-              <tr>
-                <th style="width: 44px; text-align: center;">
-                  <input type="checkbox"
-                         [checked]="context.todasFiltradasModalMarcadas()"
-                         (change)="context.alternarSelecaoFiltradasModalColeta()"
-                         title="Alternar seleção das impressoras visíveis" />
-                </th>
-                <th style="width: 60px; text-align: center;">Item</th>
-                <th>Modelo</th>
-                <th>IP de Rede</th>
-                <th>Secretaria & Local</th>
+      <p class="results-info">{{ context.impressorasFiltradasModalColeta().length }} equipamentos encontrados. Marcar/desmarcar filtradas inclui todas as páginas deste resultado.</p>
+      <div class="selection-table-scroll" tabindex="0" role="region" aria-label="Lista de impressoras para seleção">
+        <table class="selection-table">
+          <thead><tr><th scope="col" class="check-cell"><input type="checkbox" [checked]="context.todasFiltradasModalMarcadas()" [indeterminate]="context.algumasFiltradasModalMarcadas()" [disabled]="context.impressorasFiltradasModalColeta().length === 0" (change)="context.alternarSelecaoFiltradasModalColeta()" aria-label="Marcar ou desmarcar todas as impressoras filtradas, incluindo outras páginas"></th><th scope="col">Item</th><th scope="col">Equipamento</th><th scope="col">Conexão</th><th scope="col">Secretaria / local</th><th scope="col">Empenho / lote</th></tr></thead>
+          <tbody>
+            @for (imp of context.paginadasModalColeta(); track imp.id) {
+              <tr [class.selected]="context.isImpressoraSelecionadaColeta(imp.id)" (click)="context.alternarSelecaoImpressoraColeta(imp.id)">
+                <td class="check-cell" (click)="$event.stopPropagation()"><input type="checkbox" [checked]="context.isImpressoraSelecionadaColeta(imp.id)" (change)="context.alternarSelecaoImpressoraColeta(imp.id)" [attr.aria-label]="'Selecionar equipamento ' + (imp.itemPedido || imp.id) + ', ' + imp.modelo"></td>
+                <td><strong>#{{ imp.itemPedido || imp.id }}</strong></td>
+                <td><strong>{{ imp.fabricante }} {{ imp.modelo }}</strong><span class="cell-meta">{{ imp.numeroSerie || 'Sem número de série' }} · {{ imp.tipoImpressao === 'COLOR' ? 'Colorida' : 'Mono' }}</span></td>
+                <td><span [class.no-network]="!context.possuiIpColeta(imp.ip)">{{ imp.ip || 'Sem IP' }}</span></td>
+                <td><strong>{{ imp.secretariaSigla || 'Sem secretaria' }}</strong><span class="cell-meta">{{ imp.localInstalacao || 'Local não informado' }}</span></td>
+                <td>{{ imp.numeroEmpenho || 'Sem empenho' }}<span class="cell-meta">{{ imp.numeroLote ? 'Lote ' + imp.numeroLote : 'Sem lote' }}</span></td>
               </tr>
-            </thead>
-            <tbody>
-              @for (imp of context.impressorasFiltradasModalColeta(); track imp.id) {
-                <tr [style.background]="context.isImpressoraSelecionadaColeta(imp.id) ? '#f0fdf4' : 'transparent'"
-                    (click)="context.alternarSelecaoImpressoraColeta(imp.id)"
-                    style="cursor: pointer;">
-                  <td style="text-align: center;" (click)="$event.stopPropagation()">
-                    <input type="checkbox"
-                           [checked]="context.isImpressoraSelecionadaColeta(imp.id)"
-                           (change)="context.alternarSelecaoImpressoraColeta(imp.id)" />
-                  </td>
-                  <td style="text-align: center;">
-                    <span class="badge-item-order">#{{ imp.itemPedido || '-' }}</span>
-                  </td>
-                  <td>
-                    <strong>{{ imp.modelo }}</strong>
-                    @if (imp.numeroSerie) {
-                      <div style="font-size: 0.7rem; color: #64748b; font-family: monospace;">S/N: {{ imp.numeroSerie }}</div>
-                    }
-                  </td>
-                  <td>
-                    @if (imp.ip && imp.ip !== 'USB' && !imp.ip.toLowerCase().includes('andrius')) {
-                      <code class="ip-code">{{ imp.ip }}</code>
-                    } @else {
-                      <span class="badge-status status-pending" style="font-size: 0.7rem;">{{ imp.ip || 'Sem IP' }}</span>
-                    }
-                  </td>
-                  <td>
-                    <div class="sec-row">
-                      <span class="sec-badge">{{ imp.secretariaSigla || 'SEC' }}</span>
-                      <span style="font-size: 0.8rem; color: #334155;">{{ imp.localInstalacao || 'Local não informado' }}</span>
-                    </div>
-                  </td>
-                </tr>
-              } @empty {
-                <tr>
-                  <td colspan="5" style="text-align: center; padding: 2rem; color: #64748b;">
-                    Nenhuma impressora encontrada com os filtros aplicados.
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
+            } @empty { <tr><td colspan="6" class="empty-selection">Nenhuma impressora corresponde aos filtros. Sua seleção continua preservada.<button type="button" class="text-button" (click)="context.limparFiltrosModalColeta()">Ver todas as impressoras</button></td></tr> }
+          </tbody>
+        </table>
       </div>
-
-      <div class="modal-footer" style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1.5rem; border-top: 1px solid #e2e8f0; background: #fff; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
-        <span style="font-size: 0.825rem; color: #64748b;">
-          <strong>{{ context.totalImpressorasSelecionadasColeta() }}</strong> equipamentos serão varridos nesta coleta.
-        </span>
-        <div style="display: flex; gap: 0.5rem;">
-          <button type="button" class="btn btn-outline" (click)="context.fecharModalSelecaoImpressoras()">Cancelar</button>
-          <button type="button" class="btn btn-primary" (click)="context.confirmarSelecaoImpressorasColeta()">
-            Confirmar Seleção ({{ context.totalImpressorasSelecionadasColeta() }})
-          </button>
-        </div>
-      </div>
+      <app-pagination [totalItems]="context.impressorasFiltradasModalColeta().length" [currentPage]="context.paginaAtualSelecaoColeta()" [pageSize]="context.tamanhoSelecaoColeta()" (pageChange)="context.paginaSelecaoColeta.set($event)" (pageSizeChange)="context.tamanhoSelecaoColeta.set($event); context.paginaSelecaoColeta.set(1)"></app-pagination>
     </div>
-  </div>
+
+    <footer class="selection-footer">
+      <p><strong>{{ context.totalImpressorasSelecionadasColeta() }}</strong> equipamentos na seleção completa, incluindo os que estão fora do filtro.<span>A próxima coleta usa a seleção confirmada. Equipamentos sem IP de rede podem exigir leitura manual.</span></p>
+      <div><button type="button" class="btn btn-outline" (click)="context.fecharModalSelecaoImpressoras()">Cancelar</button><button type="button" class="btn btn-primary" (click)="context.confirmarSelecaoImpressorasColeta()">Confirmar seleção ({{ context.totalImpressorasSelecionadasColeta() }})</button></div>
+    </footer>
+  </section>
+</div>

@@ -40,13 +40,13 @@
                 </svg>
                 <span>
                   @if (context.todasImpressorasSelecionadasColeta()) {
-                    Todas as Filtradas ({{ context.impressorasFiltradasModalColeta().length }})
+                    Todas as impressoras ativas ({{ context.impressorasElegiveisParaColeta().length }})
                   } @else {
-                    {{ context.totalImpressorasSelecionadasColeta() }} de {{ context.impressorasFiltradasModalColeta().length }} selecionadas
+                    {{ context.totalImpressorasConfirmadasColeta() }} de {{ context.impressorasElegiveisParaColeta().length }} selecionadas
                   }
                 </span>
                 <span class="badge-mini-count">
-                  {{ context.totalImpressorasSelecionadasColeta() }}
+                  {{ context.totalImpressorasConfirmadasColeta() }}
                 </span>
               </button>
             </div>

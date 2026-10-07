@@ -9,12 +9,15 @@ import { ToastService } from '@core/services/toast.service';
 
 import { IniciarColetaRequest, ColetaItem } from '@core/models';
 
+import { possuiIpColeta } from './coleta-selecao.utils';
+
 import type { ImpressorasComponent } from '../impressoras.component';
 
-type Context = Pick<ImpressorasComponent, 'coletaAtiva' | 'coletaSessao' | 'secretariaFiltroColeta' | 'filtroSecretariaModalColeta' | 'coletarTodasImpressoras' | 'paginaColeta' | 'impressorasSelecionadasColeta' | 'impressorasElegiveisParaColeta' | 'modalSelecaoImpressorasAberto' | 'selecaoConfirmadaColeta' | 'idsImpressorasSelecionadasEfetivas' | 'impressorasFiltradasModalColeta' | 'filtroRedeModalColeta' | 'todasFiltradasModalMarcadas' | 'anoColeta' | 'mesColeta' | 'empenhoFiltroColeta' | 'loadingColeta' | 'pollingColetaInterval' | 'carregarLeiturasCompetencia'>;
+type Context = Pick<ImpressorasComponent, 'coletaAtiva' | 'coletaSessao' | 'filtroSecretariaModalColeta' | 'coletarTodasImpressoras' | 'paginaColeta' | 'impressorasSelecionadasColeta' | 'impressorasElegiveisParaColeta' | 'modalSelecaoImpressorasAberto' | 'selecaoConfirmadaColeta' | 'idsImpressorasSelecionadasEfetivas' | 'impressorasFiltradasModalColeta' | 'filtroRedeModalColeta' | 'todasFiltradasModalMarcadas' | 'anoColeta' | 'mesColeta' | 'loadingColeta' | 'pollingColetaInterval' | 'carregarLeiturasCompetencia' | 'idsImpressorasConfirmadasColeta' | 'selecionadasColetaSet' | 'buscaImpressoraModalColeta' | 'filtroEmpenhoModalColeta' | 'filtroLoteModalColeta' | 'filtroTipoModalColeta' | 'filtroSelecaoModalColeta' | 'paginaSelecaoColeta'>;
 
 /** Operações de coleta; o contexto compartilha o estado da rota, sem duplicá-lo. */
 export class ColetaImpressorasActions {
+  private selecaoAntesDoModal?: { todas: boolean; ids: number[] };
   private readonly requestDestroyRef = lifecycleInject(LifecycleDestroyRef);
   private impressoraService = inject(ImpressoraService);
 
@@ -51,91 +54,93 @@ export class ColetaImpressorasActions {
     });
   }
 
-  onSecretariaFiltroColetaChange(val: any): void {
-    const id = (val === null || val === 'null' || val === undefined || val === '') ? null : Number(val);
-    this.context.secretariaFiltroColeta.set(id);
-    this.context.filtroSecretariaModalColeta.set(id);
-    this.context.coletarTodasImpressoras.set(true);
-    this.context.paginaColeta.set(1);
+  onSecretariaFiltroColetaChange(val: unknown): void {
+    this.onFiltroSecretariaModalChange(val);
   }
 
-  onFiltroSecretariaModalChange(val: any): void {
-    const id = (val === null || val === 'null' || val === undefined || val === '') ? null : Number(val);
+  onFiltroSecretariaModalChange(val: unknown): void {
+    const id = val === null || val === undefined || val === '' || val === 'null' ? null : Number(val);
     this.context.filtroSecretariaModalColeta.set(id);
-    // O filtro do modal substitui a secretaria anterior do escopo da coleta.
-    this.context.secretariaFiltroColeta.set(id);
-    this.context.paginaColeta.set(1);
+    this.context.paginaSelecaoColeta.set(1);
   }
 
   abrirModalSelecaoImpressoras(): void {
-    this.context.filtroSecretariaModalColeta.set(this.context.secretariaFiltroColeta());
-    if (this.context.coletarTodasImpressoras()) {
-      this.context.impressorasSelecionadasColeta.set(this.context.impressorasElegiveisParaColeta().map(p => p.id));
-    }
+    if (this.context.modalSelecaoImpressorasAberto()) return;
+    this.selecaoAntesDoModal = {
+      todas: this.context.coletarTodasImpressoras(), ids: [...this.context.impressorasSelecionadasColeta()]
+    };
     this.context.modalSelecaoImpressorasAberto.set(true);
   }
 
   fecharModalSelecaoImpressoras(): void {
+    if (this.selecaoAntesDoModal) {
+      this.context.coletarTodasImpressoras.set(this.selecaoAntesDoModal.todas);
+      this.context.impressorasSelecionadasColeta.set(this.selecaoAntesDoModal.ids);
+      this.selecaoAntesDoModal = undefined;
+    }
     this.context.modalSelecaoImpressorasAberto.set(false);
   }
 
   confirmarSelecaoImpressorasColeta(): void {
-    this.context.selecaoConfirmadaColeta.set([...this.context.idsImpressorasSelecionadasEfetivas()]);
+    const ids = [...this.context.idsImpressorasSelecionadasEfetivas()];
+    this.context.selecaoConfirmadaColeta.set(ids);
+    this.context.impressorasSelecionadasColeta.set(ids);
+    this.context.coletarTodasImpressoras.set(false);
+    this.selecaoAntesDoModal = undefined;
     this.context.paginaColeta.set(1);
     this.fecharModalSelecaoImpressoras();
   }
 
   isImpressoraSelecionadaColeta(id: number): boolean {
-    return this.context.idsImpressorasSelecionadasEfetivas().includes(id);
+    return this.context.selecionadasColetaSet().has(id);
   }
 
   alternarSelecaoImpressoraColeta(id: number): void {
-    const current = [...this.context.idsImpressorasSelecionadasEfetivas()];
-    const ativas = this.context.impressorasFiltradasModalColeta();
-    let updated: number[];
-    if (current.includes(id)) {
-      updated = current.filter(x => x !== id);
-    } else {
-      updated = [...current, id];
-    }
-    this.context.impressorasSelecionadasColeta.set(updated);
-    this.context.coletarTodasImpressoras.set(updated.length === ativas.length);
+    const atuais = new Set(this.context.idsImpressorasSelecionadasEfetivas());
+    if (atuais.has(id)) atuais.delete(id); else atuais.add(id);
+    this.definirSelecao([...atuais]);
   }
 
   selecionarTodasImpressorasColeta(): void {
-    this.marcarFiltradasModalColeta();
+    this.definirSelecao(this.context.impressorasElegiveisParaColeta().map(p => p.id));
   }
 
-  desmarcarTodasImpressorasColeta(): void {
-    this.context.coletarTodasImpressoras.set(false);
-    this.context.impressorasSelecionadasColeta.set([]);
-  }
+  desmarcarTodasImpressorasColeta(): void { this.definirSelecao([]); }
 
   selecionarApenasComIpColeta(): void {
-    this.context.filtroRedeModalColeta.set('COM_IP');
-    this.marcarFiltradasModalColeta();
+    this.definirSelecao(this.context.impressorasElegiveisParaColeta().filter(p => possuiIpColeta(p.ip)).map(p => p.id));
   }
 
   marcarFiltradasModalColeta(): void {
-    const filtradas = this.context.impressorasFiltradasModalColeta().map(p => p.id);
-    this.context.impressorasSelecionadasColeta.set(filtradas);
-    this.context.coletarTodasImpressoras.set(true);
+    const ids = new Set(this.context.idsImpressorasSelecionadasEfetivas());
+    this.context.impressorasFiltradasModalColeta().forEach(p => ids.add(p.id));
+    this.definirSelecao([...ids]);
   }
 
   desmarcarFiltradasModalColeta(): void {
-    const filtradas = this.context.impressorasFiltradasModalColeta().map(p => p.id);
-    const current = this.context.idsImpressorasSelecionadasEfetivas();
-    const restante = current.filter(id => !filtradas.includes(id));
-    this.context.coletarTodasImpressoras.set(false);
-    this.context.impressorasSelecionadasColeta.set(restante);
+    const filtradas = new Set(this.context.impressorasFiltradasModalColeta().map(p => p.id));
+    this.definirSelecao(this.context.idsImpressorasSelecionadasEfetivas().filter(id => !filtradas.has(id)));
   }
 
   alternarSelecaoFiltradasModalColeta(): void {
-    if (this.context.todasFiltradasModalMarcadas()) {
-      this.desmarcarFiltradasModalColeta();
-    } else {
-      this.marcarFiltradasModalColeta();
-    }
+    if (this.context.todasFiltradasModalMarcadas()) this.desmarcarFiltradasModalColeta();
+    else this.marcarFiltradasModalColeta();
+  }
+
+  limparFiltrosModalColeta(): void {
+    this.context.buscaImpressoraModalColeta.set('');
+    this.context.filtroSecretariaModalColeta.set(null);
+    this.context.filtroEmpenhoModalColeta.set(null);
+    this.context.filtroLoteModalColeta.set(null);
+    this.context.filtroTipoModalColeta.set('TODOS');
+    this.context.filtroRedeModalColeta.set('TODAS');
+    this.context.filtroSelecaoModalColeta.set('TODAS');
+    this.context.paginaSelecaoColeta.set(1);
+  }
+
+  private definirSelecao(ids: number[]): void {
+    this.context.impressorasSelecionadasColeta.set(ids);
+    this.context.coletarTodasImpressoras.set(false);
   }
 
   iniciarColetaAutomatica(): void {
@@ -144,7 +149,7 @@ export class ColetaImpressorasActions {
       return;
     }
 
-    const selecionadas = this.context.idsImpressorasSelecionadasEfetivas();
+    const selecionadas = this.context.idsImpressorasConfirmadasColeta();
     if (selecionadas.length === 0) {
       this.toast.info('Selecione pelo menos uma impressora para iniciar a coleta.');
       return;
@@ -153,8 +158,6 @@ export class ColetaImpressorasActions {
     const req: IniciarColetaRequest = {
       ano: this.context.anoColeta(),
       mes: this.context.mesColeta(),
-      empenhoId: this.context.empenhoFiltroColeta() || undefined,
-      secretariaId: this.context.secretariaFiltroColeta() || undefined,
       impressoraIds: selecionadas
     };
 
