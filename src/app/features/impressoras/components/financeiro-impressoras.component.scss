@@ -1,4 +1,24 @@
 :host { display: block; }
+.print-option-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #64748b;
+  cursor: pointer;
+}
+.invoice-value-link {
+  border: 0;
+  padding: 4px 0;
+  background: transparent;
+  color: #1d4ed8;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  &:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
+}
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -501,11 +521,14 @@
   display: flex;
   align-items: center;
   gap: 1.5rem;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 .invoices-section .invoice-summary-card .card-summary-header .summary-right .summary-price-box {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  flex-shrink: 0;
 }
 .invoices-section .invoice-summary-card .card-summary-header .summary-right .summary-price-box .price-label {
   font-size: 0.68rem;
@@ -516,11 +539,28 @@
 .invoices-section .invoice-summary-card .card-summary-header .summary-right .summary-price-box .price-value {
   font-size: 1.15rem;
   color: #1e3a8a;
+  white-space: nowrap;
 }
 .invoices-section .invoice-summary-card .card-summary-header .summary-right .summary-actions {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 600px) {
+  .invoices-section .invoice-summary-card .card-summary-header .summary-right {
+    width: 100%;
+    gap: 12px;
+  }
+  .invoices-section .invoice-summary-card .card-summary-header .summary-left {
+    min-width: 0;
+    align-items: flex-start;
+  }
+  .invoices-section .invoice-summary-card .card-summary-header .summary-left .summary-info {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
 }
 
 .doc-sheet.official-invoice-card {

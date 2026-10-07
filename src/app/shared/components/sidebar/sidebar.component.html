@@ -1,0 +1,163 @@
+<aside id="sidebar-navigation" class="sidebar" (mouseenter)="onMouseEnter()" (mouseleave)="onMouseLeave()"
+      [attr.role]="isMobile && isOpen ? 'dialog' : null" [attr.aria-modal]="isMobile && isOpen ? 'true' : null"
+      aria-label="Menu principal" [attr.inert]="isMobile && !isOpen ? '' : null">
+      <div class="sidebar-inner">
+        <div class="brand">
+          <div class="brand-info">
+            <div class="brand-logo" title="ARP System">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+            </div>
+            <div class="brand-text">
+              <span class="brand-title">ARP System</span>
+              <span class="brand-subtitle">Gestão de Atas</span>
+            </div>
+          </div>
+          <button type="button" class="btn-pin-sidebar" (click)="togglePinned($event)" [attr.aria-pressed]="isPinned()"
+            [attr.aria-label]="isPinned() ? 'Recolher menu' : 'Fixar menu aberto'" [title]="isPinned() ? 'Recolher menu' : 'Fixar menu aberto'">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 3 21 8l-4 1-3 5v3l-7-7h3l5-3z"/><path d="m7 17-4 4"/>
+            </svg>
+          </button>
+          <button type="button" class="btn-close-sidebar" (click)="onCloseSidebar($event)" aria-label="Fechar menu" title="Fechar menu">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <nav class="nav-menu" aria-label="Navegação principal">
+          <div class="nav-section"><span>PAINEL PRINCIPAL</span></div>
+
+          <a routerLink="/dashboard" routerLinkActive="active" ariaCurrentWhenActive="page" class="nav-item" (click)="onItemClick($event)" aria-label="Dashboard" title="Dashboard">
+            <div class="nav-icon">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+            </div>
+            <span class="nav-label">Dashboard</span>
+          </a>
+
+          <div class="nav-section"><span>CADASTROS DE BASE</span></div>
+
+          <a routerLink="/secretarias" routerLinkActive="active" ariaCurrentWhenActive="page" class="nav-item" (click)="onItemClick($event)" aria-label="Secretarias" title="Secretarias">
+            <div class="nav-icon">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 21h18"></path>
+                <path d="M9 8h1"></path>
+                <path d="M9 12h1"></path>
+                <path d="M9 16h1"></path>
+                <path d="M14 8h1"></path>
+                <path d="M14 12h1"></path>
+                <path d="M14 16h1"></path>
+                <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"></path>
+              </svg>
+            </div>
+            <span class="nav-label">Secretarias</span>
+          </a>
+
+          <a routerLink="/servidores" routerLinkActive="active" ariaCurrentWhenActive="page" class="nav-item" (click)="onItemClick($event)" aria-label="Servidores" title="Servidores">
+            <div class="nav-icon">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <span class="nav-label">Servidores</span>
+          </a>
+
+          <a routerLink="/ferias" routerLinkActive="active" ariaCurrentWhenActive="page" class="nav-item" (click)="onItemClick($event)" aria-label="Escala de Férias" title="Escala de Férias">
+            <div class="nav-icon">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+                <path d="M8 14h.01"></path>
+                <path d="M12 14h.01"></path>
+                <path d="M16 14h.01"></path>
+                <path d="M8 18h.01"></path>
+                <path d="M12 18h.01"></path>
+                <path d="M16 18h.01"></path>
+              </svg>
+            </div>
+            <span class="nav-label">Escala de Férias</span>
+          </a>
+
+          <div class="nav-section"><span>GESTÃO DE ACORDOS</span></div>
+
+          <a routerLink="/atas" routerLinkActive="active" ariaCurrentWhenActive="page" class="nav-item" (click)="onItemClick($event)" aria-label="Atas de Preços" title="Atas de Preços">
+            <div class="nav-icon">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <path d="m9 15 2 2 4-4"></path>
+              </svg>
+            </div>
+            <span class="nav-label">Atas de Preços</span>
+          </a>
+
+          <a routerLink="/contratos" routerLinkActive="active" ariaCurrentWhenActive="page" class="nav-item" (click)="onItemClick($event)" aria-label="Contratos" title="Contratos">
+            <div class="nav-icon">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                <line x1="9" y1="12" x2="15" y2="12"></line>
+                <line x1="9" y1="16" x2="15" y2="16"></line>
+              </svg>
+            </div>
+            <span class="nav-label">Contratos</span>
+          </a>
+
+          <a routerLink="/equipes" routerLinkActive="active" ariaCurrentWhenActive="page" class="nav-item" (click)="onItemClick($event)" aria-label="Equipes de Contrato" title="Equipes de Contrato">
+            <div class="nav-icon">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <line x1="19" y1="8" x2="19" y2="14"></line>
+                <line x1="22" y1="11" x2="16" y2="11"></line>
+              </svg>
+            </div>
+            <span class="nav-label">Equipes de Contrato</span>
+          </a>
+
+          <div class="nav-section"><span>GESTÃO DE IMPRESSÃO</span></div>
+
+          <a routerLink="/impressoras" routerLinkActive="active" ariaCurrentWhenActive="page" class="nav-item" (click)="onItemClick($event)" aria-label="Impressoras" title="Impressoras">
+            <div class="nav-icon">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+              </svg>
+            </div>
+            <span class="nav-label">Impressoras</span>
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="user-info">
+            <div class="avatar" title="Administrador">ADM</div>
+            <div class="user-details">
+              <span class="user-name">Administrador</span>
+              <span class="user-role">Gestão Municipal</span>
+            </div>
+          </div>
+          <div class="system-meta">
+            <span class="status-indicator"></span>
+            <span>ARP System • v1.0</span>
+          </div>
+        </div>
+      </div>
+    </aside>

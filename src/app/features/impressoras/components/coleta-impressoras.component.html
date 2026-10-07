@@ -3,14 +3,6 @@
         <div class="coleta-control-card">
           <div class="coleta-form-grid">
             <div class="filter-field">
-              <span class="filter-label">Ano</span>
-              <select aria-label="Ano" [ngModel]="context.anoColeta()" (ngModelChange)="context.anoColeta.set($event)">
-                <option [value]="2026">2026</option>
-                <option [value]="2025">2025</option>
-              </select>
-            </div>
-
-            <div class="filter-field">
               <span class="filter-label">Mês de Referência</span>
               <select aria-label="Mês de Referência" [ngModel]="context.mesColeta()" (ngModelChange)="context.mesColeta.set($event)">
                 <option [value]="1">01 - Janeiro</option>
@@ -25,6 +17,14 @@
                 <option [value]="10">10 - Outubro</option>
                 <option [value]="11">11 - Novembro</option>
                 <option [value]="12">12 - Dezembro</option>
+              </select>
+            </div>
+
+            <div class="filter-field">
+              <span class="filter-label">Ano</span>
+              <select aria-label="Ano" [ngModel]="context.anoColeta()" (ngModelChange)="context.anoColeta.set($event)">
+                <option [value]="2026">2026</option>
+                <option [value]="2025">2025</option>
               </select>
             </div>
 
@@ -51,18 +51,7 @@
               </button>
             </div>
 
-            <div class="filter-actions-btn">
-              <button type="button" class="btn btn-primary" [disabled]="context.loadingColeta() || context.coletaAtiva()?.emAndamento" (click)="context.iniciarColetaAutomatica()">
-                @if (context.coletaAtiva()?.emAndamento) {
-                  <span class="spinner-sm"></span> Varredura em andamento...
-                } @else {
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                  </svg>
-                  Iniciar Coleta em Lote
-                }
-              </button>
-            </div>
+
           </div>
         </div>
 

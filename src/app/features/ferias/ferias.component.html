@@ -3,7 +3,7 @@
   class="ferias-page"
   [attr.inert]="painel() || cadastroPeriodo() || cancelamento() ? '' : null"
 >
-  <header class="page-heading no-print">
+  <header class="page-heading workspace-heading no-print">
     <div>
       <span class="eyebrow">GESTÃO DE PESSOAS</span>
       <h1>Férias e afastamentos</h1>
@@ -12,22 +12,22 @@
         só lugar.
       </p>
     </div>
-    <div class="actions">
-      <button class="button secondary" (click)="imprimir()" title="Imprimir escala formatada em A4 Paisagem (Mural Oficial)">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: -1px;">
-          <polyline points="6 9 6 2 18 2 18 9"></polyline>
-          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-          <rect x="6" y="14" width="12" height="8"></rect>
-        </svg>
-        Imprimir Mural (A4)
-      </button>
+    <div class="actions workspace-actions" role="group" aria-label="Ações de férias">
       <button class="button secondary" (click)="exportarEscalaCSV()" title="Exportar escala de férias para arquivo CSV / Excel">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: -1px;">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
         </svg>
-        Exportar Planilha (CSV)
+        Exportar CSV
+      </button>
+      <button class="button secondary" (click)="imprimir()" title="Imprimir escala formatada em A4 Paisagem (Mural Oficial)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: -1px;">
+          <polyline points="6 9 6 2 18 2 18 9"></polyline>
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+          <rect x="6" y="14" width="12" height="8"></rect>
+        </svg>
+        Imprimir
       </button>
       <button
         class="button primary"
@@ -49,58 +49,6 @@
       </button>
     </div>
   } @else {
-    <section
-      class="metrics no-print"
-      [class.compact-metrics]="aba() === 'escala'"
-      aria-label="Resumo da equipe"
-    >
-      <article>
-        <span class="metric-icon blue" aria-hidden="true">
-          <svg class="metric-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="4"></circle>
-            <path d="M12 2v2"></path>
-            <path d="M12 20v2"></path>
-            <path d="m4.93 4.93 1.41 1.41"></path>
-            <path d="m17.66 17.66 1.41 1.41"></path>
-            <path d="M2 12h2"></path>
-            <path d="M20 12h2"></path>
-            <path d="m6.34 17.66-1.41 1.41"></path>
-            <path d="m19.07 4.93-1.41 1.41"></path>
-          </svg>
-        </span>
-        <div>
-          <span>Em férias hoje</span
-          ><strong>{{ emFerias() }} <small>servidores</small></strong>
-          <p>Confirmados no ano consultado</p>
-        </div>
-      </article>
-      <article>
-        <span class="metric-icon violet" aria-hidden="true">
-          <svg class="metric-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="7 7 17 7 17 17"></polyline>
-            <line x1="7" y1="17" x2="17" y2="7"></line>
-          </svg>
-        </span>
-        <div>
-          <span>Próximas saídas</span
-          ><strong>{{ proximas() }} <small>agendamentos</small></strong>
-          <p>Confirmados nos próximos 30 dias, no ano consultado</p>
-        </div>
-      </article>
-      <article>
-        <span class="metric-icon amber" aria-hidden="true">
-          <svg class="metric-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-        </span>
-        <div>
-          <span>Atenção aos prazos</span
-          ><strong>{{ vencendo() }} <small>períodos</small></strong>
-          <p>Com saldo, vencidos ou a vencer em 90 dias</p>
-        </div>
-      </article>
-    </section>
     <section class="workspace no-print">
       <nav class="tabs" aria-label="Visualizações de férias">
         <button
@@ -126,6 +74,74 @@
           Saldos e períodos
         </button>
       </nav>
+      <div class="workspace-controls">
+        @if (aba() !== 'saldos') {
+          <div class="period-controls" role="group" aria-label="Período consultado">
+            @if (aba() === 'escala') {
+              <label><span>Mês</span><select aria-label="Mês da escala" [ngModel]="mesNavegacao()" (ngModelChange)="selecionarMes(+$event)">
+                @for (mes of meses; track mes; let index = $index) { <option [ngValue]="index + 1">{{ mes }}</option> }
+              </select></label>
+            }
+            <label class="year"><span>Ano</span><select [ngModel]="ano()" (ngModelChange)="mudarAno($event)">
+              @for (a of anos; track a) { <option [ngValue]="a">{{ a }}</option> }
+            </select></label>
+            @if (aba() === 'escala') {
+              <button type="button" class="nav-btn" (click)="mesAnterior()" aria-label="Mês anterior" title="Mês anterior">‹</button>
+              <button type="button" class="nav-btn" (click)="proximoMes()" aria-label="Próximo mês" title="Próximo mês">›</button>
+              <button type="button" class="today-btn" (click)="irParaHoje()">Hoje</button>
+            }
+          </div>
+        } @else { <span class="period-caption">Saldos de todos os períodos aquisitivos</span> }
+        @if (aba() === 'escala') {
+          <div class="view-switcher" role="group" aria-label="Modo de visualização">
+            <button
+              class="switcher-btn"
+              [class.active]="modoVisualizacao() === 'timeline'" [attr.aria-pressed]="modoVisualizacao() === 'timeline'"
+              (click)="modoVisualizacao.set('timeline')"
+              title="Linha do Tempo (Gantt)"
+              aria-label="Visualização em Linha do Tempo"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="15" y2="12"></line>
+                <line x1="3" y1="18" x2="18" y2="18"></line>
+              </svg>
+              <span>Linha do Tempo</span>
+            </button>
+            <button
+              class="switcher-btn"
+              [class.active]="modoVisualizacao() === 'calendario'" [attr.aria-pressed]="modoVisualizacao() === 'calendario'"
+              (click)="modoVisualizacao.set('calendario')"
+              title="Calendário Mensal"
+              aria-label="Visualização em Calendário Mensal"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <span>Calendário</span>
+            </button>
+            <button
+              class="switcher-btn"
+              [class.active]="modoVisualizacao() === 'matriz'" [attr.aria-pressed]="modoVisualizacao() === 'matriz'"
+              (click)="modoVisualizacao.set('matriz')"
+              title="Matriz Panorâmica"
+              aria-label="Visualização em Matriz Panorâmica"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="3" y1="9" x2="21" y2="9"></line>
+                <line x1="3" y1="15" x2="21" y2="15"></line>
+                <line x1="9" y1="3" x2="9" y2="21"></line>
+                <line x1="15" y1="3" x2="15" y2="21"></line>
+              </svg>
+              <span>Matriz</span>
+            </button>
+          </div>
+        }
+      </div>
       <div class="filters">
         <label class="search"
           ><span>Buscar servidor</span
@@ -191,16 +207,6 @@
             }
           </select></label
         >
-        @if (aba() !== "saldos") {
-          <label class="year"
-            ><span>Ano</span
-            ><select [ngModel]="ano()" (ngModelChange)="mudarAno($event)">
-              @for (a of anos; track a) {
-                <option [ngValue]="a">{{ a }}</option>
-              }
-            </select></label
-          >
-        }
         <button class="text-button reset" (click)="limparFiltros()">
           Limpar
         </button>
@@ -220,6 +226,57 @@
           <button class="filter-clear-all" (click)="limparFiltros()">Limpar tudo</button>
         </div>
       }
+    <section
+      class="metrics no-print"
+      aria-label="Resumo da equipe"
+    >
+      <article>
+        <span class="metric-icon blue" aria-hidden="true">
+          <svg class="metric-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2"></path>
+            <path d="M12 20v2"></path>
+            <path d="m4.93 4.93 1.41 1.41"></path>
+            <path d="m17.66 17.66 1.41 1.41"></path>
+            <path d="M2 12h2"></path>
+            <path d="M20 12h2"></path>
+            <path d="m6.34 17.66-1.41 1.41"></path>
+            <path d="m19.07 4.93-1.41 1.41"></path>
+          </svg>
+        </span>
+        <div>
+          <span>Em férias hoje</span
+          ><strong>{{ emFerias() }} <small>servidores</small></strong>
+          <p>Confirmados no ano consultado</p>
+        </div>
+      </article>
+      <article>
+        <span class="metric-icon violet" aria-hidden="true">
+          <svg class="metric-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="7 7 17 7 17 17"></polyline>
+            <line x1="7" y1="17" x2="17" y2="7"></line>
+          </svg>
+        </span>
+        <div>
+          <span>Próximas saídas</span
+          ><strong>{{ proximas() }} <small>agendamentos</small></strong>
+          <p>Confirmados nos próximos 30 dias, no ano consultado</p>
+        </div>
+      </article>
+      <article>
+        <span class="metric-icon amber" aria-hidden="true">
+          <svg class="metric-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </span>
+        <div>
+          <span>Atenção aos prazos</span
+          ><strong>{{ vencendo() }} <small>períodos</small></strong>
+          <p>Com saldo, vencidos ou a vencer em 90 dias</p>
+        </div>
+      </article>
+    </section>
       @if (aba() === "agendamentos") {
         <div class="section-heading">
           <div>
@@ -345,102 +402,6 @@
         }
       }
       @if (aba() === "escala") {
-        <!-- Modern Toolbar: Month Navigator + Pills + View Switcher -->
-        <div class="escala-toolbar">
-          <div class="month-navigator">
-            <button
-              class="nav-btn"
-              (click)="mesAnterior()"
-              title="Mês anterior"
-              aria-label="Mês anterior"
-            >
-              ‹
-            </button>
-            <div class="month-display">
-              <span class="month-name">{{ nomeMesNavegacao() }}</span>
-              <span class="month-year">{{ ano() }}</span>
-            </div>
-            <button
-              class="nav-btn"
-              (click)="proximoMes()"
-              title="Próximo mês"
-              aria-label="Próximo mês"
-            >
-              ›
-            </button>
-            <button
-              class="today-btn"
-              (click)="irParaHoje()"
-              title="Ir para o mês atual"
-            >
-              Hoje
-            </button>
-          </div>
-
-          <!-- Quick Month Pills -->
-          <div class="month-pills-bar" role="tablist" aria-label="Meses do ano">
-            @for (m of meses; track m; let i = $index) {
-              <button
-                class="month-pill"
-                [class.active]="mesNavegacao() === i + 1"
-                (click)="selecionarMes(i + 1)"
-                [attr.aria-selected]="mesNavegacao() === i + 1"
-              >
-                {{ m.slice(0, 3) }}
-              </button>
-            }
-          </div>
-
-          <!-- Segmented View Switcher -->
-          <div class="view-switcher" role="radiogroup" aria-label="Modo de visualização">
-            <button
-              class="switcher-btn"
-              [class.active]="modoVisualizacao() === 'timeline'"
-              (click)="modoVisualizacao.set('timeline')"
-              title="Linha do Tempo (Gantt)"
-              aria-label="Visualização em Linha do Tempo"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <line x1="3" y1="12" x2="15" y2="12"></line>
-                <line x1="3" y1="18" x2="18" y2="18"></line>
-              </svg>
-              <span>Linha do Tempo</span>
-            </button>
-            <button
-              class="switcher-btn"
-              [class.active]="modoVisualizacao() === 'calendario'"
-              (click)="modoVisualizacao.set('calendario')"
-              title="Calendário Mensal"
-              aria-label="Visualização em Calendário Mensal"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
-              <span>Calendário</span>
-            </button>
-            <button
-              class="switcher-btn"
-              [class.active]="modoVisualizacao() === 'matriz'"
-              (click)="modoVisualizacao.set('matriz')"
-              title="Matriz Panorâmica"
-              aria-label="Visualização em Matriz Panorâmica"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="3" y1="9" x2="21" y2="9"></line>
-                <line x1="3" y1="15" x2="21" y2="15"></line>
-                <line x1="9" y1="3" x2="9" y2="21"></line>
-                <line x1="15" y1="3" x2="15" y2="21"></line>
-              </svg>
-              <span>Matriz</span>
-            </button>
-          </div>
-        </div>
-
         <!-- 1. Interactive Timeline (Gantt) -->
         @if (modoVisualizacao() === "timeline") {
           @if (timelineMes(); as tMes) {

@@ -1,5 +1,6 @@
-<button *ngIf="!isSidebarOpen()" class="btn-hamburger" (click)="isSidebarOpen.set(true)" aria-label="Abrir menu"
-  title="Abrir menu">
+<button class="btn-hamburger" [class.menu-open]="isSidebarOpen()" (click)="toggleSidebar()" aria-label="Abrir menu"
+  title="Abrir menu" aria-controls="sidebar-navigation" [attr.aria-expanded]="isSidebarOpen()"
+  [attr.inert]="isMobile() && isSidebarOpen() ? '' : null">
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -9,12 +10,10 @@
 </button>
 
 <div class="app-container">
-  @if (isSidebarOpen()) {
-    <button class="sidebar-backdrop" aria-label="Fechar menu" (click)="closeSidebar()"></button>
-  }
-  <app-sidebar [isOpen]="isSidebarOpen()" (closeSidebar)="closeSidebar()"></app-sidebar>
+  <div class="sidebar-backdrop" [class.visible]="isSidebarOpen()" aria-hidden="true" (click)="closeSidebar()"></div>
+  <app-sidebar [isOpen]="isSidebarOpen()" [isMobile]="isMobile()" (closeSidebar)="closeSidebar()"></app-sidebar>
 
-  <main class="main-content">
+  <main class="main-content" [attr.inert]="isMobile() && isSidebarOpen() ? '' : null">
     <router-outlet></router-outlet>
   </main>
 

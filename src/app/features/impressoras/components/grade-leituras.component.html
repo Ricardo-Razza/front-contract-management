@@ -1,23 +1,7 @@
 <div class="tab-pane-container">
         <div class="filter-bar">
-          <!-- Linha 1: Busca Geral -->
-          <div class="filter-search-box">
-            <span class="filter-search-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-            </span>
-            <input type="text"
-                   aria-label="Buscar medições" placeholder="Pesquisar por item (#1), setor, modelo ou IP..."
-                   [ngModel]="context.termoBuscaLeituras()"
-                   (ngModelChange)="context.termoBuscaLeituras.set($event)" />
-            @if (context.termoBuscaLeituras()) {
-              <button type="button" class="filter-clear-btn" aria-label="Limpar pesquisa" (click)="context.termoBuscaLeituras.set('')">&#x2715;</button>
-            }
-          </div>
 
-          <div class="filter-grid">
+          <div class="period-controls">
             <div class="filter-field">
               <span class="filter-label">Mês de Referência</span>
               <select aria-label="Mês de Referência" [ngModel]="context.mesCompetencia()" (ngModelChange)="context.mesCompetencia.set(+$event); context.carregarLeiturasCompetencia(); context.paginaLeituras.set(1)">
@@ -44,6 +28,25 @@
               </select>
             </div>
 
+          </div>
+          <!-- Linha 1: Busca Geral -->
+          <div class="filter-search-box">
+            <span class="filter-search-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </span>
+            <input type="text"
+                   aria-label="Buscar medições" placeholder="Pesquisar por item (#1), setor, modelo ou IP..."
+                   [ngModel]="context.termoBuscaLeituras()"
+                   (ngModelChange)="context.termoBuscaLeituras.set($event)" />
+            @if (context.termoBuscaLeituras()) {
+              <button type="button" class="filter-clear-btn" aria-label="Limpar pesquisa" (click)="context.termoBuscaLeituras.set('')">&#x2715;</button>
+            }
+          </div>
+
+          <div class="filter-grid">
             <div class="filter-field">
               <span class="filter-label">Secretarias</span>
               <div class="custom-multiselect">
@@ -128,42 +131,6 @@
             </div>
           }
         </div>
-
-        <!-- BANNER DE ALTERAÇÕES PENDENTES DE SALVAMENTO -->
-        @if (context.itensAlteradosCount() > 0) {
-          <div class="batch-unsaved-alert">
-            <div class="alert-content">
-              <span class="alert-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                  <line x1="12" y1="9" x2="12" y2="13"/>
-                  <line x1="12" y1="17" x2="12.01" y2="17"/>
-                </svg>
-              </span>
-              <div>
-                <strong>{{ context.itensAlteradosCount() }} leitura(s) com alterações não salvas</strong>
-                <p>As alterações feitas nas células ainda não foram gravadas na competência de {{ context.nomeMesCompetencia() }}.</p>
-              </div>
-            </div>
-            <div class="alert-actions">
-              <button type="button" class="btn btn-sm btn-outline-danger" (click)="context.descartarAlteracoes()" [disabled]="context.salvandoEmLote()">
-                Descartar alterações
-              </button>
-              <button type="button" class="btn btn-sm btn-save-batch" (click)="context.salvarTodasAlteracoes()" [disabled]="context.salvandoEmLote()">
-                @if (context.salvandoEmLote()) {
-                  <span class="spinner-inline"></span> Salvando...
-                } @else {
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                    <polyline points="17 21 17 13 7 13 7 21"/>
-                    <polyline points="7 3 7 8 15 8"/>
-                  </svg>
-                  Salvar Todas as Alterações ({{ context.itensAlteradosCount() }})
-                }
-              </button>
-            </div>
-          </div>
-        }
 
         <!-- BARRA DE RESUMO EXECUTIVO (PADRÃO SUB-CHIP COM PROGRESSO) -->
         <div class="summary-bar-container grade-summary-bar">

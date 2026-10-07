@@ -8,7 +8,7 @@
 .app-container {
   display: flex;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background-color: #f3f4f6;
 }
@@ -30,6 +30,9 @@
   align-items: center;
   justify-content: center;
 
+  &.menu-open { visibility: hidden; }
+  &:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
+
   &:hover {
     background: #ffffff;
     border-color: #cbd5e1;
@@ -40,7 +43,7 @@
 
 .main-content {
   flex: 1;
-  height: 100vh;
+  height: 100dvh;
   overflow-y: auto;
   background: #f3f4f6;
   padding: 0;
@@ -74,7 +77,22 @@ app-sidebar {
     z-index: 1099;
     border: 0;
     background: rgba(15, 23, 42, 0.6);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 220ms ease, visibility 0s 220ms;
+
+    &.visible {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transition-delay: 0s;
+    }
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-backdrop, .btn-hamburger { transition: none; }
 }
 
 @media print {

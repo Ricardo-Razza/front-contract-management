@@ -1,0 +1,97 @@
+<section class="conference" aria-label="Conferência da fatura">
+  <header class="conference-header">
+    <div>
+      <h4>Composição e leituras</h4>
+      <p>Empenho {{ fatura().numeroEmpenho }} · {{ fatura().competenciaFormatada }}</p>
+    </div>
+    <span class="source-label">Valores das leituras registradas</span>
+  </header>
+
+  <div class="cost-breakdown">
+    <div><span>Locação</span><strong>{{ resumo().locacao | currency:'BRL' }}</strong></div>
+    <span class="operator" aria-hidden="true">+</span>
+    <div><span>Excedentes</span><strong>{{ resumo().excedentes | currency:'BRL' }}</strong></div>
+    <span class="operator" aria-hidden="true">=</span>
+    <div><span>Soma da composição</span><strong>{{ (resumo().locacao + resumo().excedentes) | currency:'BRL' }}</strong></div>
+    <div class="billed-total"><span>Total da fatura</span><strong>{{ fatura().totalFatura | currency:'BRL' }}</strong></div>
+  </div>
+  <p class="allowance-summary">
+    Franquia incluída na locação: <strong>{{ resumo().franquiaMono | number }} mono</strong> e
+    <strong>{{ resumo().franquiaColor | number }} color</strong>.
+    Excedentes registrados: {{ resumo().excedenteMono | number }} mono e {{ resumo().excedenteColor | number }} color.
+  </p>
+
+  @if (resumo().divergeLeituras || resumo().divergeItens || resumo().equipamentosDivergentes.length) {
+    <div class="review-notice" role="status">
+      <strong>Valores para conferir</strong>
+      <ul>
+        @if (resumo().divergeLeituras) {
+          <li>A soma dos equipamentos ({{ resumo().totalLeituras | currency:'BRL' }}) difere do total da fatura ({{ fatura().totalFatura | currency:'BRL' }}).</li>
+        }
+        @if (resumo().divergeItens) {
+          <li>A soma dos itens contratuais ({{ resumo().totalItens | currency:'BRL' }}) difere do total da fatura.</li>
+        }
+        @for (divergente of resumo().equipamentosDivergentes; track divergente.index) {
+          <li>No equipamento #{{ divergente.item.itemPedido || '—' }} ({{ divergente.item.modelo }}), locação + excedentes difere do total registrado.</li>
+        }
+      </ul>
+      <p>Os valores registrados foram mantidos. Confira o espelho e as leituras antes do atesto.</p>
+    </div>
+  }
+
+  <div class="comparison" aria-live="polite">
+    <strong>Comparação com {{ periodoAnterior().mes.toString().padStart(2, '0') }}/{{ periodoAnterior().ano }}</strong>
+    @if (estadoComparacao() === 'CARREGANDO') {
+      <span>Consultando o mês anterior...</span>
+    } @else if (estadoComparacao() === 'ERRO') {
+      <span>Não foi possível consultar o mês anterior.</span>
+      <button type="button" class="text-button" (click)="tentarComparacao()">Tentar novamente</button>
+    } @else {
+      @if (comparacao(); as comparacao) {
+      <span>Mês anterior: {{ anterior()!.totalFatura | currency:'BRL' }}</span>
+      <span [class.increase]="comparacao.diferenca > 0" [class.decrease]="comparacao.diferenca < 0">
+        {{ comparacao.diferenca > 0 ? 'Aumento' : comparacao.diferenca < 0 ? 'Redução' : 'Sem variação' }}:
+        {{ comparacao.diferenca | currency:'BRL' }}
+        @if (comparacao.percentual !== null) { ({{ comparacao.percentual | number:'1.1-1' }}%) }
+      </span>
+      <span>Páginas: {{ comparacao.diferencaPaginas > 0 ? '+' : '' }}{{ comparacao.diferencaPaginas | number }}</span>
+      @if (comparacao.percentual === null) { <span>Sem base percentual: o total anterior é zero.</span> }
+      } @else {
+        <span>Sem faturamento registrado no mês anterior para este empenho.</span>
+      }
+    }
+  </div>
+
+  <div class="equipment-heading">
+    <h5>Equipamentos que compõem o valor ({{ fatura().equipamentos.length }})</h5>
+    <p>Abra uma leitura para conferir os contadores e a franquia aplicada.</p>
+  </div>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="Equipamentos da fatura">
+    <table>
+      <thead><tr><th scope="col">Equipamento / local</th><th scope="col">Páginas mono / color</th><th scope="col">Locação</th><th scope="col">Excedentes</th><th scope="col">Total</th><th scope="col">Leitura</th></tr></thead>
+      <tbody>
+        @for (eq of fatura().equipamentos; track $index; let index = $index) {
+          <tr>
+            <td><strong>#{{ eq.itemPedido || '—' }} · {{ eq.modelo }}</strong><span class="cell-meta">{{ eq.localInstalacao }} · Lote {{ eq.numeroLote }}</span></td>
+            <td class="numeric">{{ eq.copiasMono | number }} / {{ eq.copiasColor | number }}</td>
+            <td class="numeric">{{ eq.valorLocacao | currency:'BRL' }}</td>
+            <td class="numeric">{{ eq.valorExcedente | currency:'BRL' }}</td>
+            <td class="numeric"><strong>{{ eq.valorTotal | currency:'BRL' }}</strong></td>
+            <td><button type="button" class="text-button" [attr.aria-expanded]="leiturasAbertas().has(index)" [attr.aria-label]="(leiturasAbertas().has(index) ? 'Recolher' : 'Ver') + ' leitura do equipamento ' + (eq.itemPedido || eq.modelo)" (click)="toggleLeitura(index)">{{ leiturasAbertas().has(index) ? 'Recolher' : 'Ver leitura' }}</button></td>
+          </tr>
+          @if (leiturasAbertas().has(index)) {
+            <tr class="reading-row"><td colspan="6">
+              <div class="reading-details">
+                <div><strong>Mono</strong><dl><dt>Contador anterior → atual</dt><dd>{{ eq.leituraMonoAnterior | number }} → {{ eq.leituraMonoAtual | number }}</dd><dt>Páginas registradas</dt><dd>{{ eq.copiasMono | number }}</dd><dt>Franquia aplicada</dt><dd>{{ eq.franquiaMono | number }}</dd><dt>Excedente</dt><dd>{{ eq.excedenteMono | number }}</dd></dl></div>
+                <div><strong>Color</strong><dl><dt>Contador anterior → atual</dt><dd>{{ eq.leituraColorAnterior | number }} → {{ eq.leituraColorAtual | number }}</dd><dt>Páginas registradas</dt><dd>{{ eq.copiasColor | number }}</dd><dt>Franquia aplicada</dt><dd>{{ eq.franquiaColor | number }}</dd><dt>Excedente</dt><dd>{{ eq.excedenteColor | number }}</dd></dl></div>
+                <div><strong>Identificação</strong><dl><dt>Número de série</dt><dd>{{ eq.numeroSerie || 'Não informado' }}</dd><dt>Origem da leitura</dt><dd>{{ eq.origemLeitura || 'Não informada' }}</dd></dl>@if (eq.observacoes) { <p>{{ eq.observacoes }}</p> }</div>
+              </div>
+            </td></tr>
+          }
+        } @empty {
+          <tr><td colspan="6">Não há leituras de equipamentos disponíveis nesta fatura.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

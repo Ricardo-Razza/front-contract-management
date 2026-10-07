@@ -1,4 +1,6 @@
+@use 'workspace-controls' as workspace;
 :host { display: block; }
+.filter-bar .period-controls { margin-bottom: 16px; @include workspace.period; }
 .sub-chip {
   font-size: 0.675rem;
   font-weight: 600;
@@ -48,14 +50,14 @@
 
 .filter-bar .filter-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.875rem;
   align-items: flex-start;
   margin-top: 0.875rem;
 }
 @media (max-width: 1400px) {
   .filter-bar .filter-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 @media (max-width: 900px) {

@@ -11,11 +11,13 @@ import { exportToCsv } from '@core/utils';
 import { EmpenhoImpressao, EmpenhoDTO, EmpenhoExecucao, ItemFatura, LoteBalanco, ItemNotaFiscal } from '@core/models';
 
 import type { ImpressorasComponent } from '../impressoras.component';
+import { chaveFatura } from './conferencia-fatura.utils';
 
 type Context = Pick<ImpressorasComponent, 'expandedInvoices' | 'notasFiscaisLote' | 'incluirMedicaoImpressao' | 'subTabFinanceiro' | 'notasFiscaisConsolidado' | 'anoFinanceiro' | 'execucaoMensal' | 'isEmpenhoEditMode' | 'selectedEmpenho' | 'empenhoForm' | 'isEmpenhoModalOpen' | 'carregarEmpenhos' | 'empenhoToDelete' | 'isDeleteEmpenhoModalOpen' | 'filterEmpenho' | 'activeTab' | 'empenhos' | 'anoExecucao' | 'loadingExecucao' | 'mesBalanco' | 'anoBalanco' | 'loadingBalanco' | 'balancoFranquias' | 'espelhoFatura' | 'mesesSelecionados' | 'modoMultiplosMeses' | 'mesesComFaturamento' | 'empenhoFiltroNotas' | 'loadingNotasLote' | 'loadingNotasConsolidado'>;
 
 /** Operações de financeiro; o contexto compartilha o estado da rota, sem duplicá-lo. */
 export class FinanceiroImpressorasActions {
+  private notasRequestVersion = 0;
   private readonly requestDestroyRef = lifecycleInject(LifecycleDestroyRef);
   private impressoraService = inject(ImpressoraService);
 
@@ -40,7 +42,7 @@ export class FinanceiroImpressorasActions {
   }
 
   expandAllInvoices(): void {
-    const all = new Set(this.context.notasFiscaisLote().map(f => f.numeroEmpenho));
+    const all = new Set(this.context.notasFiscaisLote().map(chaveFatura));
     this.context.expandedInvoices.set(all);
   }
 
@@ -338,18 +340,21 @@ export class FinanceiroImpressorasActions {
   }
 
   carregarNotasFiscaisLote(): void {
+    const requestVersion = ++this.notasRequestVersion;
     this.context.loadingNotasLote.set(true);
+    this.context.notasFiscaisLote.set([]);
     const meses = this.context.mesesSelecionados();
     const ano = this.context.anoFinanceiro();
     const empId = this.context.empenhoFiltroNotas() || undefined;
 
     this.impressoraService.getNotasFiscaisLote(meses, undefined, ano, empId).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: faturas => {
+        if (requestVersion !== this.notasRequestVersion) return;
         this.context.notasFiscaisLote.set(faturas);
         this.context.loadingNotasLote.set(false);
       },
       error: () => {
-
+        if (requestVersion !== this.notasRequestVersion) return;
         this.context.loadingNotasLote.set(false);
       }
     });
@@ -667,7 +672,11 @@ export class FinanceiroImpressorasActions {
     if (this.context.subTabFinanceiro() === 'DEMONSTRATIVO_ANUAL') {
       const el = document.querySelector('.consolidado-table-wrapper');
       if (el) {
-        this.imprimirConteudoIsolado(el.outerHTML, 'Demonstrativo Anual Consolidado - Imbe 2026', true);
+        const clone = el.cloneNode(true) as HTMLElement;
+        clone.querySelectorAll('.invoice-value-link').forEach(button => {
+          button.replaceWith(document.createTextNode(button.textContent ?? ''));
+        });
+        this.imprimirConteudoIsolado(clone.outerHTML, 'Demonstrativo Anual Consolidado - Imbe 2026', true);
       } else {
         window.print();
       }
@@ -694,8 +703,8 @@ export class FinanceiroImpressorasActions {
     }
   }
 
-  imprimirNotaIndividual(numeroEmpenho: string): void {
-    const card = document.getElementById('invoice-card-' + numeroEmpenho);
+  imprimirNotaIndividual(numeroEmpenho: string, chave?: string): void {
+    const card = document.getElementById('invoice-card-' + (chave ?? numeroEmpenho));
     if (card) {
       const clone = card.cloneNode(true) as HTMLElement;
       clone.classList.remove('collapsed-view');

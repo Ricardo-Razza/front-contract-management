@@ -50,6 +50,10 @@
               </div>
 
               <div class="month-controls-inline">
+                <label class="print-option-toggle">
+                  <input type="checkbox" [checked]="context.incluirMedicaoImpressao()" (change)="context.alternarMedicaoImpressao()">
+                  <span>Incluir medições na impressão</span>
+                </label>
                 <button type="button" class="btn btn-outline btn-sm" [class.active]="context.modoMultiplosMeses()" (click)="context.alternarModoMultiplosMeses()">
                   {{ context.modoMultiplosMeses() ? 'Seleção Múltipla' : 'Mês Único' }}
                 </button>
@@ -199,10 +203,10 @@
               </div>
             } @else {
               <div class="invoice-cards-list">
-                @for (fat of context.notasFiscaisLote(); track (fat.numeroEmpenho + '-' + fat.mesReferencia)) {
-                  <div class="invoice-summary-card" [class.is-expanded]="context.isInvoiceExpanded(fat.numeroEmpenho)">
+                @for (fat of context.notasFiscaisLote(); track chaveFatura(fat)) {
+                  <div class="invoice-summary-card" [class.is-expanded]="context.isInvoiceExpanded(chaveFatura(fat)) || conferenciasAbertas().has(chaveFatura(fat))">
                     <!-- BARRA SUPERIOR DO CARD -->
-                    <div class="card-summary-header" (click)="context.toggleInvoice(fat.numeroEmpenho)">
+                    <div class="card-summary-header" (click)="context.toggleInvoice(chaveFatura(fat))">
                       <div class="summary-left">
                         <span class="sec-badge-lg">{{ fat.secretariaSigla }}</span>
                         <div class="summary-info">
@@ -222,7 +226,10 @@
                         </div>
 
                         <div class="summary-actions" (click)="$event.stopPropagation()">
-                          <button type="button" class="btn btn-outline btn-sm" (click)="context.imprimirNotaIndividual(fat.numeroEmpenho)" title="Gerar PDF Oficial / Imprimir Termo de Atesto e Fatura (A4)">
+                          <button type="button" class="btn btn-outline btn-sm" (click)="toggleConferencia(fat)" [attr.aria-expanded]="conferenciasAbertas().has(chaveFatura(fat))" [attr.aria-controls]="'conferencia-' + chaveFatura(fat)">
+                            {{ conferenciasAbertas().has(chaveFatura(fat)) ? 'Recolher conferência' : 'Conferir valor' }}
+                          </button>
+                          <button type="button" class="btn btn-outline btn-sm" (click)="context.imprimirNotaIndividual(fat.numeroEmpenho, chaveFatura(fat))" title="Gerar PDF Oficial / Imprimir Termo de Atesto e Fatura (A4)">
                             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                               <polyline points="6 9 6 2 18 2 18 9"></polyline>
                               <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
@@ -231,18 +238,22 @@
                             Gerar PDF / Imprimir
                           </button>
 
-                          <button type="button" class="btn btn-outline btn-sm btn-expand" (click)="context.toggleInvoice(fat.numeroEmpenho)" title="Expandir ou recolher espelho de atesto">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [style.transform]="context.isInvoiceExpanded(fat.numeroEmpenho) ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;">
+                          <button type="button" class="btn btn-outline btn-sm btn-expand" (click)="context.toggleInvoice(chaveFatura(fat))" title="Expandir ou recolher espelho de atesto" [attr.aria-expanded]="context.isInvoiceExpanded(chaveFatura(fat))">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [style.transform]="context.isInvoiceExpanded(chaveFatura(fat)) ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;">
                               <polyline points="6 9 12 15 18 9"></polyline>
                             </svg>
-                            {{ context.isInvoiceExpanded(fat.numeroEmpenho) ? 'Recolher' : 'Ver Espelho' }}
+                            {{ context.isInvoiceExpanded(chaveFatura(fat)) ? 'Recolher' : 'Ver Espelho' }}
                           </button>
                         </div>
                       </div>
                     </div>
 
                     <!-- DOCUMENTO OFICIAL EMBUTIDO (VISÍVEL QUANDO EXPANDIDO E NA IMPRESSÃO) -->
-                    <div [id]="'invoice-card-' + fat.numeroEmpenho" class="doc-sheet official-invoice-card" [class.collapsed-view]="!context.isInvoiceExpanded(fat.numeroEmpenho)">
+                    @if (conferenciasAbertas().has(chaveFatura(fat))) {
+                      <app-conferencia-fatura [id]="'conferencia-' + chaveFatura(fat)" [fatura]="fat"></app-conferencia-fatura>
+                    }
+
+                    <div [id]="'invoice-card-' + chaveFatura(fat)" class="doc-sheet official-invoice-card" [class.collapsed-view]="!context.isInvoiceExpanded(chaveFatura(fat))">
                       <div class="doc-header">
                         <div class="gov-text">
                           <h3>PREFEITURA MUNICIPAL DE IMBÉ</h3>
@@ -397,7 +408,7 @@
                         @for (mVal of emp.totaisMensais; track $index) {
                           <td style="text-align: right;">
                             @if (mVal > 0) {
-                              <span>{{ mVal | number:'1.2-2' }}</span>
+                              <button type="button" class="invoice-value-link" (click)="abrirConferenciaMensal(emp.empenhoId, $index + 1)" [attr.aria-label]="'Conferir ' + context.mesesLista[$index].nome + ' de ' + mat.ano + ', empenho ' + emp.numeroEmpenho" title="Ver composição e leituras desta fatura">{{ mVal | number:'1.2-2' }}</button>
                             } @else {
                               <span class="text-muted">—</span>
                             }

@@ -1,7 +1,7 @@
 import { InstalacaoHistorico } from '@core/models';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams, HttpContext } from '@angular/common/http';
-import { SKIP_GLOBAL_LOADING } from '@core/interceptors/http-context';
+import { SKIP_GLOBAL_LOADING, SKIP_GLOBAL_ERROR } from '@core/interceptors/http-context';
 import { Observable, catchError, of, shareReplay } from 'rxjs';
 import { environment } from '@env/environment';
 import {
@@ -139,11 +139,12 @@ export class ImpressoraService {
     return this.http.get<ExecucaoMensal>(`${this.apiUrl}/empenhos/execucao-mensal`, { params });
   }
 
-  getEspelhoFatura(empenhoId: number, mes: number = 8, ano: number = 2026): Observable<EspelhoFatura> {
+  getEspelhoFatura(empenhoId: number, mes: number = 8, ano: number = 2026, background = false): Observable<EspelhoFatura> {
     const params = new HttpParams()
       .set('mes', mes.toString())
       .set('ano', ano.toString());
-    return this.http.get<EspelhoFatura>(`${this.apiUrl}/empenhos/${empenhoId}/espelho-fatura`, { params });
+    const context = new HttpContext().set(SKIP_GLOBAL_LOADING, background).set(SKIP_GLOBAL_ERROR, background);
+    return this.http.get<EspelhoFatura>(`${this.apiUrl}/empenhos/${empenhoId}/espelho-fatura`, { params, context });
   }
 
   getBalancoFranquias(mes: number = 8, ano: number = 2026): Observable<BalancoFranquias> {
@@ -216,4 +217,3 @@ export class ImpressoraService {
     return this.http.post<{ status: string; mensagem: string }>(`${this.apiUrl}/coletas/itens/${itemId}/recoletar`, {});
   }
 }
-

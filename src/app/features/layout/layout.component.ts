@@ -13,6 +13,14 @@ import { SidebarComponent, ToastComponent } from '@shared';
 })
 export class LayoutComponent {
   isSidebarOpen = signal(false);
+  isMobile = signal(typeof window !== 'undefined' && window.innerWidth <= 1024);
+
+  @HostListener('window:resize')
+  onResize(): void {
+    const mobile = window.innerWidth <= 1024;
+    if (mobile !== this.isMobile()) this.closeSidebar();
+    this.isMobile.set(mobile);
+  }
 
   @HostListener('document:keydown.escape')
   closeSidebar(): void {

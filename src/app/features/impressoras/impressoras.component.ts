@@ -1837,7 +1837,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
   imprimirNotasFiscaisLote(): void { return this.financeiroActions.imprimirNotasFiscaisLote(); }
 
-  imprimirNotaIndividual(numeroEmpenho: string): void { return this.financeiroActions.imprimirNotaIndividual(numeroEmpenho); }
+  imprimirNotaIndividual(numeroEmpenho: string, chave?: string): void { return this.financeiroActions.imprimirNotaIndividual(numeroEmpenho, chave); }
 
   // Métricas computadas do lote de notas fiscais
   totalFaturadoSelecionado = computed(() => {

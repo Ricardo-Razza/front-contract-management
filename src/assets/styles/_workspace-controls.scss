@@ -1,0 +1,80 @@
+// Shared placement and dimensions for the two operational workspaces.
+@mixin heading {
+  min-height: 100px;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+
+  .workspace-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 8px;
+    margin-left: auto;
+    max-width: 100%;
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-width: 112px;
+      min-height: 40px;
+      padding: 8px 14px;
+      border: 1px solid #dce3ed;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 20px;
+      white-space: nowrap;
+      svg { width: 16px; height: 16px; margin: 0 !important; }
+    }
+    .btn-outline, .secondary { background: #fff; color: #45546b; }
+    .btn-primary, .primary { min-width: 164px; background: #2563eb; border-color: #2563eb; color: #fff; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .workspace-action-hint { flex-basis: 100%; text-align: right; color: #64748b; font-size: 11px; line-height: 16px; }
+  }
+
+  @media (max-width: 900px) {
+    .workspace-actions { width: 100%; padding-top: 0; }
+  }
+  @media (max-width: 600px) {
+    .workspace-actions {
+      button { flex: 1 1 112px; }
+      .btn-primary, .primary { flex-basis: 100%; }
+    }
+  }
+}
+
+@mixin period {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+
+  > label, > .filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 100px;
+    margin: 0;
+    > span { font-size: 12px; font-weight: 600; color: #4a5c73; }
+  }
+  select {
+    height: 40px;
+    min-width: 100px;
+    padding: 0 12px;
+    border: 1px solid #dce3ed;
+    border-radius: 7px;
+    background: #fff;
+    color: #334155;
+    font-size: 13px;
+  }
+  @media (max-width: 600px) {
+    > label, > .filter-field { flex: 1 1 100px; }
+    select { width: 100%; }
+  }
+}

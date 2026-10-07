@@ -1,3 +1,4 @@
+@use 'workspace-controls' as workspace;
 :host { display: block; }
 .page-content {
   padding: 30px;
@@ -760,6 +761,10 @@
     transform: translateY(0);
   }
 }
+
+.page-title-group .title-with-actions { @include workspace.heading; }
+.inventory-pane .inventory-metrics { margin: 0 0 20px; }
+.card-header-tabs { min-height: 58px; }
 .table-empty-state {
   padding: 3rem 1.5rem;
   text-align: center;

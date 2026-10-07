@@ -2,147 +2,46 @@
 
 <main class="page-content">
   <div class="page-title-group">
-    <div class="title-with-actions">
+    <div class="title-with-actions workspace-heading">
       <div>
         <span class="eyebrow">GESTÃO DE IMPRESSÃO</span>
         <h1>Impressoras</h1>
         <p>Equipamentos, medições e faturamento em um só lugar.</p>
       </div>
-      <div class="header-actions-group">
+      <div class="header-actions-group workspace-actions" role="group" aria-label="Ações de impressoras">
         @if (activeTab() === 'INVENTARIO') {
-          <button type="button" class="btn btn-outline" (click)="exportarInventarioCSV()" title="Exportar inventário para Excel/CSV">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            Exportar (.CSV)
-          </button>
-          <button class="btn btn-primary" (click)="openCreateModal()">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Nova Impressora
-          </button>
+          <button type="button" class="btn btn-outline" (click)="exportarInventarioCSV()">Exportar CSV</button>
+          <button type="button" class="btn btn-primary" (click)="openCreateModal()">+ Nova impressora</button>
         } @else if (activeTab() === 'LEITURAS') {
-          <button type="button" class="btn btn-outline" (click)="exportarMedicaoCSV()" title="Exportar leituras para CSV">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            Exportar Medição
+          <button type="button" class="btn btn-outline" (click)="exportarMedicaoCSV()">Exportar CSV</button>
+          <button type="button" class="btn btn-outline" (click)="descartarAlteracoes()" [disabled]="salvandoEmLote() || itensAlteradosCount() === 0" [title]="itensAlteradosCount() === 0 ? 'Nenhuma alteração para descartar' : 'Descartar leituras alteradas'">Descartar</button>
+          <button type="button" class="btn btn-primary" (click)="salvarTodasAlteracoes()" [disabled]="salvandoEmLote() || itensAlteradosCount() === 0" [title]="itensAlteradosCount() === 0 ? 'Edite uma leitura para habilitar o salvamento' : 'Salvar todas as leituras alteradas'">
+            {{ salvandoEmLote() ? 'Salvando...' : 'Salvar alterações (' + itensAlteradosCount() + ')' }}
           </button>
-          @if (itensAlteradosCount() > 0) {
-            <button type="button" class="btn btn-outline" (click)="descartarAlteracoes()" title="Descartar leituras alteradas">
-              Descartar
-            </button>
-            <button type="button" class="btn btn-primary" (click)="salvarTodasAlteracoes()" [disabled]="salvandoEmLote()" title="Salvar todas as alterações">
-              @if (salvandoEmLote()) {
-                <span class="spinner-inline"></span> Salvando...
-              } @else {
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                  <polyline points="17 21 17 13 7 13 7 21"/>
-                  <polyline points="7 3 7 8 15 8"/>
-                </svg>
-                Salvar Alterações ({{ itensAlteradosCount() }})
-              }
-            </button>
-          }
+          <span class="workspace-action-hint" role="status">{{ itensAlteradosCount() === 0 ? 'Nenhuma alteração pendente' : itensAlteradosCount() + ' leitura(s) não salva(s)' }}</span>
         } @else if (activeTab() === 'COLETA') {
-          @if (coletaSessao() && (coletaSessao()?.totalSucesso || 0) > 0) {
-            <button type="button" class="btn btn-outline" (click)="baixarZipColeta()" title="Baixar pacote ZIP com todos os comprovantes">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              Baixar comprovantes
-            </button>
-            <button type="button" class="btn btn-outline" (click)="aplicarLeiturasColeta()" title="Gravar hodômetros nas leituras mensais">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <path d="M20 6L9 17l-5-5"/>
-              </svg>
-              Sincronizar Leituras
-            </button>
-          }
+          <button type="button" class="btn btn-outline" (click)="baixarZipColeta()" [disabled]="!coletaSessao() || (coletaSessao()?.totalSucesso || 0) === 0">Baixar comprovantes</button>
+          <button type="button" class="btn btn-outline" (click)="aplicarLeiturasColeta()" [disabled]="loadingColeta() || coletaAtiva()?.emAndamento || !coletaSessao() || (coletaSessao()?.totalSucesso || 0) === 0">Sincronizar leituras</button>
+          <button type="button" class="btn btn-primary" [disabled]="loadingColeta() || coletaAtiva()?.emAndamento" (click)="iniciarColetaAutomatica()">{{ coletaAtiva()?.emAndamento ? 'Coleta em andamento...' : 'Iniciar coleta' }}</button>
         } @else if (activeTab() === 'FINANCEIRO') {
           @if (subTabFinanceiro() === 'NOTAS_MENSAIS') {
-            <label class="print-option-toggle" title="Incluir ou omitir detalhamento de medições por máquina na folha de impressão">
-              <input type="checkbox" [checked]="incluirMedicaoImpressao()" (change)="alternarMedicaoImpressao()">
-              <span>Imprimir com medições</span>
-            </label>
-            <button type="button" class="btn btn-outline" (click)="exportarNotasFiscaisLoteCSV()" title="Exportar faturas em CSV">
-              Exportar (.CSV)
-            </button>
-            <button class="btn btn-primary" (click)="imprimirNotasFiscaisLote()">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                <rect x="6" y="14" width="12" height="8"></rect>
-              </svg>
-              Imprimir faturas
-            </button>
+            <button type="button" class="btn btn-outline" (click)="exportarNotasFiscaisLoteCSV()">Exportar CSV</button>
+            <button type="button" class="btn btn-primary" (click)="imprimirNotasFiscaisLote()">Imprimir faturas</button>
           } @else if (subTabFinanceiro() === 'DEMONSTRATIVO_ANUAL') {
-            <button type="button" class="btn btn-outline" (click)="exportarNotasFiscaisConsolidadoCSV()">
-              Exportar Matriz
-            </button>
-            <button class="btn btn-primary" (click)="imprimirNotasFiscaisLote()">
-              Imprimir Matriz (A4)
-            </button>
-          } @else if (subTabFinanceiro() === 'EMPENHOS') {
-            <button type="button" class="btn btn-outline" (click)="exportarEmpenhosCSV()">
-              Exportar (.CSV)
-            </button>
-            <button class="btn btn-primary" (click)="openCreateEmpenhoModal()">
-              + Novo Empenho
-            </button>
+            <button type="button" class="btn btn-outline" (click)="exportarNotasFiscaisConsolidadoCSV()">Exportar CSV</button>
+            <button type="button" class="btn btn-primary" (click)="imprimirNotasFiscaisLote()">Imprimir demonstrativo</button>
+          } @else {
+            <button type="button" class="btn btn-outline" (click)="exportarEmpenhosCSV()">Exportar CSV</button>
+            <button type="button" class="btn btn-primary" (click)="openCreateEmpenhoModal()">+ Novo empenho</button>
           }
         } @else if (activeTab() === 'LOCAIS') {
-          <button class="btn btn-primary" (click)="abrirModalNovoLocal()">
-            + Novo Local
-          </button>
+          <button type="button" class="btn btn-primary" (click)="abrirModalNovoLocal()">+ Novo local</button>
         }
       </div>
     </div>
   </div>
 
-  @if (activeTab() === 'INVENTARIO') {
-    <section class="metrics-grid inventory-metrics no-print" aria-label="Resumo do inventário" [attr.aria-busy]="loading()">
-      <article class="metric-card">
-        <span class="metric-icon icon-blue" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg>
-        </span>
-        <div class="metric-body">
-          <span class="metric-label">Equipamentos cadastrados</span>
-          <strong class="metric-value">{{ loading() || inventoryError() ? '—' : totalImpressoras() }}</strong>
-          <p class="metric-caption">{{ loading() || inventoryError() ? 'Inventário geral' : totalMono() + ' preto e branco · ' + totalColor() + ' coloridos' }}</p>
-        </div>
-      </article>
-      <article class="metric-card">
-        <span class="metric-icon icon-purple" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>
-        </span>
-        <div class="metric-body">
-          <span class="metric-label">Equipamentos ativos</span>
-          <strong class="metric-value">{{ loading() || inventoryError() ? '—' : totalAtivas() }}</strong>
-          <p class="metric-caption">Instalações em atividade</p>
-        </div>
-      </article>
-      <article class="metric-card">
-        <span class="metric-icon icon-orange" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 3v1"/></svg>
-        </span>
-        <div class="metric-body">
-          <span class="metric-label">Em manutenção</span>
-          <strong class="metric-value">{{ loading() || inventoryError() ? '—' : totalManutencao() }}</strong>
-          <p class="metric-caption">Equipamentos que precisam de atenção</p>
-        </div>
-      </article>
-    </section>
-  }
+
 
   <!-- CONTAINER PRINCIPAL COM NAVEGAÇÃO EM ABAS -->
   <div class="main-card">
@@ -403,6 +302,39 @@
             </div>
           }
         </div>
+
+<section class="metrics-grid inventory-metrics no-print" aria-label="Resumo do inventário" [attr.aria-busy]="loading()">
+      <article class="metric-card">
+        <span class="metric-icon icon-blue" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg>
+        </span>
+        <div class="metric-body">
+          <span class="metric-label">Equipamentos cadastrados</span>
+          <strong class="metric-value">{{ loading() || inventoryError() ? '—' : totalImpressoras() }}</strong>
+          <p class="metric-caption">{{ loading() || inventoryError() ? 'Inventário geral' : totalMono() + ' preto e branco · ' + totalColor() + ' coloridos' }}</p>
+        </div>
+      </article>
+      <article class="metric-card">
+        <span class="metric-icon icon-purple" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>
+        </span>
+        <div class="metric-body">
+          <span class="metric-label">Equipamentos ativos</span>
+          <strong class="metric-value">{{ loading() || inventoryError() ? '—' : totalAtivas() }}</strong>
+          <p class="metric-caption">Instalações em atividade</p>
+        </div>
+      </article>
+      <article class="metric-card">
+        <span class="metric-icon icon-orange" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 3v1"/></svg>
+        </span>
+        <div class="metric-body">
+          <span class="metric-label">Em manutenção</span>
+          <strong class="metric-value">{{ loading() || inventoryError() ? '—' : totalManutencao() }}</strong>
+          <p class="metric-caption">Equipamentos que precisam de atenção</p>
+        </div>
+      </article>
+    </section>
 
         <!-- CONTAINER DA TABELA / VISÃO AGRUPADA -->
         <div class="table-card">

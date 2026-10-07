@@ -1,4 +1,5 @@
 @use "variables" as *;
+@use 'workspace-controls' as workspace;
 :host {
   display: block;
   color: #172b4d;
@@ -3373,4 +3374,41 @@ button.legend-chip.selected {
     outline: none;
     background: white;
   }
+}
+
+.page-heading { @include workspace.heading; }
+.workspace-controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  min-height: 92px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #edf1f6;
+  background: #fcfdff;
+}
+.workspace-controls .period-controls { @include workspace.period; }
+.workspace-controls .nav-btn, .workspace-controls .today-btn { height: 40px; border-radius: 7px; }
+.workspace-controls .view-switcher { margin-left: auto; min-height: 40px; }
+.workspace-controls .switcher-btn { min-height: 34px; }
+.period-caption { color: #64748b; font-size: 12px; align-self: center; }
+.workspace > .metrics {
+  margin: 0;
+  padding: 16px 24px;
+  gap: 12px;
+  border-bottom: 1px solid #edf1f6;
+}
+.workspace > .metrics article { padding: 14px; gap: 12px; }
+.workspace > .metrics strong { font-size: 24px; }
+.workspace > .metrics .metric-icon { width: 36px; height: 36px; }
+.workspace > .metrics p { display: none; }
+.tabs { min-height: 58px; }
+@media (max-width: 600px) {
+  .workspace-controls { padding: 16px; }
+  .workspace-controls .period-controls { width: 100%; }
+  .workspace-controls .view-switcher { width: 100%; margin-left: 0; }
+  .workspace-controls .switcher-btn { flex: 1; justify-content: center; padding: 6px; font-size: 11px; }
+  .workspace > .metrics { padding: 16px; }
+  .workspace > .metrics article { min-width: 0; }
 }
