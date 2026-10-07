@@ -1,6 +1,7 @@
 import { InstalacaoHistorico } from '@core/models';
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpContext } from '@angular/common/http';
+import { SKIP_GLOBAL_LOADING } from '@core/interceptors/http-context';
 import { Observable, catchError, of, shareReplay } from 'rxjs';
 import { environment } from '@env/environment';
 import {
@@ -184,15 +185,15 @@ export class ImpressoraService {
   }
 
   getColetaAtiva(): Observable<ColetaProgresso | null> {
-    return this.http.get<ColetaProgresso | null>(`${this.apiUrl}/coletas/ativa`);
+    return this.http.get<ColetaProgresso | null>(`${this.apiUrl}/coletas/ativa`, { context: new HttpContext().set(SKIP_GLOBAL_LOADING, true) });
   }
 
   getUltimaColeta(): Observable<ColetaSessao | null> {
     return this.http.get<ColetaSessao | null>(`${this.apiUrl}/coletas/ultima`);
   }
 
-  getColetaPorId(id: number): Observable<ColetaSessao> {
-    return this.http.get<ColetaSessao>(`${this.apiUrl}/coletas/${id}`);
+  getColetaPorId(id: number, background = false): Observable<ColetaSessao> {
+    return this.http.get<ColetaSessao>(`${this.apiUrl}/coletas/${id}`, { context: new HttpContext().set(SKIP_GLOBAL_LOADING, background) });
   }
 
   baixarZipColeta(id: number): Observable<Blob> {
@@ -215,5 +216,4 @@ export class ImpressoraService {
     return this.http.post<{ status: string; mensagem: string }>(`${this.apiUrl}/coletas/itens/${itemId}/recoletar`, {});
   }
 }
-
 

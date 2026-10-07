@@ -1,3 +1,5 @@
+import { DestroyRef as LifecycleDestroyRef, inject as lifecycleInject } from '@angular/core';
+import { takeUntilDestroyed as untilComponentDestroyed } from '@angular/core/rxjs-interop';
 import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -29,6 +31,8 @@ export interface ExpirandoItem {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DashboardComponent implements OnInit {
+  private readonly requestDestroyRef = lifecycleInject(LifecycleDestroyRef);
+
   private secService = inject(SecretariaService);
   private servService = inject(ServidorService);
   private ataService = inject(AtaService);
@@ -244,7 +248,7 @@ export class DashboardComponent implements OnInit {
       agreements: this.ataService.getAll().pipe(catchError(() => of([]))),
       contracts: this.contratoService.getAll().pipe(catchError(() => of([]))),
       teams: this.equipeService.getAll().pipe(catchError(() => of([])))
-    }).subscribe({
+    }).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: (res) => {
         this.totalSecretariats.set(res.secretariats.length);
         this.totalServants.set(res.servants.length);

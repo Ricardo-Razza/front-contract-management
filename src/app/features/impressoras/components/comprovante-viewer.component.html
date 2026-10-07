@@ -1,0 +1,199 @@
+<div class="modal-overlay modal-lightbox" (click)="context.fecharModalPrint()">
+    <div class="lightbox-container" (click)="$event.stopPropagation()">
+      <!-- HEADER EXECUTIVO -->
+      <div class="lightbox-header">
+        <div class="lightbox-title-area">
+          <div class="lightbox-title-row">
+            <span class="lightbox-badge-item">#{{ context.printSelecionado()?.itemPedido || '—' }}</span>
+            <h3>{{ context.printSelecionado()?.modelo }}</h3>
+            @if (context.printSelecionado()?.ip) {
+              <span class="lightbox-ip-tag">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                  <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                  <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                  <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                </svg>
+                {{ context.printSelecionado()?.ip }}
+              </span>
+            }
+          </div>
+          <div class="lightbox-sub-info">
+            <span class="sub-location">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              {{ context.printSelecionado()?.secretariaSigla }} &bull; {{ context.printSelecionado()?.localInstalacao }}
+            </span>
+          </div>
+        </div>
+
+        <!-- TOOLBAR DE AÇÕES E ZOOM -->
+        <div class="lightbox-toolbar">
+          <!-- Grupo de Zoom -->
+          <div class="lightbox-zoom-group">
+            <button type="button"
+                    class="lightbox-btn-icon"
+                    (click)="context.zoomOutPrint()"
+                    [disabled]="context.printZoomLevel() <= 0.5 && context.printFitMode() === 'original'"
+                    title="Diminuir Zoom (-)">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                <line x1="8" y1="11" x2="14" y2="11"></line>
+              </svg>
+            </button>
+
+            <span class="lightbox-zoom-level"
+                  (click)="context.toggleFitMode()"
+                  [title]="context.printFitMode() === 'fit' ? 'Modo Ajustado à tela. Clique para 100% Tamanho Real.' : 'Zoom ' + (context.printZoomLevel() * 100).toFixed(0) + '%. Clique para ajustar à tela.'"
+                  style="cursor: pointer;">
+              {{ context.printFitMode() === 'fit' ? 'Ajustar' : (context.printZoomLevel() * 100).toFixed(0) + '%' }}
+            </span>
+
+            <button type="button"
+                    class="lightbox-btn-icon"
+                    (click)="context.zoomInPrint()"
+                    [disabled]="context.printZoomLevel() >= 3.5"
+                    title="Aumentar Zoom (+)">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                <line x1="11" y1="8" x2="11" y2="14"></line>
+                <line x1="8" y1="11" x2="14" y2="11"></line>
+              </svg>
+            </button>
+
+            <button type="button"
+                    class="lightbox-btn-icon"
+                    [class.active]="context.printFitMode() === 'original'"
+                    (click)="context.toggleFitMode()"
+                    [title]="context.printFitMode() === 'fit' ? 'Exibir em Tamanho Real (100% Resolução Nativa)' : 'Ajustar à Tela'">
+              @if (context.printFitMode() === 'fit') {
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M15 3h6v6"></path>
+                  <path d="M9 21H3v-6"></path>
+                  <path d="M21 3l-7 7"></path>
+                  <path d="M3 21l7-7"></path>
+                </svg>
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 14h6v6"></path>
+                  <path d="M20 10h-6V4"></path>
+                  <path d="M14 10l7-7"></path>
+                  <path d="M3 21l7-7"></path>
+                </svg>
+              }
+            </button>
+
+            <button type="button"
+                    class="lightbox-btn-icon"
+                    (click)="context.rotatePrint()"
+                    title="Girar 90°">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="lightbox-divider"></div>
+
+          <!-- Ações de Download e Abertura em Nova Aba -->
+          <button type="button"
+                  class="lightbox-btn-action"
+                  (click)="context.downloadPrintImage(context.printSelecionado()!)"
+                  title="Baixar comprovante de coleta">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Baixar Imagem</span>
+          </button>
+
+          <a [href]="context.getUrlImagemColeta(context.printSelecionado()!)"
+             target="_blank"
+             rel="noopener noreferrer"
+             class="lightbox-btn-action"
+             title="Abrir comprovante em nova guia">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="10" y1="14" x2="21" y2="3"></line>
+            </svg>
+            <span>Abrir Comprovante</span>
+          </a>
+
+          <!-- Botão Fechar Elegante -->
+          <button type="button"
+                  class="lightbox-close-circle"
+                  (click)="context.fecharModalPrint()"
+                  title="Fechar (Esc)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- VIEWPORT DA IMAGEM EM ALTA DEFINIÇÃO -->
+      <div class="lightbox-body" (wheel)="context.onPrintWheel($event)">
+        <div class="lightbox-canvas">
+          <img [src]="context.getUrlImagemColeta(context.printSelecionado()!)"
+               [class.mode-fit]="context.printFitMode() === 'fit'"
+               [class.mode-original]="context.printFitMode() === 'original'"
+               [style.transform]="context.printFitMode() === 'original' ? 'scale(' + context.printZoomLevel() + ') rotate(' + context.printRotation() + 'deg)' : 'rotate(' + context.printRotation() + 'deg)'"
+               (load)="context.onPrintImageLoaded($event)"
+               (click)="context.toggleFitMode()"
+               [title]="context.printFitMode() === 'fit' ? 'Clique para ver em 100% Tamanho Real (Resolução Nativa)' : 'Clique para ajustar à tela'"
+               alt="Comprovante de coleta dos contadores da impressora"
+               class="lightbox-img" />
+        </div>
+      </div>
+
+      <!-- FOOTER INFORMATIVO COM DADOS AUDITÁVEIS -->
+      <div class="lightbox-footer">
+        <div class="footer-left">
+          <div class="footer-stat">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span>Contador Geral Extraído:</span>
+            <strong class="counter-highlight">{{ context.printSelecionado()?.contadorTotal ?? 'Não extraído' }}</strong>
+          </div>
+
+          @if (context.printSelecionado()?.status === 'SUCESSO') {
+            <span class="footer-badge-status status-success">
+              <span class="status-dot"></span>
+              Leitura Auditada
+            </span>
+          }
+
+          @if (context.printImgDimensions()) {
+            <span class="footer-dimension-badge" title="Resolução nativa da imagem capturada">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+              </svg>
+              {{ context.printImgDimensions()?.width }} &times; {{ context.printImgDimensions()?.height }} px
+            </span>
+          }
+        </div>
+
+        <div class="footer-right">
+          <span class="footer-filename" title="Nome do arquivo no servidor">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+            <code>{{ context.printSelecionado()?.nomeArquivo }}</code>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>

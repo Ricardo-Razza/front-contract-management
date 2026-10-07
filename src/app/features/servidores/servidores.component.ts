@@ -1,3 +1,5 @@
+import { DestroyRef as LifecycleDestroyRef, inject as lifecycleInject } from '@angular/core';
+import { takeUntilDestroyed as untilComponentDestroyed } from '@angular/core/rxjs-interop';
 import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -25,6 +27,8 @@ import { includesNormalized, matchesSearch, exportToCsv } from '@core/utils';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ServidoresComponent implements OnInit {
+  private readonly requestDestroyRef = lifecycleInject(LifecycleDestroyRef);
+
   private servService = inject(ServidorService);
   private secService = inject(SecretariaService);
   private lookupService = inject(LookupService);
@@ -236,24 +240,24 @@ export class ServidoresComponent implements OnInit {
 
   loadData(): void {
     this.loading.set(true);
-    this.servService.getAll().subscribe({
+    this.servService.getAll().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: (data) => {
         this.servants.set(data || []);
         this.loading.set(false);
       },
       error: () => {
-        this.toast.error('Erro ao carregar lista de servidores.');
+
         this.loading.set(false);
       }
     });
   }
 
   loadLookups(): void {
-    this.secService.getAll().subscribe({
+    this.secService.getAll().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: (items) => this.secretariats.set(items || [])
     });
 
-    this.lookupService.getAtivos().subscribe({
+    this.lookupService.getAtivos().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: (items) => this.statusList.set(items || [])
     });
   }
@@ -343,7 +347,7 @@ export class ServidoresComponent implements OnInit {
 
     const id = this.editingId();
     if (id) {
-      this.servService.update(id, val).subscribe({
+      this.servService.update(id, val).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
         next: () => {
           this.toast.success('Servidor atualizado com sucesso!');
           this.submitting.set(false);
@@ -351,12 +355,12 @@ export class ServidoresComponent implements OnInit {
           this.loadData();
         },
         error: () => {
-          this.toast.error('Erro ao atualizar servidor.');
+
           this.submitting.set(false);
         }
       });
     } else {
-      this.servService.create(val).subscribe({
+      this.servService.create(val).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
         next: () => {
           this.toast.success('Servidor cadastrado com sucesso!');
           this.submitting.set(false);
@@ -364,7 +368,7 @@ export class ServidoresComponent implements OnInit {
           this.loadData();
         },
         error: () => {
-          this.toast.error('Erro ao criar servidor.');
+
           this.submitting.set(false);
         }
       });
@@ -386,7 +390,7 @@ export class ServidoresComponent implements OnInit {
     if (!item) return;
 
     this.deleting.set(true);
-    this.servService.delete(item.id).subscribe({
+    this.servService.delete(item.id).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: () => {
         this.toast.success('Servidor excluído com sucesso.');
         this.deleting.set(false);
@@ -394,7 +398,7 @@ export class ServidoresComponent implements OnInit {
         this.loadData();
       },
       error: () => {
-        this.toast.error('Erro ao excluir servidor.');
+
         this.deleting.set(false);
       }
     });

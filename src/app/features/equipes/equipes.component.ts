@@ -1,3 +1,5 @@
+import { DestroyRef as LifecycleDestroyRef, inject as lifecycleInject } from '@angular/core';
+import { takeUntilDestroyed as untilComponentDestroyed } from '@angular/core/rxjs-interop';
 import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
@@ -26,6 +28,8 @@ type TipoVinculo = 'ATA' | 'CONTRATO';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class EquipesComponent implements OnInit {
+  private readonly requestDestroyRef = lifecycleInject(LifecycleDestroyRef);
+
   private equipeService = inject(EquipeService);
   private ataService = inject(AtaService);
   private servService = inject(ServidorService);
@@ -252,36 +256,36 @@ export class EquipesComponent implements OnInit {
 
   loadData(): void {
     this.loading.set(true);
-    this.equipeService.getAll().subscribe({
+    this.equipeService.getAll().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: (data) => {
         this.teams.set(data || []);
         this.loading.set(false);
       },
       error: () => {
-        this.toast.error('Erro ao carregar equipes de contrato.');
+
         this.loading.set(false);
       }
     });
   }
 
   loadLookups(): void {
-    this.ataService.getAll().subscribe({
+    this.ataService.getAll().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: (items) => this.agreements.set(items || [])
     });
 
-    this.contratoService.getAll().subscribe({
+    this.contratoService.getAll().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: (items) => this.contracts.set(items || [])
     });
 
-    this.servService.getAll().subscribe({
+    this.servService.getAll().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: (items) => this.servants.set(items || [])
     });
 
-    this.lookupService.getFuncoesEquipe().subscribe({
+    this.lookupService.getFuncoesEquipe().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: (items) => this.funcoesList.set(items || [])
     });
 
-    this.lookupService.getAtivos().subscribe({
+    this.lookupService.getAtivos().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: (items) => this.statusList.set(items || [])
     });
   }
@@ -517,7 +521,7 @@ export class EquipesComponent implements OnInit {
 
     const id = this.editingId();
     if (id) {
-      this.equipeService.update(id, payload).subscribe({
+      this.equipeService.update(id, payload).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
         next: () => {
           this.toast.success('Equipe de contrato atualizada com sucesso!');
           this.submitting.set(false);
@@ -525,12 +529,12 @@ export class EquipesComponent implements OnInit {
           this.loadData();
         },
         error: () => {
-          this.toast.error('Erro ao atualizar equipe de contrato.');
+
           this.submitting.set(false);
         }
       });
     } else {
-      this.equipeService.create(payload).subscribe({
+      this.equipeService.create(payload).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
         next: () => {
           this.toast.success('Equipe de contrato cadastrada com sucesso!');
           this.submitting.set(false);
@@ -538,7 +542,7 @@ export class EquipesComponent implements OnInit {
           this.loadData();
         },
         error: () => {
-          this.toast.error('Erro ao cadastrar equipe de contrato.');
+
           this.submitting.set(false);
         }
       });
@@ -560,7 +564,7 @@ export class EquipesComponent implements OnInit {
     if (!item) return;
 
     this.deleting.set(true);
-    this.equipeService.delete(item.id).subscribe({
+    this.equipeService.delete(item.id).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: () => {
         this.toast.success('Equipe excluída com sucesso.');
         this.deleting.set(false);
@@ -568,7 +572,7 @@ export class EquipesComponent implements OnInit {
         this.loadData();
       },
       error: () => {
-        this.toast.error('Erro ao excluir equipe.');
+
         this.deleting.set(false);
       }
     });

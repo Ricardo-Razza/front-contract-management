@@ -1,11 +1,11 @@
-import { Directive, HostListener, ElementRef, OnInit } from '@angular/core';
+import { Directive, HostListener, ElementRef, OnInit, inject } from '@angular/core';
 
 @Directive({
   selector: '[appCpfMask]',
   standalone: true
 })
 export class CpfMaskDirective implements OnInit {
-  constructor(private el: ElementRef<HTMLInputElement>) {}
+  private readonly el = inject<ElementRef<HTMLInputElement>>(ElementRef);
 
   ngOnInit(): void {
     setTimeout(() => this.formatCurrentValue(), 50);

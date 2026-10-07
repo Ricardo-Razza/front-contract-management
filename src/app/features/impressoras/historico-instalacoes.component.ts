@@ -1,3 +1,5 @@
+import { DestroyRef as LifecycleDestroyRef, inject as lifecycleInject } from '@angular/core';
+import { takeUntilDestroyed as untilComponentDestroyed } from '@angular/core/rxjs-interop';
 import { Component, Input, OnChanges, OnDestroy, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
@@ -45,6 +47,8 @@ import { PaginationComponent } from '@shared/components/pagination/pagination.co
   styles: [`:host { display: block; } .table-scroll { overflow-x: auto; } table { width: 100%; border-collapse: collapse; text-align: left; } th, td { padding: .8rem; border-bottom: 1px solid #e2e8f0; } th { background: #f8fafc; } small { color: #64748b; } button { cursor: pointer; padding: .4rem .6rem; border: 1px solid #cbd5e1; border-radius: 6px; background: white; color: #1d4ed8; }`]
 })
 export class HistoricoInstalacoesComponent implements OnChanges, OnDestroy {
+  private readonly requestDestroyRef = lifecycleInject(LifecycleDestroyRef);
+
   @Input() impressoraId?: number;
   @Input() localId?: number;
   private static readonly STATUS_MAP: Record<string, string> = {
@@ -76,7 +80,7 @@ export class HistoricoInstalacoesComponent implements OnChanges, OnDestroy {
     if (!id && !this.localId) return;
     this.carregando.set(true);
     const request = id ? this.impressoras.getHistorico(id) : this.locais.getHistorico(this.localId!);
-    this.consulta = request.subscribe({
+    this.consulta = request.pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: itens => { this.itens.set(itens); this.carregando.set(false); },
       error: () => { this.erro.set(true); this.carregando.set(false); }
     });

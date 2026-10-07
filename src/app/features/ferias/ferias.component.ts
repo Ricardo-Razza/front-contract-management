@@ -976,7 +976,7 @@ export class FeriasComponent implements OnInit {
         },
         error: (e) => {
           this.cancelando.set(false);
-          this.toast.error(e.error?.message || "Não foi possível cancelar.");
+
         },
       });
   }

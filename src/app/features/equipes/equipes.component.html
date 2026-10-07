@@ -264,7 +264,7 @@
                 </div>
                 <ul class="dropdown-list">
                   @for (ata of filteredAgreementsDropdown(); track ata.id) {
-                  <li (click)="selectAta(ata)" [class.selected]="form.get('ataId')?.value == ata.id">
+                  <li (click)="selectAta(ata)" [class.selected]="+form.get('ataId')?.value === ata.id">
                     <strong>Ata Nº {{ ata.numero }}/{{ ata.ano }}</strong>
                     <span class="ata-objeto-hint">{{ ata.objeto | slice:0:60 }}{{ (ata.objeto?.length ?? 0) > 60 ? '...'
                       : '' }}</span>
@@ -325,7 +325,7 @@
                 <ul class="dropdown-list">
                   @for (contrato of filteredContractsDropdown(); track contrato.id) {
                   <li (click)="selectContrato(contrato)"
-                    [class.selected]="form.get('contratoId')?.value == contrato.id">
+                    [class.selected]="+form.get('contratoId')?.value === contrato.id">
                     <strong>Contrato Nº {{ contrato.numero }}/{{ contrato.ano }}</strong>
                     <span class="ata-objeto-hint">
                       {{ contrato.objeto | slice:0:50 }}{{ (contrato.objeto?.length ?? 0) > 50 ? '...' : '' }}
@@ -415,7 +415,7 @@
                     </div>
                     <ul class="dropdown-list">
                       @for (serv of filteredServantsForDropdown(); track serv.id) {
-                      <li (click)="selectServant(i, serv)" [class.selected]="ctrl.get('servidorId')?.value == serv.id">
+                      <li (click)="selectServant(i, serv)" [class.selected]="+ctrl.get('servidorId')?.value === serv.id">
                         <strong>{{ serv.nome }}</strong>
                         @if (serv.cargo) {
                         <span class="ata-objeto-hint">{{ serv.cargo }}</span>

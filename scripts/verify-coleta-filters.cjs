@@ -5,7 +5,8 @@ const assert = require('node:assert/strict');
 const ts = require('typescript');
 
 // Exercita as funções reais do componente, sem precisar de um navegador.
-const source = fs.readFileSync(path.join(__dirname, '../src/app/features/impressoras/impressoras.component.ts'), 'utf8');
+const actions = fs.readFileSync(path.join(__dirname, '../src/app/features/impressoras/coleta/coleta-impressoras.actions.ts'), 'utf8').replace(/this\.context\./g, 'this.');
+const source = actions + '\n' + fs.readFileSync(path.join(__dirname, '../src/app/features/impressoras/impressoras.component.ts'), 'utf8');
 function extract(name, computed = false) {
   const start = source.indexOf('  ' + name + (computed ? ' = computed' : '('));
   assert(start >= 0, name);

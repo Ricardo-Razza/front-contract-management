@@ -1,0 +1,505 @@
+<div class="tab-pane-container">
+        <div class="filter-bar">
+          <!-- Linha 1: Busca Geral -->
+          <div class="filter-search-box">
+            <span class="filter-search-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </span>
+            <input type="text"
+                   aria-label="Buscar medições" placeholder="Pesquisar por item (#1), setor, modelo ou IP..."
+                   [ngModel]="context.termoBuscaLeituras()"
+                   (ngModelChange)="context.termoBuscaLeituras.set($event)" />
+            @if (context.termoBuscaLeituras()) {
+              <button type="button" class="filter-clear-btn" aria-label="Limpar pesquisa" (click)="context.termoBuscaLeituras.set('')">&#x2715;</button>
+            }
+          </div>
+
+          <div class="filter-grid">
+            <div class="filter-field">
+              <span class="filter-label">Mês de Referência</span>
+              <select aria-label="Mês de Referência" [ngModel]="context.mesCompetencia()" (ngModelChange)="context.mesCompetencia.set(+$event); context.carregarLeiturasCompetencia(); context.paginaLeituras.set(1)">
+                <option [ngValue]="1">01 — Janeiro</option>
+                <option [ngValue]="2">02 — Fevereiro</option>
+                <option [ngValue]="3">03 — Março</option>
+                <option [ngValue]="4">04 — Abril</option>
+                <option [ngValue]="5">05 — Maio</option>
+                <option [ngValue]="6">06 — Junho</option>
+                <option [ngValue]="7">07 — Julho</option>
+                <option [ngValue]="8">08 — Agosto</option>
+                <option [ngValue]="9">09 — Setembro</option>
+                <option [ngValue]="10">10 — Outubro</option>
+                <option [ngValue]="11">11 — Novembro</option>
+                <option [ngValue]="12">12 — Dezembro</option>
+              </select>
+            </div>
+
+            <div class="filter-field">
+              <span class="filter-label">Exercício</span>
+              <select aria-label="Exercício" [ngModel]="context.anoCompetencia()" (ngModelChange)="context.anoCompetencia.set(+$event); context.carregarLeiturasCompetencia(); context.paginaLeituras.set(1)">
+                <option [ngValue]="2026">2026</option>
+                <option [ngValue]="2025">2025</option>
+              </select>
+            </div>
+
+            <div class="filter-field">
+              <span class="filter-label">Secretarias</span>
+              <div class="custom-multiselect">
+                <button type="button" class="multiselect-trigger" [class.open]="context.showSecretariaDropdownLeituras()"
+                        (click)="context.toggleSecretariaDropdownLeituras(); $event.stopPropagation()">
+                  <span class="trigger-text" [class.placeholder]="context.filtroSecretariasLeituras().length === 0">
+                    @if (context.filtroSecretariasLeituras().length === 0) {
+                      Todas as Secretarias
+                    } @else if (context.filtroSecretariasLeituras().length === 1) {
+                      {{ context.getSecretariaNome(context.filtroSecretariasLeituras()[0]) }}
+                    } @else {
+                      {{ context.filtroSecretariasLeituras().length }} secretarias
+                    }
+                  </span>
+                  <svg class="trigger-arrow" [class.open]="context.showSecretariaDropdownLeituras()" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+
+                @if (context.showSecretariaDropdownLeituras()) {
+                  <div class="multiselect-popover" (click)="$event.stopPropagation()">
+                    <div class="multiselect-header">
+                      <span class="multiselect-count">{{ context.filtroSecretariasLeituras().length }} selecionada(s)</span>
+                      <div class="multiselect-actions">
+                        <button type="button" class="action-link" (click)="context.selectAllSecretariasFilterLeituras()">Todas</button>
+                        <button type="button" class="action-link" (click)="context.clearSecretariaFilterLeituras()">Limpar</button>
+                      </div>
+                    </div>
+                    <input type="text" class="multiselect-search" placeholder="Filtrar secretarias..."
+                           [ngModel]="context.secretariaFilterSearchLeituras()" (ngModelChange)="context.secretariaFilterSearchLeituras.set($event)" />
+                    <div class="multiselect-list">
+                      @for (sec of context.filteredSecretariasForLeituras(); track sec.id) {
+                        <label class="multiselect-item" [class.selected]="context.isSecretariaFilterSelectedLeituras(sec.id)">
+                          <input type="checkbox" [checked]="context.isSecretariaFilterSelectedLeituras(sec.id)"
+                                 (change)="context.toggleSecretariaFilterLeituras(sec.id)" />
+                          <span class="item-sigla">{{ sec.sigla }}</span>
+                          <span class="item-nome">{{ sec.nome }}</span>
+                        </label>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="filter-field">
+              <span class="filter-label">Status da Medição</span>
+              <select aria-label="Status da Medição" [ngModel]="context.filtroStatusLeituras()" (ngModelChange)="context.filtroStatusLeituras.set($event); context.paginaLeituras.set(1)">
+                <option value="TODOS">Todos os Status</option>
+                <option value="PENDENTES">Pendentes de Digitação</option>
+                <option value="SALVOS">Já Preenchidos / Salvos</option>
+                <option value="ALTERADOS">Com Alterações Não Salvas</option>
+              </select>
+            </div>
+
+            <div class="filter-field">
+              <span class="filter-label">Tipo de Impressão</span>
+              <select aria-label="Tipo de Impressão" [ngModel]="context.filtroTipoLeituras()" (ngModelChange)="context.filtroTipoLeituras.set($event); context.paginaLeituras.set(1)">
+                <option value="TODOS">Todos os Tipos (Mono & Color)</option>
+                <option value="MONO">Somente Monocromáticas (P&B)</option>
+                <option value="COLOR">Somente Coloridas</option>
+              </select>
+            </div>
+          </div>
+
+          @if (context.filtroSecretariasLeituras().length > 0 || context.termoBuscaLeituras() || context.filtroStatusLeituras() !== 'TODOS' || context.filtroTipoLeituras() !== 'TODOS') {
+            <div class="filter-active-tags" style="padding-top: 0.5rem;">
+              <span class="filter-tags-label">Filtros:</span>
+              @if (context.termoBuscaLeituras()) {
+                <span class="filter-tag">Busca: "{{ context.termoBuscaLeituras() }}" <button class="tag-remove" (click)="context.termoBuscaLeituras.set('')">&#x2715;</button></span>
+              }
+              @for (secId of context.filtroSecretariasLeituras(); track secId) {
+                <span class="filter-tag">Secretaria: {{ context.getSecretariaNome(secId) }} <button class="tag-remove" (click)="context.removeSecretariaFilterLeituras(secId)">&#x2715;</button></span>
+              }
+              @if (context.filtroStatusLeituras() !== 'TODOS') {
+                <span class="filter-tag">Status: {{ context.filtroStatusLeituras() === 'PENDENTES' ? 'Pendentes' : context.filtroStatusLeituras() === 'SALVOS' ? 'Salvos' : 'Alterados' }} <button class="tag-remove" (click)="context.filtroStatusLeituras.set('TODOS')">&#x2715;</button></span>
+              }
+              @if (context.filtroTipoLeituras() !== 'TODOS') {
+                <span class="filter-tag">Tipo: {{ context.filtroTipoLeituras() === 'MONO' ? 'Monocromáticas' : 'Coloridas' }} <button class="tag-remove" (click)="context.filtroTipoLeituras.set('TODOS')">&#x2715;</button></span>
+              }
+              <button class="filter-clear-all" (click)="context.termoBuscaLeituras.set(''); context.clearSecretariaFilterLeituras(); context.filtroStatusLeituras.set('TODOS'); context.filtroTipoLeituras.set('TODOS'); context.paginaLeituras.set(1)">Limpar filtros</button>
+            </div>
+          }
+        </div>
+
+        <!-- BANNER DE ALTERAÇÕES PENDENTES DE SALVAMENTO -->
+        @if (context.itensAlteradosCount() > 0) {
+          <div class="batch-unsaved-alert">
+            <div class="alert-content">
+              <span class="alert-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </span>
+              <div>
+                <strong>{{ context.itensAlteradosCount() }} leitura(s) com alterações não salvas</strong>
+                <p>As alterações feitas nas células ainda não foram gravadas na competência de {{ context.nomeMesCompetencia() }}.</p>
+              </div>
+            </div>
+            <div class="alert-actions">
+              <button type="button" class="btn btn-sm btn-outline-danger" (click)="context.descartarAlteracoes()" [disabled]="context.salvandoEmLote()">
+                Descartar alterações
+              </button>
+              <button type="button" class="btn btn-sm btn-save-batch" (click)="context.salvarTodasAlteracoes()" [disabled]="context.salvandoEmLote()">
+                @if (context.salvandoEmLote()) {
+                  <span class="spinner-inline"></span> Salvando...
+                } @else {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                    <polyline points="17 21 17 13 7 13 7 21"/>
+                    <polyline points="7 3 7 8 15 8"/>
+                  </svg>
+                  Salvar Todas as Alterações ({{ context.itensAlteradosCount() }})
+                }
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- BARRA DE RESUMO EXECUTIVO (PADRÃO SUB-CHIP COM PROGRESSO) -->
+        <div class="summary-bar-container grade-summary-bar">
+          <div class="summary-item progress-summary">
+            <div class="progress-info">
+              <span class="summary-item-label">Preenchimento:</span>
+              <span class="progress-text"><strong>{{ context.totalSalvosGrade() }}</strong> / {{ context.totalEquipamentosGrade() }} ({{ context.percentualConcluidoGrade() }}%)</span>
+            </div>
+            <div class="progress-bar-track" [title]="context.percentualConcluidoGrade() + '% concluído'">
+              <div class="progress-bar-fill" [style.width.%]="context.percentualConcluidoGrade()"></div>
+            </div>
+          </div>
+          <span class="summary-divider"></span>
+          <div class="summary-item">
+            <span class="summary-item-label">Produção Mono:</span>
+            <span class="sub-chip chip-gray tabular-nums"><strong>{{ context.totalCopiasMonoMes() | number }}</strong> págs</span>
+          </div>
+          <span class="summary-divider"></span>
+          <div class="summary-item">
+            <span class="summary-item-label">Produção Color:</span>
+            <span class="sub-chip chip-purple tabular-nums"><strong>{{ context.totalCopiasColorMes() | number }}</strong> págs</span>
+          </div>
+          <span class="summary-divider"></span>
+          <div class="summary-item">
+            <span class="summary-item-label">Excedente:</span>
+            <span class="sub-chip tabular-nums" [class.chip-orange]="context.totalExcedenteMes() > 0" [class.chip-green]="context.totalExcedenteMes() === 0">
+              <strong>{{ context.totalExcedenteMes() | number }}</strong> págs
+            </span>
+          </div>
+          <span class="summary-divider"></span>
+          <div class="summary-item">
+            <span class="summary-item-label">Fatura Estimada:</span>
+            <span class="sub-chip chip-green tabular-nums">
+              <strong>R$ {{ context.totalValorFaturaMes() | number:'1.2-2' }}</strong>
+            </span>
+          </div>
+        </div>
+
+        <!-- TABELA DE GRADE INTERATIVA DE MEDIÇÃO MENSAL -->
+        <div class="table-card">
+          <div class="table-header-toolbar measurement-toolbar">
+            <div class="measurement-heading">
+              <h3 class="measurement-title">Equipamentos <span class="measurement-count">{{ context.filteredGradeLeituras().length | number }}</span></h3>
+              <span class="measurement-period">Competência: {{ context.nomeMesCompetencia() }}</span>
+            </div>
+            <details class="measurement-help">
+              <summary>
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/>
+                  <path d="M12 17h.01"/>
+                </svg>
+                Como lançar leituras
+              </summary>
+              <p>Digite a leitura no campo e pressione <kbd>Enter</kbd> para salvar e avançar para o próximo.</p>
+            </details>
+          </div>
+
+          <div class="table-responsive grade-table-wrapper">
+            @if (context.loadingGrade()) {
+              <div class="loading-state-grade">
+                <div class="spinner-grade"></div>
+                <p>Carregando grade de medição de {{ context.nomeMesCompetencia() }}...</p>
+              </div>
+            } @else {
+              <table class="data-table grade-leituras-table">
+                <thead>
+                  <tr class="header-grouped">
+                    <th colspan="5" class="group-col group-info">Identificação do Equipamento</th>
+                    <th colspan="3" class="group-col group-mono">Contador Preto & Branco (Mono)</th>
+                    <th colspan="3" class="group-col group-color">Contador Colorido (Color)</th>
+                    <th colspan="2" class="group-col group-calc">Franquia & Excedente</th>
+                    <th colspan="2" class="group-col group-status">Status & Ação</th>
+                  </tr>
+                  <tr class="header-columns">
+                    <th style="width: 55px;" class="text-center">Item</th>
+                    <th style="width: 85px;">Sec.</th>
+                    <th>Local de Instalação</th>
+                    <th>Modelo & Tipo</th>
+                    <th style="width: 110px;">IP</th>
+
+                    <!-- Grupo Mono -->
+                    <th style="width: 90px; text-align: right;" title="Leitura do mês anterior">Ant. Mono</th>
+                    <th style="width: 125px; text-align: center;" class="th-input-mono" title="Informe a leitura atual monocromática">Leitura Mono *</th>
+                    <th style="width: 80px; text-align: right;" title="Cópias mono produzidas no mês">Cópias</th>
+
+                    <!-- Grupo Color -->
+                    <th style="width: 90px; text-align: right;" title="Leitura colorida do mês anterior">Ant. Color</th>
+                    <th style="width: 125px; text-align: center;" class="th-input-color" title="Informe a leitura colorida atual (apenas para máquinas coloridas)">Leitura Color</th>
+                    <th style="width: 80px; text-align: right;" title="Cópias coloridas produzidas no mês">Cópias</th>
+
+                    <!-- Franquia & Excedente -->
+                    <th style="width: 95px; text-align: right;">Franquia</th>
+                    <th style="width: 85px; text-align: right;">Excedente</th>
+
+                    <!-- Status & Ação -->
+                    <th style="width: 95px;" class="text-center">Status</th>
+                    <th style="width: 65px;" class="text-center">Ação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of context.paginadosGradeLeituras(); track item.impressoraId) {
+                    <tr [class.row-dirty]="item.editado"
+                        [class.row-saved-success]="item.sucesso"
+                        [class.row-color-printer]="item.tipoImpressao === 'COLOR'">
+                      <!-- Item -->
+                      <td class="text-center">
+                        <span class="badge-item-order" [title]="'Impressora ID #' + item.impressoraId">
+                          #{{ item.itemPedido || item.impressoraId }}
+                        </span>
+                      </td>
+
+                      <!-- Secretaria -->
+                      <td>
+                        <span class="sec-badge" [title]="item.secretariaNome || item.secretariaSigla">
+                          {{ item.secretariaSigla || '—' }}
+                        </span>
+                      </td>
+
+                      <!-- Local de Instalação -->
+                      <td>
+                        <div class="cell-location">
+                          <strong class="location-name">{{ item.localInstalacao }}</strong>
+                          @if (item.responsavel) {
+                            <span class="location-resp">{{ item.responsavel }}</span>
+                          }
+                        </div>
+                      </td>
+
+                      <!-- Modelo & Tipo -->
+                      <td>
+                        <div class="cell-model">
+                          <span class="model-name">{{ item.modelo }}</span>
+                          @if (item.tipoImpressao === 'COLOR') {
+                            <span class="badge-type-color" title="Impressora Colorida (Contadores Mono e Color unificados na mesma linha)">COLOR</span>
+                          } @else {
+                            <span class="badge-type-mono" title="Impressora Monocromática (Apenas contador Mono)">MONO</span>
+                          }
+                        </div>
+                      </td>
+
+                      <!-- IP -->
+                      <td>
+                        @if (item.ip) {
+                          <a class="ip-link" [href]="'http://' + item.ip" target="_blank" rel="noopener" [title]="'Abrir painel web da impressora ' + item.ip">
+                            <code class="ip-code">{{ item.ip }}</code>
+                            <svg class="external-icon" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                              <polyline points="15 3 21 3 21 9"></polyline>
+                              <line x1="10" y1="14" x2="21" y2="3"></line>
+                            </svg>
+                          </a>
+                        } @else {
+                          <span class="text-muted">—</span>
+                        }
+                      </td>
+
+                      <!-- Anterior Mono -->
+                      <td style="text-align: right;" class="tabular-nums col-previous">
+                        {{ item.leituraMonoAnterior | number }}
+                      </td>
+
+                      <!-- Leitura Mono Atual (Input) -->
+                      <td class="cell-input text-center">
+                        <div class="input-inline-wrap">
+                          <input type="text"
+                                 inputmode="numeric"
+                                 class="input-inline-leitura input-mono"
+                                 [class.is-dirty]="item.editado && item.leituraMonoAtual !== item.valorOriginalMono"
+                                 [class.is-saved]="item.sucesso"
+                                 [value]="item.leituraMonoAtual !== null && item.leituraMonoAtual !== undefined ? item.leituraMonoAtual : ''"
+                                 placeholder="Mono..."
+                                 (input)="context.onLeituraMonoChange(item, $any($event.target).value)"
+                                 (keydown.enter)="context.salvarLinhaLeitura(item); context.focarProximoInput($event)"
+                                 [disabled]="item.salvando"
+                                 title="Leitura Mono Atual — Pressione Enter para salvar" />
+                        </div>
+                      </td>
+
+                      <!-- Cópias Mono -->
+                      <td style="text-align: right;" class="tabular-nums col-copias">
+                        @if (item.leituraMonoAtual !== null && item.leituraMonoAtual !== undefined) {
+                          <strong [class.text-danger]="(item.copiasMono || 0) > (item.franquiaMono || 0)">
+                            {{ item.copiasMono | number }}
+                          </strong>
+                        } @else {
+                          <span class="text-muted">—</span>
+                        }
+                      </td>
+
+                      <!-- Anterior Color -->
+                      <td style="text-align: right;" class="tabular-nums col-previous">
+                        @if (item.tipoImpressao === 'COLOR') {
+                          {{ item.leituraColorAnterior | number }}
+                        } @else {
+                          <span class="text-muted-dash">—</span>
+                        }
+                      </td>
+
+                      <!-- Leitura Color Atual (Input se Color, dash se Mono) -->
+                      <td class="cell-input text-center">
+                        @if (item.tipoImpressao === 'COLOR') {
+                          <div class="input-inline-wrap">
+                            <input type="text"
+                                   inputmode="numeric"
+                                   class="input-inline-leitura input-color"
+                                   [class.is-dirty]="item.editado && item.leituraColorAtual !== item.valorOriginalColor"
+                                   [class.is-saved]="item.sucesso"
+                                   [value]="item.leituraColorAtual !== null && item.leituraColorAtual !== undefined ? item.leituraColorAtual : ''"
+                                   placeholder="Color..."
+                                   (input)="context.onLeituraColorChange(item, $any($event.target).value)"
+                                   (keydown.enter)="context.salvarLinhaLeitura(item); context.focarProximoInput($event)"
+                                   [disabled]="item.salvando"
+                                   title="Leitura Color Atual — Pressione Enter para salvar" />
+                          </div>
+                        } @else {
+                          <div class="cell-disabled-mono" title="Impressora Monocromática (Sem contador colorido)">
+                            <span class="dash-disabled">—</span>
+                          </div>
+                        }
+                      </td>
+
+                      <!-- Cópias Color -->
+                      <td style="text-align: right;" class="tabular-nums col-copias">
+                        @if (item.tipoImpressao === 'COLOR') {
+                          @if (item.leituraColorAtual !== null && item.leituraColorAtual !== undefined) {
+                            <strong [class.text-danger]="(item.copiasColor || 0) > (item.franquiaColor || 0)">
+                              {{ item.copiasColor | number }}
+                            </strong>
+                          } @else {
+                            <span class="text-muted">—</span>
+                          }
+                        } @else {
+                          <span class="text-muted-dash">—</span>
+                        }
+                      </td>
+
+                      <!-- Franquia -->
+                      <td style="text-align: right;" class="tabular-nums col-franquia text-muted">
+                        @if (item.tipoImpressao === 'COLOR') {
+                          <div class="franquia-stacked" title="Mono: {{ item.franquiaMono | number }} / Color: {{ item.franquiaColor | number }}">
+                            <span>M: {{ item.franquiaMono | number }}</span>
+                            <span class="color-indicator">C: {{ item.franquiaColor | number }}</span>
+                          </div>
+                        } @else {
+                          <span>{{ item.franquiaMono | number }}</span>
+                        }
+                      </td>
+
+                      <!-- Excedente -->
+                      <td style="text-align: right;" class="tabular-nums col-excedente">
+                        @if ((item.excedenteMono || 0) + (item.excedenteColor || 0) > 0) {
+                          <span class="badge-status status-inactive" title="Mono: +{{ item.excedenteMono | number }} | Color: +{{ item.excedenteColor | number }}">
+                            <span class="dot"></span>+{{ ((item.excedenteMono || 0) + (item.excedenteColor || 0)) | number }}
+                          </span>
+                        } @else {
+                          <span class="text-muted">0</span>
+                        }
+                      </td>
+
+                      <!-- Status -->
+                      <td class="text-center">
+                        @if (item.editado) {
+                          <span class="badge-status-pill pill-modified" title="Alterado no navegador — salve a linha ou em lote">
+                            <span class="dot-pulse"></span> Editado
+                          </span>
+                        } @else if (item.status === 'SALVO') {
+                          <span class="badge-status-pill pill-saved" title="Leitura registrada no sistema">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Salvo
+                          </span>
+                        } @else {
+                          <span class="badge-status-pill pill-pending" title="Aguardando digitação da leitura">
+                            Pendente
+                          </span>
+                        }
+                      </td>
+
+                      <!-- Ação individual: Salvar Linha -->
+                      <td class="text-center">
+                        <button type="button"
+                                class="btn-row-save"
+                                [class.btn-row-dirty]="item.editado"
+                                [class.btn-row-success]="item.sucesso"
+                                (click)="context.salvarLinhaLeitura(item)"
+                                [disabled]="item.salvando"
+                                title="Salvar leitura do Item #{{ item.itemPedido || item.impressoraId }} (Enter)">
+                          @if (item.salvando) {
+                            <span class="spinner-inline"></span>
+                          } @else if (item.sucesso) {
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          } @else if (item.editado) {
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                              <polyline points="7 3 7 8 15 8"></polyline>
+                            </svg>
+                          } @else {
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                              <polyline points="7 3 7 8 15 8"></polyline>
+                            </svg>
+                          }
+                        </button>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="15">
+                        <div class="empty-state">
+                          <div class="empty-state-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                              <path d="M12 20v-6M6 20V10M18 20V4"></path>
+                            </svg>
+                          </div>
+                          <h4>Nenhum equipamento encontrado</h4>
+                          <p>Nenhuma impressora corresponde aos filtros selecionados para a competência de {{ context.nomeMesCompetencia() }}.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+            <app-pagination [totalItems]="context.filteredGradeLeituras().length"
+                            [currentPage]="context.paginaAtualLeituras()"
+                            [pageSize]="context.tamanhoLeituras()"
+                            [pageSizeOptions]="[25, 50, 100, 150]"
+                            (pageChange)="context.paginaLeituras.set($event)"
+                            (pageSizeChange)="context.tamanhoLeituras.set($event); context.paginaLeituras.set(1)">
+            </app-pagination>
+          </div>
+        </div>
+      </div>

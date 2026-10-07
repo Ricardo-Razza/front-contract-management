@@ -1,3 +1,14 @@
+import { ModalColetaSnmpComponent } from './components/modal-coleta-snmp.component';
+import { ComprovanteViewerComponent } from './components/comprovante-viewer.component';
+import { ColetaImpressorasComponent } from './components/coleta-impressoras.component';
+import { FinanceiroImpressorasComponent } from './components/financeiro-impressoras.component';
+import { GradeLeiturasComponent } from './components/grade-leituras.component';
+import { ComprovanteImpressorasActions } from './comprovante/comprovante-impressoras.actions';
+import { ColetaImpressorasActions } from './coleta/coleta-impressoras.actions';
+import { LeiturasImpressorasActions } from './leituras/leituras-impressoras.actions';
+import { FinanceiroImpressorasActions } from './financeiro/financeiro-impressoras.actions';
+import { DestroyRef as LifecycleDestroyRef, inject as lifecycleInject } from '@angular/core';
+import { takeUntilDestroyed as untilComponentDestroyed } from '@angular/core/rxjs-interop';
 import { SeletorLocalComponent } from './seletor-local.component';
 import { HistoricoInstalacoesComponent } from './historico-instalacoes.component';
 import { Component, OnInit, OnDestroy, HostListener, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
@@ -42,7 +53,7 @@ import { LocalInstalacaoService } from '@core/services/local-instalacao.service'
 @Component({
   selector: 'app-impressoras',
   standalone: true,
-  imports: [
+  imports: [ModalColetaSnmpComponent, ComprovanteViewerComponent, ColetaImpressorasComponent, FinanceiroImpressorasComponent, GradeLeiturasComponent,
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
@@ -57,6 +68,8 @@ import { LocalInstalacaoService } from '@core/services/local-instalacao.service'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ImpressorasComponent implements OnInit, OnDestroy {
+  private readonly requestDestroyRef = lifecycleInject(LifecycleDestroyRef);
+
   formatDatePtBr = formatDatePtBr;
 
   private impressoraService = inject(ImpressoraService);
@@ -365,36 +378,15 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     this.selectedPrinterForMenu.set(null);
   }
 
-  toggleInvoice(numeroEmpenho: string): void {
-    this.expandedInvoices.update(set => {
-      const newSet = new Set(set);
-      if (newSet.has(numeroEmpenho)) {
-        newSet.delete(numeroEmpenho);
-      } else {
-        newSet.add(numeroEmpenho);
-      }
-      return newSet;
-    });
-  }
+  toggleInvoice(numeroEmpenho: string): void { return this.financeiroActions.toggleInvoice(numeroEmpenho); }
 
-  isInvoiceExpanded(numeroEmpenho: string): boolean {
-    return this.expandedInvoices().has(numeroEmpenho);
-  }
+  isInvoiceExpanded(numeroEmpenho: string): boolean { return this.financeiroActions.isInvoiceExpanded(numeroEmpenho); }
 
-  expandAllInvoices(): void {
-    const all = new Set(this.notasFiscaisLote().map(f => f.numeroEmpenho));
-    this.expandedInvoices.set(all);
-  }
+  expandAllInvoices(): void { return this.financeiroActions.expandAllInvoices(); }
 
-  collapseAllInvoices(): void {
-    this.expandedInvoices.set(new Set<string>());
-  }
+  collapseAllInvoices(): void { return this.financeiroActions.collapseAllInvoices(); }
 
-  calcularPercentualEmpenho(emp: EmpenhoImpressao): number {
-    if (!emp.valorTotal || emp.valorTotal <= 0) return 0;
-    const consumido = emp.valorTotal - (emp.saldo || 0);
-    return Math.min(100, Math.max(0, Math.round((consumido / emp.valorTotal) * 100)));
-  }
+  calcularPercentualEmpenho(emp: EmpenhoImpressao): number { return this.financeiroActions.calcularPercentualEmpenho(emp); }
 
   // Módulo Financeiro & Notas Fiscais Unificado
   subTabFinanceiro = signal<'NOTAS_MENSAIS' | 'DEMONSTRATIVO_ANUAL' | 'EMPENHOS'>('NOTAS_MENSAIS');
@@ -404,14 +396,22 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   empenhoFiltroNotas = signal<number | null>(null); // null = Todos os 8 empenhos
   incluirMedicaoImpressao = signal<boolean>(false); // Opcional: omitir ou incluir detalhamento de medições por máquina na impressão
 
-  alternarMedicaoImpressao(): void {
-    this.incluirMedicaoImpressao.update(v => !v);
-  }
+  alternarMedicaoImpressao(): void { return this.financeiroActions.alternarMedicaoImpressao(); }
 
   notasFiscaisLote = signal<EspelhoFatura[]>([]);
   loadingNotasLote = signal<boolean>(false);
   notasFiscaisConsolidado = signal<NotasFiscaisConsolidado | null>(null);
   loadingNotasConsolidado = signal<boolean>(false);
+  mesesComFaturamento = computed(() => {
+    const consolidado = this.notasFiscaisConsolidado();
+    if (!consolidado || consolidado.ano !== Number(this.anoFinanceiro())) return [];
+
+    const empenhoId = this.empenhoFiltroNotas();
+    const empenhos = consolidado.empenhos.filter(emp => empenhoId === null || emp.empenhoId === empenhoId);
+    return this.mesesLista
+      .filter(mes => empenhos.some(emp => (emp.totaisMensais[mes.num - 1] || 0) > 0))
+      .map(mes => mes.num);
+  });
 
   // Execução Orçamentária e Dotações
   execucaoMensal = signal<ExecucaoMensal | null>(null);
@@ -456,35 +456,17 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     return list.filter(sec => matchesSearch([sec.sigla, sec.nome], search));
   });
 
-  toggleSecretariaDropdownLeituras(): void {
-    this.showSecretariaDropdownLeituras.update(v => !v);
-    if (this.showSecretariaDropdownLeituras()) {
-      this.secretariaFilterSearchLeituras.set('');
-    }
-  }
+  toggleSecretariaDropdownLeituras(): void { return this.leiturasActions.toggleSecretariaDropdownLeituras(); }
 
-  toggleSecretariaFilterLeituras(id: number): void {
-    this.filtroSecretariasLeituras.update(ids => {
-      const exists = ids.includes(id);
-      return exists ? ids.filter(i => i !== id) : [...ids, id];
-    });
-  }
+  toggleSecretariaFilterLeituras(id: number): void { return this.leiturasActions.toggleSecretariaFilterLeituras(id); }
 
-  isSecretariaFilterSelectedLeituras(id: number): boolean {
-    return this.filtroSecretariasLeituras().includes(id);
-  }
+  isSecretariaFilterSelectedLeituras(id: number): boolean { return this.leiturasActions.isSecretariaFilterSelectedLeituras(id); }
 
-  selectAllSecretariasFilterLeituras(): void {
-    this.filtroSecretariasLeituras.set(this.secretariats().map(s => s.id));
-  }
+  selectAllSecretariasFilterLeituras(): void { return this.leiturasActions.selectAllSecretariasFilterLeituras(); }
 
-  clearSecretariaFilterLeituras(): void {
-    this.filtroSecretariasLeituras.set([]);
-  }
+  clearSecretariaFilterLeituras(): void { return this.leiturasActions.clearSecretariaFilterLeituras(); }
 
-  removeSecretariaFilterLeituras(id: number): void {
-    this.filtroSecretariasLeituras.update(ids => ids.filter(i => i !== id));
-  }
+  removeSecretariaFilterLeituras(id: number): void { return this.leiturasActions.removeSecretariaFilterLeituras(id); }
 
   // Paginação da tabela de inventário
   paginaLocais = signal(1);
@@ -1164,12 +1146,12 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   carregarDados(): void {
     this.loading.set(true);
 
-    this.impressoraService.getLotes().subscribe({
+    this.impressoraService.getLotes().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: lotes => this.lotes.set(lotes),
       error: () => this.toast.error('Erro ao carregar lotes de impressão.')
     });
 
-    this.secretariaService.getAll().subscribe({
+    this.secretariaService.getAll().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: secs => this.secretariats.set(secs),
       error: () => this.toast.error('Erro ao carregar secretarias.')
     });
@@ -1181,7 +1163,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   }
 
   carregarEmpenhos(): void {
-    this.impressoraService.getEmpenhos().subscribe({
+    this.impressoraService.getEmpenhos().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: emp => this.empenhos.set(emp),
       error: () => {}
     });
@@ -1190,7 +1172,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   carregarImpressoras(): void {
     this.loading.set(true);
     this.inventoryError.set(false);
-    this.impressoraService.getAll().subscribe({
+    this.impressoraService.getAll().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: list => {
         this.printers.set(list);
         if (this.coletarTodasImpressoras()) {
@@ -1199,7 +1181,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
         this.loading.set(false);
       },
       error: () => {
-        this.toast.error('Erro ao conectar com o serviço de impressoras.');
+
         this.inventoryError.set(true);
         this.loading.set(false);
       }
@@ -1208,14 +1190,14 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
   carregarLocais(): void {
     this.loadingLocais.set(true);
-    this.localInstalacaoService.getAll().subscribe({
+    this.localInstalacaoService.getAll().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: data => {
         this.locais.set(data);
         this.loadingLocais.set(false);
       },
       error: () => {
         this.loadingLocais.set(false);
-        this.toast.error('Erro ao carregar locais de instalação.');
+
       }
     });
   }
@@ -1262,7 +1244,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     const editing = this.editingLocal();
 
     if (editing) {
-      this.localInstalacaoService.update(editing.id, val).subscribe({
+      this.localInstalacaoService.update(editing.id, val).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
         next: () => {
           this.toast.success('Local de instalação atualizado com sucesso!');
           this.fecharModalLocal();
@@ -1271,7 +1253,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
         error: () => this.toast.error('Erro ao atualizar local de instalação.')
       });
     } else {
-      this.localInstalacaoService.create(val).subscribe({
+      this.localInstalacaoService.create(val).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
         next: () => {
           this.toast.success('Local de instalação cadastrado com sucesso!');
           this.fecharModalLocal();
@@ -1284,7 +1266,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
   excluirLocal(id: number): void {
     if (!confirm('Deseja realmente inativar este local de instalação?')) return;
-    this.localInstalacaoService.delete(id).subscribe({
+    this.localInstalacaoService.delete(id).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: () => {
         this.toast.success('Local inativado com sucesso!');
         this.carregarLocais();
@@ -1365,199 +1347,23 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     this.remanejarForm.patchValue({ novaSecretariaId: secId || '', localInstalacaoId: '', novoLocalInstalacao: '', novoEndereco: '', novoResponsavel: '' });
   }
 
-  carregarLeiturasCompetencia(): void {
-    this.carregarGradeLeituras();
-    this.impressoraService.getLeituras(this.mesCompetencia(), this.anoCompetencia()).subscribe({
-      next: list => this.leituras.set(list),
-      error: () => this.toast.error('Erro ao carregar leituras da competência.')
-    });
-  }
+  carregarLeiturasCompetencia(): void { return this.leiturasActions.carregarLeiturasCompetencia(); }
 
-  carregarGradeLeituras(): void {
-    this.loadingGrade.set(true);
-    this.impressoraService.getGradeLeituras(this.mesCompetencia(), this.anoCompetencia()).subscribe({
-      next: (grade) => {
-        const items = grade.map(item => ({
-          ...item,
-          valorOriginalMono: item.leituraMonoAtual,
-          valorOriginalColor: item.leituraColorAtual,
-          editado: false,
-          salvando: false,
-          sucesso: false
-        }));
-        this.gradeLeituras.set(items);
-        this.loadingGrade.set(false);
-      },
-      error: () => {
-        this.toast.error('Erro ao carregar grade de medição.');
-        this.loadingGrade.set(false);
-      }
-    });
-  }
+  carregarGradeLeituras(): void { return this.leiturasActions.carregarGradeLeituras(); }
 
-  onLeituraMonoChange(item: ItemGradeLeitura, valorStr: any): void {
-    const str = String(valorStr ?? '').trim();
-    const valor = str === '' ? null : Math.max(0, parseInt(str.replace(/\D/g, ''), 10) || 0);
-    item.leituraMonoAtual = valor;
+  onLeituraMonoChange(item: ItemGradeLeitura, valorStr: any): void { return this.leiturasActions.onLeituraMonoChange(item, valorStr); }
 
-    if (valor !== null && valor !== undefined) {
-      item.copiasMono = Math.max(0, valor - (item.leituraMonoAnterior || 0));
-    } else {
-      item.copiasMono = 0;
-    }
+  onLeituraColorChange(item: ItemGradeLeitura, valorStr: any): void { return this.leiturasActions.onLeituraColorChange(item, valorStr); }
 
-    item.editado = (item.leituraMonoAtual !== item.valorOriginalMono) || (item.leituraColorAtual !== item.valorOriginalColor);
-    item.sucesso = false;
-    this.recalcularExcedenteEValorItem(item);
-    this.gradeLeituras.update(lista => [...lista]);
-  }
+  recalcularExcedenteEValorItem(item: ItemGradeLeitura): void { return this.leiturasActions.recalcularExcedenteEValorItem(item); }
 
-  onLeituraColorChange(item: ItemGradeLeitura, valorStr: any): void {
-    const str = String(valorStr ?? '').trim();
-    const valor = str === '' ? null : Math.max(0, parseInt(str.replace(/\D/g, ''), 10) || 0);
-    item.leituraColorAtual = valor;
+  salvarLinhaLeitura(item: ItemGradeLeitura): void { return this.leiturasActions.salvarLinhaLeitura(item); }
 
-    if (valor !== null && valor !== undefined) {
-      item.copiasColor = Math.max(0, valor - (item.leituraColorAnterior || 0));
-    } else {
-      item.copiasColor = 0;
-    }
+  salvarTodasAlteracoes(): void { return this.leiturasActions.salvarTodasAlteracoes(); }
 
-    item.editado = (item.leituraMonoAtual !== item.valorOriginalMono) || (item.leituraColorAtual !== item.valorOriginalColor);
-    item.sucesso = false;
-    this.recalcularExcedenteEValorItem(item);
-    this.gradeLeituras.update(lista => [...lista]);
-  }
+  descartarAlteracoes(): void { return this.leiturasActions.descartarAlteracoes(); }
 
-  private recalcularExcedenteEValorItem(item: ItemGradeLeitura): void {
-    const fMono = item.franquiaMono || 0;
-    const fColor = item.franquiaColor || 0;
-    item.excedenteMono = Math.max(0, (item.copiasMono || 0) - fMono);
-    item.excedenteColor = Math.max(0, (item.copiasColor || 0) - fColor);
-  }
-
-  salvarLinhaLeitura(item: ItemGradeLeitura): void {
-    if (item.leituraMonoAtual === null || item.leituraMonoAtual === undefined) {
-      this.toast.warning(`Informe a leitura mono para o Item #${item.itemPedido || item.impressoraId}`);
-      return;
-    }
-
-    if (item.leituraMonoAtual < item.leituraMonoAnterior) {
-      this.toast.warning(`Leitura Mono (${item.leituraMonoAtual}) não pode ser menor que a anterior (${item.leituraMonoAnterior}) para o Item #${item.itemPedido || item.impressoraId}`);
-      return;
-    }
-
-    if (item.tipoImpressao === 'COLOR' && item.leituraColorAtual !== null && item.leituraColorAtual !== undefined) {
-      if (item.leituraColorAtual < item.leituraColorAnterior) {
-        this.toast.warning(`Leitura Color (${item.leituraColorAtual}) não pode ser menor que a anterior (${item.leituraColorAnterior}) para o Item #${item.itemPedido || item.impressoraId}`);
-        return;
-      }
-    }
-
-    item.salvando = true;
-    const dto: LeituraContadorDTO = {
-      impressoraId: item.impressoraId,
-      mesReferencia: this.mesCompetencia(),
-      anoReferencia: this.anoCompetencia(),
-      dataLeitura: getTodayLocalDateString(),
-      leituraMonoAtual: item.leituraMonoAtual,
-      leituraColorAtual: item.tipoImpressao === 'COLOR' ? (item.leituraColorAtual ?? 0) : 0,
-      origemLeitura: 'MANUAL',
-      observacoes: item.observacoes
-    };
-
-    this.impressoraService.lancarLeitura(dto).subscribe({
-      next: (resp) => {
-        item.salvando = false;
-        item.editado = false;
-        item.sucesso = true;
-        item.status = 'SALVO';
-        item.leituraId = resp.id;
-        item.valorOriginalMono = item.leituraMonoAtual;
-        item.valorOriginalColor = item.leituraColorAtual;
-        item.copiasMono = resp.copiasMono;
-        item.copiasColor = resp.copiasColor;
-        item.excedenteMono = resp.excedenteMono;
-        item.excedenteColor = resp.excedenteColor;
-        item.valorLocacao = resp.valorLocacao;
-        item.valorTotal = resp.valorTotal;
-        this.toast.success(`Leitura do Item #${item.itemPedido || item.impressoraId} salva!`);
-        this.gradeLeituras.update(lista => [...lista]);
-        setTimeout(() => {
-          item.sucesso = false;
-          this.gradeLeituras.update(lista => [...lista]);
-        }, 3000);
-      },
-      error: (err) => {
-        item.salvando = false;
-        this.toast.error(`Erro ao salvar leitura do Item #${item.itemPedido || item.impressoraId}: ` + (err.error?.message || err.message));
-      }
-    });
-  }
-
-  salvarTodasAlteracoes(): void {
-    const alterados = this.gradeLeituras().filter(item => item.editado);
-    if (alterados.length === 0) {
-      this.toast.info('Nenhuma leitura foi alterada.');
-      return;
-    }
-
-    for (const item of alterados) {
-      if (item.leituraMonoAtual === null || item.leituraMonoAtual === undefined) {
-        this.toast.warning(`Informe a leitura mono para o Item #${item.itemPedido || item.impressoraId}`);
-        return;
-      }
-      if (item.leituraMonoAtual < item.leituraMonoAnterior) {
-        this.toast.warning(`Leitura Mono do Item #${item.itemPedido || item.impressoraId} não pode ser menor que a anterior.`);
-        return;
-      }
-      if (item.tipoImpressao === 'COLOR' && item.leituraColorAtual !== null && item.leituraColorAtual !== undefined) {
-        if (item.leituraColorAtual < item.leituraColorAnterior) {
-          this.toast.warning(`Leitura Color do Item #${item.itemPedido || item.impressoraId} não pode ser menor que a anterior.`);
-          return;
-        }
-      }
-    }
-
-    this.salvandoEmLote.set(true);
-    const dtos: LeituraContadorDTO[] = alterados.map(item => ({
-      impressoraId: item.impressoraId,
-      mesReferencia: this.mesCompetencia(),
-      anoReferencia: this.anoCompetencia(),
-      dataLeitura: getTodayLocalDateString(),
-      leituraMonoAtual: item.leituraMonoAtual!,
-      leituraColorAtual: item.tipoImpressao === 'COLOR' ? (item.leituraColorAtual ?? 0) : 0,
-      origemLeitura: 'MANUAL',
-      observacoes: item.observacoes
-    }));
-
-    this.impressoraService.salvarLeiturasLote(dtos).subscribe({
-      next: (resps) => {
-        this.salvandoEmLote.set(false);
-        this.toast.success(`${resps.length} leitura(s) salvas com sucesso!`);
-        this.carregarGradeLeituras();
-      },
-      error: (err) => {
-        this.salvandoEmLote.set(false);
-        this.toast.error('Erro ao salvar leituras em lote: ' + (err.error?.message || err.message));
-      }
-    });
-  }
-
-  descartarAlteracoes(): void {
-    this.carregarGradeLeituras();
-    this.toast.info('Alterações descartadas.');
-  }
-
-  focarProximoInput(event: Event): void {
-    const target = event.target as HTMLElement;
-    const inputs = Array.from(document.querySelectorAll<HTMLInputElement>('.input-inline-leitura:not([disabled])'));
-    const index = inputs.indexOf(target as HTMLInputElement);
-    if (index >= 0 && index < inputs.length - 1) {
-      inputs[index + 1].focus();
-      inputs[index + 1].select();
-    }
-  }
+  focarProximoInput(event: Event): void { return this.leiturasActions.focarProximoInput(event); }
 
   trocarAba(tab: 'INVENTARIO' | 'LEITURAS' | 'FINANCEIRO' | 'LOTES' | 'COLETA' | 'LOCAIS'): void {
     this.activeTab.set(tab);
@@ -1579,27 +1385,9 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     }
   }
 
-  selecionarSubTabFinanceiro(subTab: 'NOTAS_MENSAIS' | 'DEMONSTRATIVO_ANUAL' | 'EMPENHOS'): void {
-    this.subTabFinanceiro.set(subTab);
-    this.inicializarFinanceiroSeNecessario();
-  }
+  selecionarSubTabFinanceiro(subTab: 'NOTAS_MENSAIS' | 'DEMONSTRATIVO_ANUAL' | 'EMPENHOS'): void { return this.financeiroActions.selecionarSubTabFinanceiro(subTab); }
 
-  inicializarFinanceiroSeNecessario(): void {
-    const sub = this.subTabFinanceiro();
-    if (sub === 'NOTAS_MENSAIS') {
-      if (this.notasFiscaisLote().length === 0) {
-        this.carregarNotasFiscaisLote();
-      }
-    } else if (sub === 'DEMONSTRATIVO_ANUAL') {
-      if (!this.notasFiscaisConsolidado()) {
-        this.carregarNotasFiscaisConsolidado();
-      }
-    } else if (sub === 'EMPENHOS') {
-      if (!this.execucaoMensal()) {
-        this.carregarExecucaoMensal();
-      }
-    }
-  }
+  inicializarFinanceiroSeNecessario(): void { return this.financeiroActions.inicializarFinanceiroSeNecessario(); }
 
   // Modal Impressora: Criar / Editar
   openCreateModal(): void {
@@ -1706,7 +1494,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     }
 
     if (this.isEditMode() && this.selectedPrinter()) {
-      this.impressoraService.update(this.selectedPrinter()!.id, payload).subscribe({
+      this.impressoraService.update(this.selectedPrinter()!.id, payload).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
         next: () => {
           this.toast.success('Equipamento atualizado com sucesso!');
           this.closeModal();
@@ -1716,7 +1504,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
         error: () => this.toast.error('Erro ao atualizar impressora.')
       });
     } else {
-      this.impressoraService.create(payload).subscribe({
+      this.impressoraService.create(payload).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
         next: () => {
           this.toast.success('Equipamento cadastrado com sucesso!');
           this.closeModal();
@@ -1777,7 +1565,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       }
     }
 
-    this.impressoraService.remanejarLocal(this.selectedPrinter()!.id, val).subscribe({
+    this.impressoraService.remanejarLocal(this.selectedPrinter()!.id, val).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: () => {
         this.toast.success('Impressora remanejada com histórico registrado!');
         this.closeRemanejarModal();
@@ -1817,7 +1605,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.impressoraService.substituirPorDefeito(this.selectedPrinter()!.id, this.substituirForm.value).subscribe({
+    this.impressoraService.substituirPorDefeito(this.selectedPrinter()!.id, this.substituirForm.value).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: () => {
         this.toast.success('Equipamento substituído por Swap com sucesso!');
         this.closeSubstituirModal();
@@ -1854,7 +1642,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.impressoraService.lancarLeitura(this.leituraForm.value).subscribe({
+    this.impressoraService.lancarLeitura(this.leituraForm.value).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: () => {
         this.toast.success('Leitura apurada e registrada com sucesso!');
         this.closeLeituraModal();
@@ -1891,7 +1679,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
   carregarHistoricoImpressora(id: number): void {
     this.loadingHistorico.set(true);
-    this.impressoraService.getLeiturasPorImpressora(id).subscribe({
+    this.impressoraService.getLeiturasPorImpressora(id).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: list => {
         this.historicoLeiturasImpressora.set(list);
         this.loadingHistorico.set(false);
@@ -1917,7 +1705,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     const p = this.printerToDelete();
     if (!p) return;
 
-    this.impressoraService.delete(p.id).subscribe({
+    this.impressoraService.delete(p.id).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: () => {
         this.toast.success('Equipamento inativado e recolhido com sucesso.');
         this.closeDeleteModal();
@@ -1930,97 +1718,21 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   // ==========================================
   // GESTÃO DE EMPENHOS
   // ==========================================
-  openCreateEmpenhoModal(): void {
-    this.isEmpenhoEditMode.set(false);
-    this.selectedEmpenho.set(null);
-    this.empenhoForm.reset({
-      numeroEmpenho: '',
-      ano: new Date().getFullYear(),
-      secretariaId: '',
-      descricao: '',
-      valorTotal: 0,
-      saldo: 0
-    });
-    this.isEmpenhoModalOpen.set(true);
-  }
+  openCreateEmpenhoModal(): void { return this.financeiroActions.openCreateEmpenhoModal(); }
 
-  openEditEmpenhoModal(emp: EmpenhoImpressao): void {
-    this.isEmpenhoEditMode.set(true);
-    this.selectedEmpenho.set(emp);
-    this.empenhoForm.patchValue({
-      numeroEmpenho: emp.numeroEmpenho,
-      ano: emp.ano,
-      secretariaId: emp.secretariaId,
-      descricao: emp.descricao || '',
-      valorTotal: emp.valorTotal,
-      saldo: emp.saldo
-    });
-    this.isEmpenhoModalOpen.set(true);
-  }
+  openEditEmpenhoModal(emp: EmpenhoImpressao): void { return this.financeiroActions.openEditEmpenhoModal(emp); }
 
-  closeEmpenhoModal(): void {
-    this.isEmpenhoModalOpen.set(false);
-    this.selectedEmpenho.set(null);
-  }
+  closeEmpenhoModal(): void { return this.financeiroActions.closeEmpenhoModal(); }
 
-  salvarEmpenho(): void {
-    if (this.empenhoForm.invalid) {
-      this.empenhoForm.markAllAsTouched();
-      this.toast.error('Preencha os dados do empenho.');
-      return;
-    }
+  salvarEmpenho(): void { return this.financeiroActions.salvarEmpenho(); }
 
-    const payload: EmpenhoDTO = this.empenhoForm.value;
+  confirmarExcluirEmpenho(emp: EmpenhoImpressao): void { return this.financeiroActions.confirmarExcluirEmpenho(emp); }
 
-    if (this.isEmpenhoEditMode() && this.selectedEmpenho()) {
-      this.impressoraService.updateEmpenho(this.selectedEmpenho()!.id, payload).subscribe({
-        next: () => {
-          this.toast.success('Empenho atualizado com sucesso!');
-          this.closeEmpenhoModal();
-          this.carregarEmpenhos();
-        },
-        error: () => this.toast.error('Erro ao atualizar empenho.')
-      });
-    } else {
-      this.impressoraService.createEmpenho(payload).subscribe({
-        next: () => {
-          this.toast.success('Empenho cadastrado com sucesso!');
-          this.closeEmpenhoModal();
-          this.carregarEmpenhos();
-        },
-        error: () => this.toast.error('Erro ao cadastrar empenho.')
-      });
-    }
-  }
+  closeDeleteEmpenhoModal(): void { return this.financeiroActions.closeDeleteEmpenhoModal(); }
 
-  confirmarExcluirEmpenho(emp: EmpenhoImpressao): void {
-    this.empenhoToDelete.set(emp);
-    this.isDeleteEmpenhoModalOpen.set(true);
-  }
+  executarExclusaoEmpenho(): void { return this.financeiroActions.executarExclusaoEmpenho(); }
 
-  closeDeleteEmpenhoModal(): void {
-    this.isDeleteEmpenhoModalOpen.set(false);
-    this.empenhoToDelete.set(null);
-  }
-
-  executarExclusaoEmpenho(): void {
-    const emp = this.empenhoToDelete();
-    if (!emp) return;
-
-    this.impressoraService.deleteEmpenho(emp.id).subscribe({
-      next: () => {
-        this.toast.success('Empenho inativado com sucesso.');
-        this.closeDeleteEmpenhoModal();
-        this.carregarEmpenhos();
-      },
-      error: () => this.toast.error('Erro ao inativar empenho.')
-    });
-  }
-
-  filtrarPorEmpenhoNoInventario(numeroEmpenho: string): void {
-    this.filterEmpenho.set(numeroEmpenho);
-    this.activeTab.set('INVENTARIO');
-  }
+  filtrarPorEmpenhoNoInventario(numeroEmpenho: string): void { return this.financeiroActions.filtrarPorEmpenhoNoInventario(numeroEmpenho); }
 
   // ==========================================
   // EXPORTAÇÕES CSV
@@ -2047,32 +1759,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     this.toast.success('Inventário exportado em .CSV com sucesso!');
   }
 
-  exportarMedicaoCSV(): void {
-    const list = this.filteredGradeLeituras();
-    const columns = [
-      { header: 'Item', accessor: (l: ItemGradeLeitura) => l.itemPedido || l.impressoraId || '' },
-      { header: 'Secretaria', accessor: (l: ItemGradeLeitura) => l.secretariaSigla || '' },
-      { header: 'Local Instalacao', accessor: (l: ItemGradeLeitura) => l.localInstalacao || '' },
-      { header: 'Modelo', accessor: (l: ItemGradeLeitura) => l.modelo || '' },
-      { header: 'Tipo', accessor: (l: ItemGradeLeitura) => l.tipoImpressao || '' },
-      { header: 'IP', accessor: (l: ItemGradeLeitura) => l.ip || '' },
-      { header: 'Leitura Mono Anterior', accessor: (l: ItemGradeLeitura) => (l.leituraMonoAnterior || 0).toLocaleString('pt-BR') },
-      { header: 'Leitura Mono Atual', accessor: (l: ItemGradeLeitura) => l.leituraMonoAtual !== null && l.leituraMonoAtual !== undefined ? Number(l.leituraMonoAtual).toLocaleString('pt-BR') : '' },
-      { header: 'Copias Mono', accessor: (l: ItemGradeLeitura) => (l.copiasMono || 0).toLocaleString('pt-BR') },
-      { header: 'Franquia Mono', accessor: (l: ItemGradeLeitura) => (l.franquiaMono || 0).toLocaleString('pt-BR') },
-      { header: 'Excedente Mono', accessor: (l: ItemGradeLeitura) => (l.excedenteMono || 0).toLocaleString('pt-BR') },
-      { header: 'Leitura Color Anterior', accessor: (l: ItemGradeLeitura) => l.tipoImpressao === 'COLOR' ? (l.leituraColorAnterior || 0).toLocaleString('pt-BR') : '' },
-      { header: 'Leitura Color Atual', accessor: (l: ItemGradeLeitura) => l.tipoImpressao === 'COLOR' && l.leituraColorAtual !== null && l.leituraColorAtual !== undefined ? Number(l.leituraColorAtual).toLocaleString('pt-BR') : '' },
-      { header: 'Copias Color', accessor: (l: ItemGradeLeitura) => l.tipoImpressao === 'COLOR' ? (l.copiasColor || 0).toLocaleString('pt-BR') : '' },
-      { header: 'Franquia Color', accessor: (l: ItemGradeLeitura) => l.tipoImpressao === 'COLOR' ? (l.franquiaColor || 0).toLocaleString('pt-BR') : '' },
-      { header: 'Excedente Color', accessor: (l: ItemGradeLeitura) => l.tipoImpressao === 'COLOR' ? (l.excedenteColor || 0).toLocaleString('pt-BR') : '' },
-      { header: 'Valor Locacao', accessor: (l: ItemGradeLeitura) => (l.valorLocacao || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Valor Total', accessor: (l: ItemGradeLeitura) => (l.valorTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Status', accessor: (l: ItemGradeLeitura) => l.status || '' }
-    ];
-    exportToCsv('medicao_impressoras_' + this.mesCompetencia() + '_' + this.anoCompetencia(), columns, list);
-    this.toast.success('Medição mensal exportada em .CSV com sucesso!');
-  }
+  exportarMedicaoCSV(): void { return this.leiturasActions.exportarMedicaoCSV(); }
 
   exportarHistoricoImpressoraCSV(): void {
     const p = this.selectedPrinter();
@@ -2093,130 +1780,22 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     this.toast.success('Histórico de contadores exportado em .CSV com sucesso!');
   }
 
-  exportarEmpenhosCSV(): void {
-    const list = this.empenhos();
-    const columns = [
-      { header: 'Numero Empenho', accessor: (e: EmpenhoImpressao) => e.numeroEmpenho },
-      { header: 'Exercicio', accessor: (e: EmpenhoImpressao) => e.ano },
-      { header: 'Secretaria', accessor: (e: EmpenhoImpressao) => e.secretariaSigla || '' },
-      { header: 'Descricao', accessor: (e: EmpenhoImpressao) => e.descricao || '' },
-      { header: 'Valor Total R$', accessor: (e: EmpenhoImpressao) => (e.valorTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Saldo Restante R$', accessor: (e: EmpenhoImpressao) => (e.saldo || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Qtd Impressoras', accessor: (e: EmpenhoImpressao) => (e.quantidadeImpressoras || 0).toLocaleString('pt-BR') }
-    ];
-    exportToCsv('empenhos_impressao_' + new Date().getFullYear(), columns, list);
-    this.toast.success('Empenhos exportados em .CSV com sucesso!');
-  }
+  exportarEmpenhosCSV(): void { return this.financeiroActions.exportarEmpenhosCSV(); }
 
   // ==========================================
   // GESTÃO ORÇAMENTÁRIA & MATRIZ MENSAL
   // ==========================================
-  carregarExecucaoMensal(ano: number = this.anoExecucao()): void {
-    this.loadingExecucao.set(true);
-    this.anoExecucao.set(ano);
-    this.impressoraService.getExecucaoMensal(ano).subscribe({
-      next: data => {
-        this.execucaoMensal.set(data);
-        this.loadingExecucao.set(false);
-      },
-      error: () => {
-        this.toast.error('Erro ao carregar matriz de execução orçamentária.');
-        this.loadingExecucao.set(false);
-      }
-    });
-  }
+  carregarExecucaoMensal(ano: number = this.anoExecucao()): void { return this.financeiroActions.carregarExecucaoMensal(ano); }
 
+  carregarBalancoFranquias(mes: number = this.mesBalanco(), ano: number = this.anoBalanco()): void { return this.financeiroActions.carregarBalancoFranquias(mes, ano); }
 
-  carregarBalancoFranquias(mes: number = this.mesBalanco(), ano: number = this.anoBalanco()): void {
-    this.loadingBalanco.set(true);
-    this.mesBalanco.set(mes);
-    this.anoBalanco.set(ano);
+  imprimirEspelho(): void { return this.financeiroActions.imprimirEspelho(); }
 
-    this.impressoraService.getBalancoFranquias(mes, ano).subscribe({
-      next: balanco => {
-        this.balancoFranquias.set(balanco);
-        this.loadingBalanco.set(false);
-      },
-      error: () => {
-        this.toast.error('Erro ao carregar balanço de franquias por lote.');
-        this.loadingBalanco.set(false);
-      }
-    });
-  }
+  exportarEspelhoCSV(): void { return this.financeiroActions.exportarEspelhoCSV(); }
 
-  imprimirEspelho(): void {
-    window.print();
-  }
+  exportarMatrizExecucaoCSV(): void { return this.financeiroActions.exportarMatrizExecucaoCSV(); }
 
-  exportarEspelhoCSV(): void {
-    const fatura = this.espelhoFatura();
-    if (!fatura) return;
-
-    const list = fatura.itens;
-    const columns = [
-      { header: 'Item', accessor: (it: ItemFatura) => it.itemNumero },
-      { header: 'Codigo', accessor: (it: ItemFatura) => it.codigoItem },
-      { header: 'Descricao', accessor: (it: ItemFatura) => it.descricao },
-      { header: 'Unidade', accessor: (it: ItemFatura) => it.unidade },
-      { header: 'Quantidade', accessor: (it: ItemFatura) => (it.quantidade || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) },
-      { header: 'Valor Unitario R$', accessor: (it: ItemFatura) => (it.valorUnitario || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 3 }) },
-      { header: 'Subtotal R$', accessor: (it: ItemFatura) => (it.valorTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
-    ];
-    exportToCsv(`espelho_fatura_emp_${fatura.numeroEmpenho}_${fatura.mesReferencia}_${fatura.anoReferencia}`, columns, list);
-    this.toast.success('Espelho de fatura exportado em .CSV com sucesso!');
-  }
-
-  exportarMatrizExecucaoCSV(): void {
-    const exec = this.execucaoMensal();
-    if (!exec) return;
-
-    const list = exec.empenhos;
-    const columns = [
-      { header: 'Empenho', accessor: (e: EmpenhoExecucao) => e.numeroEmpenho },
-      { header: 'Secretaria', accessor: (e: EmpenhoExecucao) => e.secretariaSigla },
-      { header: 'Descricao', accessor: (e: EmpenhoExecucao) => e.descricao || '' },
-      { header: 'Dotacao Anual R$', accessor: (e: EmpenhoExecucao) => (e.valorTotalEmpenhado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Jan R$', accessor: (e: EmpenhoExecucao) => (e.meses[0]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Fev R$', accessor: (e: EmpenhoExecucao) => (e.meses[1]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Mar R$', accessor: (e: EmpenhoExecucao) => (e.meses[2]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Abr R$', accessor: (e: EmpenhoExecucao) => (e.meses[3]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Mai R$', accessor: (e: EmpenhoExecucao) => (e.meses[4]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Jun R$', accessor: (e: EmpenhoExecucao) => (e.meses[5]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Jul R$', accessor: (e: EmpenhoExecucao) => (e.meses[6]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Ago R$', accessor: (e: EmpenhoExecucao) => (e.meses[7]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Set R$', accessor: (e: EmpenhoExecucao) => (e.meses[8]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Out R$', accessor: (e: EmpenhoExecucao) => (e.meses[9]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Nov R$', accessor: (e: EmpenhoExecucao) => (e.meses[10]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Dez R$', accessor: (e: EmpenhoExecucao) => (e.meses[11]?.valorFaturado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Total Liquidado R$', accessor: (e: EmpenhoExecucao) => (e.totalLiquidado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Saldo Restante R$', accessor: (e: EmpenhoExecucao) => (e.saldoRestante || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: '% Consumido', accessor: (e: EmpenhoExecucao) => (e.percentualConsumido || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%' }
-    ];
-    exportToCsv(`execucao_orcamentaria_empenhos_${exec.ano}`, columns, list);
-    this.toast.success('Matriz de execução orçamentária exportada em .CSV com sucesso!');
-  }
-
-  exportarBalancoFranquiasCSV(): void {
-    const balanco = this.balancoFranquias();
-    if (!balanco) return;
-
-    const list = balanco.lotes;
-    const columns = [
-      { header: 'Lote', accessor: (l: LoteBalanco) => 'Lote 0' + l.numeroLote },
-      { header: 'Descricao', accessor: (l: LoteBalanco) => l.descricao },
-      { header: 'Tipo', accessor: (l: LoteBalanco) => l.tipo },
-      { header: 'Qtd Maquinas', accessor: (l: LoteBalanco) => (l.quantidadeEquipamentos || 0).toLocaleString('pt-BR') },
-      { header: 'Franquia Total Mono', accessor: (l: LoteBalanco) => (l.franquiaTotalMono || 0).toLocaleString('pt-BR') },
-      { header: 'Copias Mono Produzidas', accessor: (l: LoteBalanco) => (l.copiasMonoProduzidas || 0).toLocaleString('pt-BR') },
-      { header: 'Excedente Mono', accessor: (l: LoteBalanco) => (l.excedenteMonoTotal || 0).toLocaleString('pt-BR') },
-      { header: '% Uso Mono', accessor: (l: LoteBalanco) => (l.percentualUsoMono || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%' },
-      { header: 'Custo Locacao R$', accessor: (l: LoteBalanco) => (l.custoFixoLocacao || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Custo Excedente R$', accessor: (l: LoteBalanco) => ((l.custoExcedenteMono || 0) + (l.custoExcedenteColor || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Custo Total R$', accessor: (l: LoteBalanco) => (l.custoTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
-    ];
-    exportToCsv(`balanco_franquias_${balanco.mesReferencia}_${balanco.anoReferencia}`, columns, list);
-    this.toast.success('Balanço de franquias exportado em .CSV com sucesso!');
-  }
+  exportarBalancoFranquiasCSV(): void { return this.financeiroActions.exportarBalancoFranquiasCSV(); }
 
   // ==========================================
   // MÓDULO FINANCEIRO & NOTAS FISCAIS
@@ -2236,418 +1815,29 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     { num: 12, sigla: 'Dez', nome: 'Dezembro' }
   ];
 
-  isMesSelecionado(mes: number): boolean {
-    return this.mesesSelecionados().includes(mes);
-  }
+  isMesSelecionado(mes: number): boolean { return this.financeiroActions.isMesSelecionado(mes); }
 
-  selecionarMes(mes: number): void {
-    if (this.modoMultiplosMeses()) {
-      const atuais = this.mesesSelecionados();
-      if (atuais.includes(mes)) {
-        if (atuais.length > 1) {
-          this.mesesSelecionados.set(atuais.filter(m => m !== mes));
-        }
-      } else {
-        this.mesesSelecionados.set([...atuais, mes].sort((a, b) => a - b));
-      }
-    } else {
-      this.mesesSelecionados.set([mes]);
-    }
-    this.carregarNotasFiscaisLote();
-  }
+  selecionarMes(mes: number): void { return this.financeiroActions.selecionarMes(mes); }
 
-  selecionarTodosMeses(): void {
-    this.mesesSelecionados.set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-    this.carregarNotasFiscaisLote();
-  }
+  selecionarTodosMeses(): void { return this.financeiroActions.selecionarTodosMeses(); }
 
-  selecionarMesesFaturados(): void {
-    this.mesesSelecionados.set([1, 2, 3, 4, 5, 6, 7, 8]);
-    this.carregarNotasFiscaisLote();
-  }
+  selecionarMesesFaturados(): void { return this.financeiroActions.selecionarMesesFaturados(); }
 
-  alternarModoMultiplosMeses(): void {
-    this.modoMultiplosMeses.update(v => !v);
-  }
+  alternarModoMultiplosMeses(): void { return this.financeiroActions.alternarModoMultiplosMeses(); }
 
-  selecionarFiltroEmpenho(empId: number | null): void {
-    this.empenhoFiltroNotas.set(empId);
-    this.carregarNotasFiscaisLote();
-  }
+  selecionarFiltroEmpenho(empId: number | null): void { return this.financeiroActions.selecionarFiltroEmpenho(empId); }
 
-  carregarNotasFiscaisLote(): void {
-    this.loadingNotasLote.set(true);
-    const meses = this.mesesSelecionados();
-    const ano = this.anoFinanceiro();
-    const empId = this.empenhoFiltroNotas() || undefined;
+  carregarNotasFiscaisLote(): void { return this.financeiroActions.carregarNotasFiscaisLote(); }
 
-    this.impressoraService.getNotasFiscaisLote(meses, undefined, ano, empId).subscribe({
-      next: faturas => {
-        this.notasFiscaisLote.set(faturas);
-        this.loadingNotasLote.set(false);
-      },
-      error: () => {
-        this.toast.error('Erro ao gerar faturas dos empenhos.');
-        this.loadingNotasLote.set(false);
-      }
-    });
-  }
+  carregarNotasFiscaisConsolidado(ano: number = this.anoFinanceiro()): void { return this.financeiroActions.carregarNotasFiscaisConsolidado(ano); }
 
-  carregarNotasFiscaisConsolidado(ano: number = this.anoFinanceiro()): void {
-    this.loadingNotasConsolidado.set(true);
-    this.anoFinanceiro.set(ano);
-    this.impressoraService.getNotasFiscaisConsolidado(ano).subscribe({
-      next: data => {
-        this.notasFiscaisConsolidado.set(data);
-        this.loadingNotasConsolidado.set(false);
-      },
-      error: () => {
-        this.toast.error('Erro ao carregar demonstrativo anual consolidado.');
-        this.loadingNotasConsolidado.set(false);
-      }
-    });
-  }
+  getIsolatedPrintStyles(landscape: boolean): string { return this.financeiroActions.getIsolatedPrintStyles(landscape); }
 
-  private getIsolatedPrintStyles(landscape: boolean): string {
-    return `
-      @page {
-        size: A4 ${landscape ? 'landscape' : 'portrait'};
-        margin: ${landscape ? '8mm 10mm' : '10mm 12mm'};
-      }
-      * {
-        box-sizing: border-box;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-        background: #ffffff;
-        color: #0f172a;
-        font-size: 8pt;
-        line-height: 1.35;
-      }
-      .no-print {
-        display: none !important;
-        visibility: hidden !important;
-      }
-      .official-invoice-card {
-        display: block;
-        background: #ffffff;
-        border: 1.5px solid #334155;
-        border-radius: 6px;
-        padding: 8mm 10mm;
-        margin: 0 0 12mm 0;
-        page-break-after: always;
-        break-after: page;
-        page-break-inside: auto;
-        break-inside: auto;
-      }
-      .official-invoice-card:last-child {
-        page-break-after: auto;
-        break-after: auto;
-        margin-bottom: 0;
-      }
-      .doc-header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        border-bottom: 2px solid #0f172a;
-        padding-bottom: 4mm;
-        margin-bottom: 4mm;
-        page-break-inside: avoid;
-        break-inside: avoid;
-      }
-      .gov-text h3 {
-        font-size: 13pt;
-        font-weight: 800;
-        color: #0f172a;
-        margin: 0 0 1.5mm 0;
-        letter-spacing: 0.02em;
-      }
-      .gov-text .gov-sub {
-        font-size: 8.5pt;
-        color: #334155;
-        margin: 0.8mm 0;
-        font-weight: 600;
-      }
-      .invoice-meta {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 1mm;
-      }
-      .invoice-meta .doc-title-badge {
-        background: #0f172a;
-        color: #ffffff;
-        font-size: 7.5pt;
-        font-weight: 800;
-        padding: 1mm 3mm;
-        border-radius: 3px;
-        letter-spacing: 0.04em;
-      }
-      .invoice-meta .meta-row {
-        font-size: 8pt;
-        color: #475569;
-      }
-      .invoice-meta .meta-lbl {
-        margin-right: 2mm;
-      }
-      .invoice-meta .meta-val {
-        color: #0f172a;
-        font-weight: 600;
-      }
-      .invoice-meta .meta-val.highlight {
-        font-weight: 800;
-        color: #1d4ed8;
-      }
-      .contractor-bar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        background: #f8fafc;
-        border: 1px solid #cbd5e1;
-        border-radius: 4px;
-        padding: 2.5mm 4mm;
-        font-size: 7.5pt;
-        color: #1e293b;
-        margin-bottom: 4mm;
-        page-break-inside: avoid;
-        break-inside: avoid;
-      }
-      .doc-section {
-        margin-bottom: 4mm;
-      }
-      .doc-section h4 {
-        font-size: 8.5pt;
-        font-weight: 700;
-        color: #0f172a;
-        margin: 0 0 2mm 0;
-        border-left: 3px solid #2563eb;
-        padding-left: 2.5mm;
-        page-break-inside: avoid;
-        break-inside: avoid;
-      }
-      .doc-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 7.5pt;
-      }
-      .doc-table th {
-        background: #f1f5f9;
-        color: #0f172a;
-        font-weight: 700;
-        padding: 1.8mm 2.5mm;
-        border: 1px solid #94a3b8;
-      }
-      .doc-table td {
-        padding: 1.8mm 2.5mm;
-        border: 1px solid #cbd5e1;
-        color: #1e293b;
-      }
-      .doc-table tr {
-        page-break-inside: avoid;
-        break-inside: avoid;
-      }
-      .doc-table .row-total td {
-        background: #f8fafc;
-        border-top: 2px solid #0f172a;
-        font-weight: 700;
-      }
-      .doc-table .total-destaque {
-        font-size: 8.5pt;
-        color: #1e40af;
-        font-weight: 800;
-      }
-      .text-center { text-align: center; }
-      .text-right { text-align: right; }
-      .font-bold { font-weight: 700; }
-      .font-semibold { font-weight: 600; }
-      code {
-        font-family: monospace;
-        background: #f1f5f9;
-        padding: 1px 3px;
-        border-radius: 2px;
-      }
-      .atesto-box {
-        margin-top: 4mm;
-        background: #fafaf9;
-        border: 1px dashed #94a3b8;
-        border-radius: 5px;
-        padding: 3.5mm 5mm;
-        page-break-inside: avoid;
-        break-inside: avoid;
-      }
-      .atesto-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 1.5mm;
-        font-size: 7pt;
-        font-weight: 800;
-        color: #15803d;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-        margin-bottom: 1.5mm;
-      }
-      .atesto-badge svg { display: none; }
-      .atesto-texto {
-        font-size: 7pt;
-        color: #334155;
-        line-height: 1.35;
-        margin: 0 0 5mm 0;
-      }
-      .atesto-signatures {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12mm;
-      }
-      .signature-line {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
-      .signature-line .line {
-        width: 80%;
-        height: 1px;
-        background: #334155;
-        margin-bottom: 1.5mm;
-      }
-      .signature-line .signer-name {
-        font-size: 7pt;
-        font-weight: 700;
-        color: #0f172a;
-        margin: 0;
-      }
-      .signature-line .signer-role {
-        font-size: 6.5pt;
-        color: #475569;
-        margin: 0.5mm 0 0 0;
-      }
-      .consolidado-table-wrapper {
-        display: block;
-        width: 100%;
-      }
-      table.table-consolidado {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 6.5pt;
-      }
-      table.table-consolidado th, table.table-consolidado td {
-        border: 1px solid #cbd5e1;
-        padding: 1.5mm 2mm;
-      }
-      table.table-consolidado th {
-        background: #0f172a;
-        color: #ffffff;
-      }
-      table.table-consolidado tr.row-total td {
-        background: #f1f5f9;
-        font-weight: 700;
-      }
-    `;
-  }
+  imprimirConteudoIsolado(htmlContent: string, title: string = 'Documento', landscape: boolean = false): void { return this.financeiroActions.imprimirConteudoIsolado(htmlContent, title, landscape); }
 
-  imprimirConteudoIsolado(htmlContent: string, title: string = 'Documento', landscape: boolean = false): void {
-    const iframe = document.createElement('iframe');
-    iframe.name = 'print-frame-' + Date.now();
-    iframe.style.position = 'fixed';
-    iframe.style.top = '-9999px';
-    iframe.style.left = '-9999px';
-    iframe.style.width = '0px';
-    iframe.style.height = '0px';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
+  imprimirNotasFiscaisLote(): void { return this.financeiroActions.imprimirNotasFiscaisLote(); }
 
-    const doc = iframe.contentWindow?.document || iframe.contentDocument;
-    if (!doc) {
-      document.body.removeChild(iframe);
-      window.print();
-      return;
-    }
-
-    doc.open();
-    doc.write(`<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>${title}</title>
-  <style>
-    ${this.getIsolatedPrintStyles(landscape)}
-  </style>
-</head>
-<body>
-  ${htmlContent}
-</body>
-</html>`);
-    doc.close();
-
-    setTimeout(() => {
-      try {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
-      } catch (err) {
-        console.error('Falha na impressão isolada, tentando método padrão:', err);
-        window.print();
-      } finally {
-        setTimeout(() => {
-          if (iframe.parentNode) {
-            document.body.removeChild(iframe);
-          }
-        }, 1500);
-      }
-    }, 300);
-  }
-
-  imprimirNotasFiscaisLote(): void {
-    if (this.subTabFinanceiro() === 'DEMONSTRATIVO_ANUAL') {
-      const el = document.querySelector('.consolidado-table-wrapper');
-      if (el) {
-        this.imprimirConteudoIsolado(el.outerHTML, 'Demonstrativo Anual Consolidado - Imbe 2026', true);
-      } else {
-        window.print();
-      }
-      return;
-    }
-
-    const cards = document.querySelectorAll('.official-invoice-card');
-    if (cards && cards.length > 0) {
-      let combinedHtml = '';
-      cards.forEach(c => {
-        const clone = c.cloneNode(true) as HTMLElement;
-        clone.classList.remove('collapsed-view');
-        if (!this.incluirMedicaoImpressao()) {
-          const medicaoSec = clone.querySelector('.doc-section-equipamentos');
-          if (medicaoSec) {
-            medicaoSec.remove();
-          }
-        }
-        combinedHtml += clone.outerHTML;
-      });
-      this.imprimirConteudoIsolado(combinedHtml, `Notas Fiscais em Lote - Imbe 2026 (${cards.length} empenhos)`, false);
-    } else {
-      this.toast.error('Nenhuma nota fiscal disponível para impressão no momento.');
-    }
-  }
-
-  imprimirNotaIndividual(numeroEmpenho: string): void {
-    const card = document.getElementById('invoice-card-' + numeroEmpenho);
-    if (card) {
-      const clone = card.cloneNode(true) as HTMLElement;
-      clone.classList.remove('collapsed-view');
-      if (!this.incluirMedicaoImpressao()) {
-        const medicaoSec = clone.querySelector('.doc-section-equipamentos');
-        if (medicaoSec) {
-          medicaoSec.remove();
-        }
-      }
-      this.imprimirConteudoIsolado(clone.outerHTML, `Espelho Fatura Oficial - Empenho ${numeroEmpenho} - Imbe`, false);
-    } else {
-      this.toast.error('Nota fiscal do empenho ' + numeroEmpenho + ' não encontrada.');
-    }
-  }
-
-
+  imprimirNotaIndividual(numeroEmpenho: string): void { return this.financeiroActions.imprimirNotaIndividual(numeroEmpenho); }
 
   // Métricas computadas do lote de notas fiscais
   totalFaturadoSelecionado = computed(() => {
@@ -2680,153 +1870,13 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
   quantidadeNotasGeradas = computed(() => this.notasFiscaisLote().length);
 
-  selecionarEmpenhoParaEspelho(empId: number): void {
-    this.empenhoFiltroNotas.set(empId);
-    this.subTabFinanceiro.set('NOTAS_MENSAIS');
-    this.carregarNotasFiscaisLote();
-  }
+  selecionarEmpenhoParaEspelho(empId: number): void { return this.financeiroActions.selecionarEmpenhoParaEspelho(empId); }
 
-  exportarNotasFiscaisConsolidadoCSV(): void {
-    const cons = this.notasFiscaisConsolidado();
-    if (!cons) return;
+  exportarNotasFiscaisConsolidadoCSV(): void { return this.financeiroActions.exportarNotasFiscaisConsolidadoCSV(); }
 
-    interface RowConsolidado {
-      empenho: string;
-      item: number;
-      codigo: string;
-      descricao: string;
-      unidade: string;
-      valorUnitario: number;
-      jan: number;
-      fev: number;
-      mar: number;
-      abr: number;
-      mai: number;
-      jun: number;
-      jul: number;
-      ago: number;
-      set: number;
-      out: number;
-      nov: number;
-      dez: number;
-      totalItem: number;
-    }
+  exportarNotasFiscaisLoteCSV(): void { return this.financeiroActions.exportarNotasFiscaisLoteCSV(); }
 
-    const rows: RowConsolidado[] = [];
-    for (const emp of cons.empenhos) {
-      for (const it of emp.itens) {
-        const totalItem = it.meses.reduce((sum, m) => sum + (m.valorTotal || 0), 0);
-        rows.push({
-          empenho: emp.titulo,
-          item: it.itemNumero,
-          codigo: it.codigoItem,
-          descricao: it.descricao,
-          unidade: it.unidade,
-          valorUnitario: it.valorUnitario,
-          jan: it.meses[0]?.valorTotal || 0,
-          fev: it.meses[1]?.valorTotal || 0,
-          mar: it.meses[2]?.valorTotal || 0,
-          abr: it.meses[3]?.valorTotal || 0,
-          mai: it.meses[4]?.valorTotal || 0,
-          jun: it.meses[5]?.valorTotal || 0,
-          jul: it.meses[6]?.valorTotal || 0,
-          ago: it.meses[7]?.valorTotal || 0,
-          set: it.meses[8]?.valorTotal || 0,
-          out: it.meses[9]?.valorTotal || 0,
-          nov: it.meses[10]?.valorTotal || 0,
-          dez: it.meses[11]?.valorTotal || 0,
-          totalItem
-        });
-      }
-    }
-
-    const columns = [
-      { header: 'Empenho', accessor: (r: RowConsolidado) => r.empenho },
-      { header: 'Item', accessor: (r: RowConsolidado) => r.item },
-      { header: 'Código', accessor: (r: RowConsolidado) => r.codigo },
-      { header: 'Descrição', accessor: (r: RowConsolidado) => r.descricao },
-      { header: 'Unidade', accessor: (r: RowConsolidado) => r.unidade },
-      { header: 'Valor Unitário', accessor: (r: RowConsolidado) => (r.valorUnitario || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 3 }) },
-      { header: 'Janeiro', accessor: (r: RowConsolidado) => (r.jan || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Fevereiro', accessor: (r: RowConsolidado) => (r.fev || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Março', accessor: (r: RowConsolidado) => (r.mar || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Abril', accessor: (r: RowConsolidado) => (r.abr || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Maio', accessor: (r: RowConsolidado) => (r.mai || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Junho', accessor: (r: RowConsolidado) => (r.jun || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Julho', accessor: (r: RowConsolidado) => (r.jul || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Agosto', accessor: (r: RowConsolidado) => (r.ago || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Setembro', accessor: (r: RowConsolidado) => (r.set || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Outubro', accessor: (r: RowConsolidado) => (r.out || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Novembro', accessor: (r: RowConsolidado) => (r.nov || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Dezembro', accessor: (r: RowConsolidado) => (r.dez || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { header: 'Total Anual Item', accessor: (r: RowConsolidado) => (r.totalItem || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
-    ];
-
-    exportToCsv(`demonstrativo_anual_consolidado_${cons.ano}`, columns, rows);
-    this.toast.success('Demonstrativo anual consolidado exportado em .CSV com sucesso!');
-  }
-
-  exportarNotasFiscaisLoteCSV(): void {
-    const faturas = this.notasFiscaisLote();
-    if (!faturas.length) return;
-
-    interface RowLote {
-      empenho: string;
-      secretaria: string;
-      mesReferencia: number;
-      anoReferencia: number;
-      item: number;
-      codigo: string;
-      descricao: string;
-      unidade: string;
-      quantidade: number;
-      valorUnitario: number;
-      subtotal: number;
-    }
-
-    const rows: RowLote[] = [];
-    for (const f of faturas) {
-      for (const it of f.itens) {
-        rows.push({
-          empenho: f.numeroEmpenho,
-          secretaria: f.secretariaSigla,
-          mesReferencia: f.mesReferencia,
-          anoReferencia: f.anoReferencia,
-          item: it.itemNumero,
-          codigo: it.codigoItem,
-          descricao: it.descricao,
-          unidade: it.unidade,
-          quantidade: it.quantidade,
-          valorUnitario: it.valorUnitario,
-          subtotal: it.valorTotal
-        });
-      }
-    }
-
-    const columns = [
-      { header: 'Empenho', accessor: (r: RowLote) => r.empenho },
-      { header: 'Secretaria', accessor: (r: RowLote) => r.secretaria },
-      { header: 'Mês', accessor: (r: RowLote) => r.mesReferencia },
-      { header: 'Ano', accessor: (r: RowLote) => r.anoReferencia },
-      { header: 'Item', accessor: (r: RowLote) => r.item },
-      { header: 'Código', accessor: (r: RowLote) => r.codigo },
-      { header: 'Descrição', accessor: (r: RowLote) => r.descricao },
-      { header: 'Unidade', accessor: (r: RowLote) => r.unidade },
-      { header: 'Quantidade', accessor: (r: RowLote) => (r.quantidade || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) },
-      { header: 'Valor Unitário', accessor: (r: RowLote) => (r.valorUnitario || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 3 }) },
-      { header: 'Subtotal R$', accessor: (r: RowLote) => (r.subtotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
-    ];
-
-    const mesesStr = this.mesesSelecionados().join('-');
-    const ano = this.anoFinanceiro();
-    exportToCsv(`notas_fiscais_meses_${mesesStr}_${ano}`, columns, rows);
-    this.toast.success('Notas fiscais exportadas em .CSV com sucesso!');
-  }
-
-  somarMesesItem(it: ItemNotaFiscal): number {
-    if (!it || !it.meses) return 0;
-    return it.meses.reduce((acc, m) => acc + (m.valorTotal || 0), 0);
-  }
+  somarMesesItem(it: ItemNotaFiscal): number { return this.financeiroActions.somarMesesItem(it); }
 
   // ==================== METODOS DA COLETA AUTOMATICA ====================
 
@@ -2835,381 +1885,86 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     this.pararPollingColeta();
   }
 
-  carregarDadosColeta(): void {
-    this.verificarColetaAtivaOuUltima();
-  }
+  carregarDadosColeta(): void { return this.coletaActions.carregarDadosColeta(); }
 
-  verificarColetaAtivaOuUltima(): void {
-    this.impressoraService.getColetaAtiva().subscribe({
-      next: (progresso) => {
-        if (progresso && progresso.emAndamento) {
-          this.coletaAtiva.set(progresso);
-          this.iniciarPollingColeta();
-          this.carregarSessaoColeta(progresso.sessaoId, false);
-        } else {
-          this.carregarUltimaSessaoColeta();
-        }
-      },
-      error: () => {
-        this.carregarUltimaSessaoColeta();
-      }
-    });
-  }
+  verificarColetaAtivaOuUltima(): void { return this.coletaActions.verificarColetaAtivaOuUltima(); }
 
-  carregarUltimaSessaoColeta(): void {
-    this.impressoraService.getUltimaColeta().subscribe({
-      next: (sessao) => {
-        if (sessao) this.coletaSessao.set(sessao);
-      }
-    });
-  }
+  carregarUltimaSessaoColeta(): void { return this.coletaActions.carregarUltimaSessaoColeta(); }
 
-  onSecretariaFiltroColetaChange(val: any): void {
-    const id = (val === null || val === 'null' || val === undefined || val === '') ? null : Number(val);
-    this.secretariaFiltroColeta.set(id);
-    this.filtroSecretariaModalColeta.set(id);
-    this.coletarTodasImpressoras.set(true);
-    this.paginaColeta.set(1);
-  }
+  onSecretariaFiltroColetaChange(val: any): void { return this.coletaActions.onSecretariaFiltroColetaChange(val); }
 
-  onFiltroSecretariaModalChange(val: any): void {
-    const id = (val === null || val === 'null' || val === undefined || val === '') ? null : Number(val);
-    this.filtroSecretariaModalColeta.set(id);
-    // O filtro do modal substitui a secretaria anterior do escopo da coleta.
-    this.secretariaFiltroColeta.set(id);
-    this.paginaColeta.set(1);
-  }
+  onFiltroSecretariaModalChange(val: any): void { return this.coletaActions.onFiltroSecretariaModalChange(val); }
 
-  abrirModalSelecaoImpressoras(): void {
-    this.filtroSecretariaModalColeta.set(this.secretariaFiltroColeta());
-    if (this.coletarTodasImpressoras()) {
-      this.impressorasSelecionadasColeta.set(this.impressorasElegiveisParaColeta().map(p => p.id));
-    }
-    this.modalSelecaoImpressorasAberto.set(true);
-  }
+  abrirModalSelecaoImpressoras(): void { return this.coletaActions.abrirModalSelecaoImpressoras(); }
 
-  fecharModalSelecaoImpressoras(): void {
-    this.modalSelecaoImpressorasAberto.set(false);
-  }
+  fecharModalSelecaoImpressoras(): void { return this.coletaActions.fecharModalSelecaoImpressoras(); }
 
-  confirmarSelecaoImpressorasColeta(): void {
-    this.selecaoConfirmadaColeta.set([...this.idsImpressorasSelecionadasEfetivas()]);
-    this.paginaColeta.set(1);
-    this.fecharModalSelecaoImpressoras();
-  }
+  confirmarSelecaoImpressorasColeta(): void { return this.coletaActions.confirmarSelecaoImpressorasColeta(); }
 
-  isImpressoraSelecionadaColeta(id: number): boolean {
-    return this.idsImpressorasSelecionadasEfetivas().includes(id);
-  }
+  isImpressoraSelecionadaColeta(id: number): boolean { return this.coletaActions.isImpressoraSelecionadaColeta(id); }
 
-  alternarSelecaoImpressoraColeta(id: number): void {
-    const current = [...this.idsImpressorasSelecionadasEfetivas()];
-    const ativas = this.impressorasFiltradasModalColeta();
-    let updated: number[];
-    if (current.includes(id)) {
-      updated = current.filter(x => x !== id);
-    } else {
-      updated = [...current, id];
-    }
-    this.impressorasSelecionadasColeta.set(updated);
-    this.coletarTodasImpressoras.set(updated.length === ativas.length);
-  }
+  alternarSelecaoImpressoraColeta(id: number): void { return this.coletaActions.alternarSelecaoImpressoraColeta(id); }
 
-  selecionarTodasImpressorasColeta(): void {
-    this.marcarFiltradasModalColeta();
-  }
+  selecionarTodasImpressorasColeta(): void { return this.coletaActions.selecionarTodasImpressorasColeta(); }
 
-  desmarcarTodasImpressorasColeta(): void {
-    this.coletarTodasImpressoras.set(false);
-    this.impressorasSelecionadasColeta.set([]);
-  }
+  desmarcarTodasImpressorasColeta(): void { return this.coletaActions.desmarcarTodasImpressorasColeta(); }
 
-  selecionarApenasComIpColeta(): void {
-    this.filtroRedeModalColeta.set('COM_IP');
-    this.marcarFiltradasModalColeta();
-  }
+  selecionarApenasComIpColeta(): void { return this.coletaActions.selecionarApenasComIpColeta(); }
 
-  marcarFiltradasModalColeta(): void {
-    const filtradas = this.impressorasFiltradasModalColeta().map(p => p.id);
-    this.impressorasSelecionadasColeta.set(filtradas);
-    this.coletarTodasImpressoras.set(true);
-  }
+  marcarFiltradasModalColeta(): void { return this.coletaActions.marcarFiltradasModalColeta(); }
 
-  desmarcarFiltradasModalColeta(): void {
-    const filtradas = this.impressorasFiltradasModalColeta().map(p => p.id);
-    const current = this.idsImpressorasSelecionadasEfetivas();
-    const restante = current.filter(id => !filtradas.includes(id));
-    this.coletarTodasImpressoras.set(false);
-    this.impressorasSelecionadasColeta.set(restante);
-  }
+  desmarcarFiltradasModalColeta(): void { return this.coletaActions.desmarcarFiltradasModalColeta(); }
 
-  alternarSelecaoFiltradasModalColeta(): void {
-    if (this.todasFiltradasModalMarcadas()) {
-      this.desmarcarFiltradasModalColeta();
-    } else {
-      this.marcarFiltradasModalColeta();
-    }
-  }
+  alternarSelecaoFiltradasModalColeta(): void { return this.coletaActions.alternarSelecaoFiltradasModalColeta(); }
 
-  iniciarColetaAutomatica(): void {
-    if (this.coletaAtiva()?.emAndamento) {
-      this.toast.info('Já existe uma sessão de coleta em andamento.');
-      return;
-    }
+  iniciarColetaAutomatica(): void { return this.coletaActions.iniciarColetaAutomatica(); }
 
-    const selecionadas = this.idsImpressorasSelecionadasEfetivas();
-    if (selecionadas.length === 0) {
-      this.toast.info('Selecione pelo menos uma impressora para iniciar a coleta.');
-      return;
-    }
+  iniciarPollingColeta(): void { return this.coletaActions.iniciarPollingColeta(); }
 
-    const req: IniciarColetaRequest = {
-      ano: this.anoColeta(),
-      mes: this.mesColeta(),
-      empenhoId: this.empenhoFiltroColeta() || undefined,
-      secretariaId: this.secretariaFiltroColeta() || undefined,
-      impressoraIds: selecionadas
-    };
+  pararPollingColeta(): void { return this.coletaActions.pararPollingColeta(); }
 
-    this.loadingColeta.set(true);
-    this.impressoraService.iniciarColeta(req).subscribe({
-      next: (progresso) => {
-        this.coletaAtiva.set(progresso);
-        this.toast.success('Coleta de contadores iniciada em segundo plano!');
-        if (progresso.ultimaMensagem?.includes('ignorada(s)')) this.toast.info(progresso.ultimaMensagem);
-        this.iniciarPollingColeta();
-        this.carregarSessaoColeta(progresso.sessaoId, false);
-        this.loadingColeta.set(false);
-      },
-      error: (err) => {
-        this.toast.error('Erro ao iniciar coleta: ' + (err.error?.message || err.message));
-        this.loadingColeta.set(false);
-      }
-    });
-  }
+  carregarSessaoColeta(id: number, showLoading = true): void { return this.coletaActions.carregarSessaoColeta(id, showLoading); }
 
-  iniciarPollingColeta(): void {
-    this.pararPollingColeta();
-    this.pollingColetaInterval = setInterval(() => {
-      this.impressoraService.getColetaAtiva().subscribe({
-        next: (progresso) => {
-          if (progresso && progresso.emAndamento) {
-            this.coletaAtiva.set(progresso);
-            if (progresso.sessaoId) {
-              this.carregarSessaoColeta(progresso.sessaoId, false);
-            }
-          } else {
-            this.pararPollingColeta();
-            this.coletaAtiva.set(null);
-            this.toast.success('Coleta automática de contadores concluída!');
-            this.carregarUltimaSessaoColeta();
-          }
-        },
-        error: () => {
-          this.pararPollingColeta();
-        }
-      });
-    }, 2500);
-  }
+  baixarZipColeta(): void { return this.coletaActions.baixarZipColeta(); }
 
-  pararPollingColeta(): void {
-    if (this.pollingColetaInterval) {
-      clearInterval(this.pollingColetaInterval);
-      this.pollingColetaInterval = null;
-    }
-  }
+  aplicarLeiturasColeta(): void { return this.coletaActions.aplicarLeiturasColeta(); }
 
-  carregarSessaoColeta(id: number, showLoading = true): void {
-    if (showLoading) this.loadingColeta.set(true);
-    this.impressoraService.getColetaPorId(id).subscribe({
-      next: (sessao) => {
-        this.coletaSessao.set(sessao);
-        if (showLoading) this.loadingColeta.set(false);
-      },
-      error: (err) => {
-        if (showLoading) {
-          this.toast.error('Erro ao carregar detalhes da coleta: ' + err.message);
-          this.loadingColeta.set(false);
-        }
-      }
-    });
-  }
+  recoletarItem(item: ColetaItem): void { return this.coletaActions.recoletarItem(item); }
 
-  baixarZipColeta(): void {
-    const sessao = this.coletaSessao();
-    if (!sessao) return;
-
-    this.toast.info('Preparando download do pacote de prints...');
-    this.impressoraService.baixarZipColeta(sessao.id).subscribe({
-      next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `contadores_${sessao.anoReferencia}_${String(sessao.mesReferencia).padStart(2, '0')}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-        this.toast.success('Pacote de prints baixado com sucesso!');
-      },
-      error: (err) => {
-        this.toast.error('Erro ao baixar arquivo ZIP: ' + err.message);
-      }
-    });
-  }
-
-  aplicarLeiturasColeta(): void {
-    const sessao = this.coletaSessao();
-    if (!sessao) return;
-
-    this.loadingColeta.set(true);
-    this.impressoraService.aplicarLeiturasColeta(sessao.id).subscribe({
-      next: (res) => {
-        this.toast.success(res.mensagem);
-        this.loadingColeta.set(false);
-        this.carregarLeiturasCompetencia();
-      },
-      error: (err) => {
-        this.toast.error('Erro ao sincronizar leituras: ' + (err.error?.message || err.message));
-        this.loadingColeta.set(false);
-      }
-    });
-  }
-
-  recoletarItem(item: ColetaItem): void {
-    if (!item || item.id <= 0 || item.sessaoId <= 0) return;
-    const statusAnterior = item.status;
-    this.toast.info(`Tentando reconectar ao IP ${item.ip}...`);
-    item.status = 'PENDENTE';
-    this.impressoraService.recoletarItem(item.id).subscribe({
-      next: () => {
-        this.toast.success(`Coleta disparada para o equipamento ${item.itemPedido}!`);
-        setTimeout(() => {
-          if (this.coletaSessao()) {
-            this.carregarSessaoColeta(this.coletaSessao()!.id, false);
-          }
-        }, 3500);
-      },
-      error: (err) => {
-        item.status = statusAnterior;
-        this.toast.error('Erro ao recoletar equipamento: ' + (err.error?.message || err.message));
-      }
-    });
-  }
-
-  recoletarTodasFalhas(): void {
-    const sessao = this.coletaSessao();
-    if (!sessao) return;
-
-    this.toast.info('Tentando reconectar a todos os equipamentos offline...');
-    this.impressoraService.recoletarFalhas(sessao.id).subscribe({
-      next: (res) => {
-        this.toast.success(res.mensagem);
-        this.iniciarPollingColeta();
-      },
-      error: (err) => {
-        this.toast.error('Erro ao reconectar falhas: ' + (err.error?.message || err.message));
-      }
-    });
-  }
+  recoletarTodasFalhas(): void { return this.coletaActions.recoletarTodasFalhas(); }
 
   printZoomLevel = signal<number>(1);
   printRotation = signal<number>(0);
   printFitMode = signal<'fit' | 'original'>('fit');
   printImgDimensions = signal<{ width: number; height: number } | null>(null);
 
-  abrirModalPrint(item: ColetaItem): void {
-    this.printSelecionado.set(item);
-    this.printZoomLevel.set(1);
-    this.printRotation.set(0);
-    this.printFitMode.set('fit');
-    this.printImgDimensions.set(null);
-    this.modalPrintAberto.set(true);
-  }
+  abrirModalPrint(item: ColetaItem): void { return this.comprovanteActions.abrirModalPrint(item); }
 
-  fecharModalPrint(): void {
-    this.modalPrintAberto.set(false);
-    this.printSelecionado.set(null);
-    this.printZoomLevel.set(1);
-    this.printRotation.set(0);
-    this.printFitMode.set('fit');
-    this.printImgDimensions.set(null);
-  }
+  fecharModalPrint(): void { return this.comprovanteActions.fecharModalPrint(); }
 
-  onPrintImageLoaded(event: Event): void {
-    const img = event.target as HTMLImageElement;
-    if (img && img.naturalWidth) {
-      this.printImgDimensions.set({
-        width: img.naturalWidth,
-        height: img.naturalHeight
-      });
-    }
-  }
+  onPrintImageLoaded(event: Event): void { return this.comprovanteActions.onPrintImageLoaded(event); }
 
-  toggleFitMode(): void {
-    if (this.printFitMode() === 'fit') {
-      this.printFitMode.set('original');
-      this.printZoomLevel.set(1);
-    } else {
-      this.printFitMode.set('fit');
-      this.printZoomLevel.set(1);
-    }
-  }
+  toggleFitMode(): void { return this.comprovanteActions.toggleFitMode(); }
 
-  zoomInPrint(): void {
-    if (this.printFitMode() === 'fit') {
-      this.printFitMode.set('original');
-      this.printZoomLevel.set(1.25);
-    } else {
-      this.printZoomLevel.update(z => Math.min(Number((z + 0.25).toFixed(2)), 3.5));
-    }
-  }
+  zoomInPrint(): void { return this.comprovanteActions.zoomInPrint(); }
 
-  zoomOutPrint(): void {
-    if (this.printZoomLevel() <= 1 && this.printFitMode() === 'original') {
-      this.printFitMode.set('fit');
-      this.printZoomLevel.set(1);
-    } else {
-      this.printZoomLevel.update(z => Math.max(Number((z - 0.25).toFixed(2)), 0.5));
-    }
-  }
+  zoomOutPrint(): void { return this.comprovanteActions.zoomOutPrint(); }
 
-  resetZoomPrint(): void {
-    this.printFitMode.set('fit');
-    this.printZoomLevel.set(1);
-    this.printRotation.set(0);
-  }
+  resetZoomPrint(): void { return this.comprovanteActions.resetZoomPrint(); }
 
-  onPrintWheel(event: WheelEvent): void {
-    event.preventDefault();
-    if (event.deltaY < 0) {
-      this.zoomInPrint();
-    } else {
-      this.zoomOutPrint();
-    }
-  }
+  onPrintWheel(event: WheelEvent): void { return this.comprovanteActions.onPrintWheel(event); }
 
-  rotatePrint(): void {
-    this.printRotation.update(r => (r + 90) % 360);
-  }
+  rotatePrint(): void { return this.comprovanteActions.rotatePrint(); }
 
-  downloadPrintImage(item: ColetaItem): void {
-    const url = this.getUrlImagemColeta(item);
-    if (!url) return;
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = item.nomeArquivo || `print-${item.modelo || 'impressora'}.png`;
-    a.target = '_blank';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
+  downloadPrintImage(item: ColetaItem): void { return this.comprovanteActions.downloadPrintImage(item); }
 
-  getUrlImagemColeta(item: ColetaItem): string {
-    if (!item || !item.sessaoId || !item.nomeArquivo) return '';
-    const url = this.impressoraService.getUrlImagemColeta(item.sessaoId, item.nomeArquivo);
-    return item.modelo?.toUpperCase().includes('PANTUM')
-      ? `${url}?comprovante=snmp-v1&coleta=${encodeURIComponent(item.dataColeta || '')}`
-      : url;
-  }
+  getUrlImagemColeta(item: ColetaItem): string { return this.comprovanteActions.getUrlImagemColeta(item); }
+  private readonly comprovanteActions = new ComprovanteImpressorasActions(this);
+
+  private readonly coletaActions = new ColetaImpressorasActions(this);
+
+  private readonly leiturasActions = new LeiturasImpressorasActions(this);
+
+  private readonly financeiroActions = new FinanceiroImpressorasActions(this);
+
 }

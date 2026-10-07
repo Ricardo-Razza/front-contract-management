@@ -1,3 +1,5 @@
+import { DestroyRef as LifecycleDestroyRef, inject as lifecycleInject } from '@angular/core';
+import { takeUntilDestroyed as untilComponentDestroyed } from '@angular/core/rxjs-interop';
 import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -23,6 +25,8 @@ import { includesNormalized, matchesSearch } from '@core/utils';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SecretariasComponent implements OnInit {
+  private readonly requestDestroyRef = lifecycleInject(LifecycleDestroyRef);
+
   private secService = inject(SecretariaService);
   private lookupService = inject(LookupService);
   private toast = inject(ToastService);
@@ -113,20 +117,20 @@ export class SecretariasComponent implements OnInit {
 
   loadData(): void {
     this.loading.set(true);
-    this.secService.getAll().subscribe({
+    this.secService.getAll().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: (data) => {
         this.secretariats.set(data || []);
         this.loading.set(false);
       },
       error: () => {
-        this.toast.error('Erro ao carregar lista de secretarias.');
+
         this.loading.set(false);
       }
     });
   }
 
   loadLookups(): void {
-    this.lookupService.getAtivos().subscribe({
+    this.lookupService.getAtivos().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: (items) => this.statusList.set(items || [])
     });
   }
@@ -188,7 +192,7 @@ export class SecretariasComponent implements OnInit {
 
     const id = this.editingId();
     if (id) {
-      this.secService.update(id, val).subscribe({
+      this.secService.update(id, val).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
         next: () => {
           this.toast.success('Secretaria atualizada com sucesso!');
           this.submitting.set(false);
@@ -196,12 +200,12 @@ export class SecretariasComponent implements OnInit {
           this.loadData();
         },
         error: () => {
-          this.toast.error('Erro ao atualizar secretaria.');
+
           this.submitting.set(false);
         }
       });
     } else {
-      this.secService.create(val).subscribe({
+      this.secService.create(val).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
         next: () => {
           this.toast.success('Secretaria cadastrada com sucesso!');
           this.submitting.set(false);
@@ -209,7 +213,7 @@ export class SecretariasComponent implements OnInit {
           this.loadData();
         },
         error: () => {
-          this.toast.error('Erro ao criar secretaria.');
+
           this.submitting.set(false);
         }
       });
@@ -231,7 +235,7 @@ export class SecretariasComponent implements OnInit {
     if (!item) return;
 
     this.deleting.set(true);
-    this.secService.delete(item.id).subscribe({
+    this.secService.delete(item.id).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: () => {
         this.toast.success('Secretaria excluída com sucesso.');
         this.deleting.set(false);
@@ -239,7 +243,7 @@ export class SecretariasComponent implements OnInit {
         this.loadData();
       },
       error: () => {
-        this.toast.error('Erro ao excluir secretaria.');
+
         this.deleting.set(false);
       }
     });

@@ -204,7 +204,7 @@
   <!-- ===== TABELA ===== -->
   <div class="table-card">
     <div class="table-header-toolbar">
-      <span class="result-count">{{ filteredAgreements().length }} atas encontradas</span>
+      <span class="result-count">{{ totalRecords() }} atas encontradas</span>
     </div>
 
     @if (loading()) {
@@ -391,7 +391,7 @@
     </div>
 
     <!-- Paginação -->
-    <app-pagination [totalItems]="filteredAgreements().length" [currentPage]="currentPage()" [pageSize]="pageSize()"
+    <app-pagination [totalItems]="totalRecords()" [currentPage]="currentPage()" [pageSize]="pageSize()"
       (pageChange)="onPageChange($event)" (pageSizeChange)="onPageSizeChange($event)"></app-pagination>
     }
   </div>
@@ -578,10 +578,10 @@
               <span class="invalid-feedback">O objeto é obrigatório</span>
             }
           </div>
-          
+
           <div class="form-group" style="margin-bottom: 0;">
             <label>Observações Gerais</label>
-            <textarea formControlName="observacao" rows="3" 
+            <textarea formControlName="observacao" rows="3"
               placeholder="Observações adicionais ou notas administrativas..."
               class="observacao-textarea"></textarea>
             <span class="form-hint">Campo opcional para anotações administrativas.</span>
@@ -589,143 +589,7 @@
         </div>
 
         <!-- 5. EQUIPE DE GESTÃO E FISCALIZAÇÃO (OPCIONAL) -->
-        <div class="form-section-card equipe-section-card">
-          <div class="section-card-header flex-header">
-            <div>
-              <div class="title-with-pill">
-                <span class="section-bullet bullet-equipe">5</span>
-                <label class="section-title">Equipe de Gestão e Fiscalização</label>
-                <span class="badge-opcional">Opcional</span>
-              </div>
-              <p class="section-subtitle">
-                Adicione os servidores e funções designados para esta ata. Você também pode preencher ou alterar depois.
-              </p>
-            </div>
-            <button type="button" class="btn btn-sm btn-outline-primary" (click)="addMembro()">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              Adicionar Integrante
-            </button>
-          </div>
-
-          @if (membrosArray.length === 0) {
-            <div class="equipe-empty-card">
-              <div class="empty-icon-circle">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
-              </div>
-              <div class="empty-content">
-                <strong>Nenhum fiscal ou gestor designado ainda</strong>
-                <p>A ata pode ser salva normalmente sem equipe vinculada no primeiro momento.</p>
-              </div>
-              <button type="button" class="btn-add-first" (click)="addMembro()">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-                Designar Membro Agora
-              </button>
-            </div>
-          } @else {
-            <div formArrayName="membros" class="membros-table-list">
-              @for (ctrl of membrosArray.controls; track $index; let i = $index) {
-                <div [formGroupName]="i" class="membro-row-card">
-                  <div class="membro-index-badge">#{{ i + 1 }}</div>
-                  
-                  <!-- Coluna Servidor -->
-                  <div class="form-group col-servidor-field" style="position: relative; margin-bottom: 0;">
-                    <label>Servidor <span class="required">*</span></label>
-                    <div class="custom-select-wrapper" [class.open]="openServidorDropdownIndex() === i">
-                      <div class="custom-select-trigger" (click)="toggleServidorDropdown(i)"
-                        [class.invalid]="ctrl.get('servidorId')?.touched && ctrl.get('servidorId')?.invalid">
-                        <span class="trigger-text">
-                          @if (selectedServants()[i]) {
-                            {{ selectedServants()[i]!.nome }}
-                          } @else {
-                            Selecione o servidor...
-                          }
-                        </span>
-                        <svg class="chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                          stroke="currentColor" stroke-width="2" width="16" height="16">
-                          <polyline points="6 9 12 15 18 9" />
-                        </svg>
-                      </div>
-                      @if (openServidorDropdownIndex() === i) {
-                      <div class="custom-select-dropdown">
-                        <div class="dropdown-search">
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" width="14" height="14">
-                            <circle cx="11" cy="11" r="8" />
-                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                          </svg>
-                          <input #servInput type="text" placeholder="Buscar por nome, cargo ou matrícula..." [value]="servidorSearch()"
-                            (input)="servidorSearch.set(servInput.value)" (click)="$event.stopPropagation()" autofocus />
-                        </div>
-                        <ul class="dropdown-list">
-                          @for (serv of filteredServantsForDropdown(); track serv.id) {
-                          <li (click)="selectServant(i, serv)" [class.selected]="ctrl.get('servidorId')?.value == serv.id">
-                            <div class="serv-item-row">
-                              <strong>{{ serv.nome }}</strong>
-                              @if (serv.matricula) {
-                                <span class="serv-mat">Mat. {{ serv.matricula }}</span>
-                              }
-                            </div>
-                            @if (serv.cargo || serv.secretaria) {
-                              <span class="serv-sub-info">{{ serv.cargo }}{{ serv.cargo && serv.secretaria ? ' • ' : '' }}{{ serv.secretaria }}</span>
-                            }
-                          </li>
-                          } @empty {
-                          <li class="no-results">Nenhum servidor encontrado</li>
-                          }
-                        </ul>
-                      </div>
-                      }
-                    </div>
-                    <select formControlName="servidorId" style="display:none">
-                      <option value=""></option>
-                      @for (serv of servants(); track serv.id) {
-                        <option [value]="serv.id">{{ serv.id }}</option>
-                      }
-                    </select>
-                    @if (ctrl.get('servidorId')?.touched && ctrl.get('servidorId')?.invalid) {
-                      <span class="invalid-feedback">Selecione o servidor</span>
-                    }
-                  </div>
-
-                  <!-- Coluna Função -->
-                  <div class="form-group col-funcao-field" style="margin-bottom: 0;">
-                    <label>Função na Equipe <span class="required">*</span></label>
-                    <select formControlName="funcaoId" [class.is-invalid]="ctrl.get('funcaoId')?.touched && ctrl.get('funcaoId')?.invalid">
-                      <option value="">Selecione a função...</option>
-                      @for (item of funcoesList(); track item.id) {
-                        <option [value]="item.id">{{ item.nome || item.funcao || item.descricao }}</option>
-                      }
-                    </select>
-                    @if (ctrl.get('funcaoId')?.touched && ctrl.get('funcaoId')?.invalid) {
-                      <span class="invalid-feedback">Selecione a função</span>
-                    }
-                  </div>
-
-                  <!-- Botão Remover -->
-                  <div class="membro-action-col">
-                    <button type="button" class="btn-remove-membro" (click)="removeMembro(i)" title="Remover integrante">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              }
-            </div>
-          }
-        </div>
+        <app-equipe-form [form]="form" [servidores]="servants()" [funcoes]="funcoesList()" entityLabel="esta ata" />
       </div>
 
       <div class="modal-footer">
@@ -870,91 +734,7 @@
       </div>
 
       <!-- ===== SEÇÃO DOCUMENTOS E ANEXOS DIGITALIZADOS ===== -->
-      <div class="detail-section">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <label class="section-label" style="margin-bottom: 0;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 4px;">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
-            </svg>
-            Documentos e Anexos Digitalizados ({{ anexosAta().length }})
-          </label>
-          <button type="button" class="btn btn-sm btn-outline" (click)="abrirModalUploadAnexo()" style="display: inline-flex; align-items: center; gap: 4px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            Anexar Documento
-          </button>
-        </div>
-
-        @if (loadingAnexos()) {
-          <div style="padding: 12px; font-size: 0.85rem; color: #64748b;">Carregando documentos...</div>
-        } @else if (anexosAta().length === 0) {
-          <div class="empty-anexos-box">
-            <p style="margin: 0 0 6px 0; color: #64748b; font-size: 0.875rem;">Nenhum documento ou anexo digitalizado cadastrado para esta ata.</p>
-            <button type="button" class="btn btn-sm btn-outline" (click)="abrirModalUploadAnexo()">
-              + Fazer upload da Ata na íntegra, Termo de Referência ou Portaria
-            </button>
-          </div>
-        } @else {
-          <div class="anexos-list-container">
-            @for (doc of anexosAta(); track doc.id) {
-              <div class="anexo-item-card">
-                <div class="anexo-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                  </svg>
-                </div>
-                <div class="anexo-info">
-                  <div class="anexo-title-row">
-                    <strong class="anexo-nome" [title]="doc.nomeOriginal">{{ doc.nomeOriginal }}</strong>
-                    <span class="badge-doc-tipo">{{ getTipoDocumentoLabel(doc.tipoDocumento) }}</span>
-                  </div>
-                  <div class="anexo-meta">
-                    <span>{{ formatarTamanho(doc.tamanhoBytes) }}</span>
-                    <span class="dot-separator">•</span>
-                    <span>Enviado em {{ formatDatePtBr(doc.criadoEm) }}</span>
-                    @if (doc.descricao) {
-                      <span class="dot-separator">•</span>
-                      <span class="anexo-desc">{{ doc.descricao }}</span>
-                    }
-                  </div>
-                </div>
-                <div class="anexo-actions">
-                  <button type="button" class="btn-icon" (click)="visualizarAnexo(doc)" title="Visualizar Documento">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                      <circle cx="12" cy="12" r="3"></circle>
-                    </svg>
-                  </button>
-                  <button type="button" class="btn-icon" (click)="downloadAnexo(doc)" title="Baixar Arquivo">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                      <polyline points="7 10 12 15 17 10"></polyline>
-                      <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                  </button>
-                  <button type="button" class="btn-icon btn-icon-danger" (click)="excluirAnexo(doc)" title="Excluir Anexo">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                      <line x1="10" y1="11" x2="10" y2="17"></line>
-                      <line x1="14" y1="11" x2="14" y2="17"></line>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            }
-          </div>
-        }
-      </div>
+      <app-anexo-manager [entityId]="selectedAtaForDetails()!.id" kind="ATA" />
 
       <!-- Observações -->
       @if (selectedAtaForDetails()?.observacao) {
@@ -990,129 +770,10 @@
 }
 
 <!-- ===== MODAL DE UPLOAD DE ANEXO ===== -->
-@if (isUploadModalOpen()) {
-<div class="modal-backdrop" (click)="fecharModalUploadAnexo()" style="z-index: 1060;">
-  <div class="modal-card modal-md" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <div class="header-title-with-badge">
-        <h3>Anexar Documento Digital</h3>
-        <span class="type-badge">{{ uploadTipo() ? getTipoDocumentoLabel(uploadTipo()) : 'Novo' }}</span>
-      </div>
-      <button class="modal-close" (click)="fecharModalUploadAnexo()">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group" style="margin-bottom: 1rem;">
-        <label class="form-label required">Tipo do Documento</label>
-        <select class="form-control" [ngModel]="uploadTipo()" (ngModelChange)="uploadTipo.set($event)">
-          @for (key of tiposDocumentoKeys; track key) {
-            <option [value]="key">{{ tiposDocumento[key] }}</option>
-          }
-        </select>
-      </div>
 
-      <div class="form-group" style="margin-bottom: 1rem;">
-        <label class="form-label required">Selecione o Arquivo (PDF, DOCX, PNG, JPG)</label>
-        <input type="file" class="form-control" (change)="onFileSelected($event)" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
-        @if (selectedFile()) {
-          <div style="margin-top: 6px; font-size: 0.8125rem; color: #15803d; font-weight: 600;">
-            ✓ {{ selectedFile()?.name }} ({{ formatarTamanho(selectedFile()?.size) }})
-          </div>
-        }
-      </div>
-
-      <div class="form-group" style="margin-bottom: 0.5rem;">
-        <label class="form-label">Descrição / Observações (Opcional)</label>
-        <input type="text" class="form-control" [ngModel]="uploadDescricao()" (ngModelChange)="uploadDescricao.set($event)" placeholder="Ex: Termo aditivo de prorrogação de vigência assinado">
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" (click)="fecharModalUploadAnexo()" [disabled]="uploadingAnexo()">Cancelar</button>
-      <button type="button" class="btn btn-primary" (click)="enviarAnexo()" [disabled]="uploadingAnexo() || !selectedFile()">
-        @if (uploadingAnexo()) {
-          <span>Enviando...</span>
-        } @else {
-          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-          </svg>
-          Salvar Anexo
-        }
-      </button>
-    </div>
-  </div>
-</div>
-}
 
 <!-- ===== MODAL DE VISUALIZAÇÃO DE ANEXO ===== -->
-@if (isPreviewModalOpen() && previewAnexo()) {
-<div class="modal-backdrop modal-preview-backdrop" (click)="fecharPreviewModal()" style="z-index: 1070;">
-  <div class="modal-card modal-preview-card" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <div class="header-title-with-badge">
-        <h3>{{ previewAnexo()?.nomeOriginal }}</h3>
-        <span class="type-badge">{{ getTipoDocumentoLabel(previewAnexo()?.tipoDocumento || '') }}</span>
-      </div>
-      <div class="header-actions">
-        <button type="button" class="btn btn-sm btn-outline" (click)="abrirAnexoNovaAba(previewAnexo())" title="Abrir em Nova Aba">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-            <polyline points="15 3 21 3 21 9"></polyline>
-            <line x1="10" y1="14" x2="21" y2="3"></line>
-          </svg>
-          Nova Aba
-        </button>
-        <button type="button" class="btn btn-sm btn-outline" (click)="downloadAnexo(previewAnexo())" title="Baixar Arquivo">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          Baixar
-        </button>
-        <button class="modal-close" (click)="fecharPreviewModal()">&times;</button>
-      </div>
-    </div>
-    <div class="modal-body preview-modal-body">
-      @if (isArquivoVisualizavel(previewAnexo())) {
-        <iframe [src]="previewUrl()" class="preview-iframe" title="Visualizador de Documento"></iframe>
-      } @else {
-        <div class="unsupported-preview-box">
-          <div class="unsupported-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
-            </svg>
-          </div>
-          <h4>Pré-visualização não suportada no navegador</h4>
-          <p>Este formato de arquivo não pode ser visualizado diretamente no navegador. Faça o download para abri-lo localmente.</p>
-          <button type="button" class="btn btn-primary" (click)="downloadAnexo(previewAnexo())">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            Baixar Arquivo
-          </button>
-        </div>
-      }
-    </div>
-    <div class="modal-footer preview-modal-footer">
-      <div class="preview-info-text">
-        <span>Tamanho: {{ formatarTamanho(previewAnexo()?.tamanhoBytes) }}</span>
-        @if (previewAnexo()?.descricao) {
-          <span class="dot-separator">•</span>
-          <span>{{ previewAnexo()?.descricao }}</span>
-        }
-      </div>
-      <button type="button" class="btn btn-secondary" (click)="fecharPreviewModal()">Fechar</button>
-    </div>
-  </div>
-</div>
-}
+
 
 <!-- ===== MODAL CONFIRMAR EXCLUSÃO ===== -->
 <app-confirm-modal [isOpen]="isDeleteModalOpen()" [title]="'Excluir Ata'"

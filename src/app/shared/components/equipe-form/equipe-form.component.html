@@ -1,0 +1,139 @@
+<div [formGroup]="form" (click)="$event.stopPropagation()">
+<div class="form-section-card equipe-section-card">
+          <div class="section-card-header flex-header">
+            <div>
+              <div class="title-with-pill">
+                <span class="section-bullet bullet-equipe">5</span>
+                <label class="section-title">Equipe de Gestão e Fiscalização</label>
+                <span class="badge-opcional">Opcional</span>
+              </div>
+              <p class="section-subtitle">
+                Adicione os servidores e funções designados para {{ entityLabel }}. Você também pode preencher ou alterar depois.
+              </p>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary" (click)="addMembro()">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Adicionar Integrante
+            </button>
+          </div>
+
+          @if (membrosArray.length === 0) {
+            <div class="equipe-empty-card">
+              <div class="empty-icon-circle">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </div>
+              <div class="empty-content">
+                <strong>Nenhum fiscal ou gestor designado ainda</strong>
+                <p>{{ entityLabel }} pode ser salvo normalmente sem equipe vinculada no primeiro momento.</p>
+              </div>
+              <button type="button" class="btn-add-first" (click)="addMembro()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Designar Membro Agora
+              </button>
+            </div>
+          } @else {
+            <div formArrayName="membros" class="membros-table-list">
+              @for (ctrl of membrosArray.controls; track $index; let i = $index) {
+                <div [formGroupName]="i" class="membro-row-card">
+                  <div class="membro-index-badge">#{{ i + 1 }}</div>
+
+                  <!-- Coluna Servidor -->
+                  <div class="form-group col-servidor-field" style="position: relative; margin-bottom: 0;">
+                    <label>Servidor <span class="required">*</span></label>
+                    <div class="custom-select-wrapper" [class.open]="openServidorDropdownIndex() === i">
+                      <div class="custom-select-trigger" (click)="toggleServidorDropdown(i)"
+                        [class.invalid]="ctrl.get('servidorId')?.touched && ctrl.get('servidorId')?.invalid">
+                        <span class="trigger-text">
+                          @if (selectedServants()[i]) {
+                            {{ selectedServants()[i]!.nome }}
+                          } @else {
+                            Selecione o servidor...
+                          }
+                        </span>
+                        <svg class="chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" stroke-width="2" width="16" height="16">
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      </div>
+                      @if (openServidorDropdownIndex() === i) {
+                      <div class="custom-select-dropdown">
+                        <div class="dropdown-search">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" width="14" height="14">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                          </svg>
+                          <input #servInput type="text" placeholder="Buscar por nome, cargo ou matrícula..." [value]="servidorSearch()"
+                            (input)="servidorSearch.set(servInput.value)" (click)="$event.stopPropagation()" autofocus />
+                        </div>
+                        <ul class="dropdown-list">
+                          @for (serv of filteredServantsForDropdown(); track serv.id) {
+                          <li (click)="selectServant(i, serv)" [class.selected]="+ctrl.get('servidorId')?.value === serv.id">
+                            <div class="serv-item-row">
+                              <strong>{{ serv.nome }}</strong>
+                              @if (serv.matricula) {
+                                <span class="serv-mat">Mat. {{ serv.matricula }}</span>
+                              }
+                            </div>
+                            @if (serv.cargo || serv.secretaria) {
+                              <span class="serv-sub-info">{{ serv.cargo }}{{ serv.cargo && serv.secretaria ? ' • ' : '' }}{{ serv.secretaria }}</span>
+                            }
+                          </li>
+                          } @empty {
+                          <li class="no-results">Nenhum servidor encontrado</li>
+                          }
+                        </ul>
+                      </div>
+                      }
+                    </div>
+                    <select formControlName="servidorId" style="display:none">
+                      <option value=""></option>
+                      @for (serv of servants(); track serv.id) {
+                        <option [value]="serv.id">{{ serv.id }}</option>
+                      }
+                    </select>
+                    @if (ctrl.get('servidorId')?.touched && ctrl.get('servidorId')?.invalid) {
+                      <span class="invalid-feedback">Selecione o servidor</span>
+                    }
+                  </div>
+
+                  <!-- Coluna Função -->
+                  <div class="form-group col-funcao-field" style="margin-bottom: 0;">
+                    <label>Função na Equipe <span class="required">*</span></label>
+                    <select formControlName="funcaoId" [class.is-invalid]="ctrl.get('funcaoId')?.touched && ctrl.get('funcaoId')?.invalid">
+                      <option value="">Selecione a função...</option>
+                      @for (item of funcoesList(); track item.id) {
+                        <option [value]="item.id">{{ item.nome || item.funcao || item.descricao }}</option>
+                      }
+                    </select>
+                    @if (ctrl.get('funcaoId')?.touched && ctrl.get('funcaoId')?.invalid) {
+                      <span class="invalid-feedback">Selecione a função</span>
+                    }
+                  </div>
+
+                  <!-- Botão Remover -->
+                  <div class="membro-action-col">
+                    <button type="button" class="btn-remove-membro" (click)="removeMembro(i)" title="Remover integrante">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+</div>

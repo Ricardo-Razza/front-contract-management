@@ -1,0 +1,480 @@
+<div class="tab-pane-container">
+        <!-- SUBNAV SEGMENTED -->
+        <div class="subnav-segmented-bar">
+          <div class="segmented-control" role="tablist">
+            <button type="button" class="segment-btn" [class.active]="context.subTabFinanceiro() === 'NOTAS_MENSAIS'" (click)="context.selecionarSubTabFinanceiro('NOTAS_MENSAIS')">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              <span>Notas Fiscais Mensais</span>
+              @if (context.quantidadeNotasGeradas() > 0) {
+                <span class="segment-badge">{{ context.quantidadeNotasGeradas() }}</span>
+              }
+            </button>
+
+            <button type="button" class="segment-btn" [class.active]="context.subTabFinanceiro() === 'DEMONSTRATIVO_ANUAL'" (click)="context.selecionarSubTabFinanceiro('DEMONSTRATIVO_ANUAL')">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="3" y1="9" x2="21" y2="9"></line>
+              </svg>
+              <span>Demonstrativo anual</span>
+            </button>
+
+            <button type="button" class="segment-btn" [class.active]="context.subTabFinanceiro() === 'EMPENHOS'" (click)="context.selecionarSubTabFinanceiro('EMPENHOS')">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+              <span>Dotações & Empenhos</span>
+              <span class="segment-badge">{{ context.empenhos().length }}</span>
+            </button>
+          </div>
+
+          <div class="subnav-year-picker">
+            <span class="picker-label">Exercício:</span>
+            <select [ngModel]="context.anoFinanceiro()" (ngModelChange)="context.anoFinanceiro.set(+$event); context.carregarNotasFiscaisConsolidado(); context.carregarNotasFiscaisLote()">
+              <option [value]="2026">2026</option>
+              <option [value]="2025">2025</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- SUB-ABA 1: NOTAS FISCAIS MENSAIS DOS EMPENHOS -->
+        @if (context.subTabFinanceiro() === 'NOTAS_MENSAIS') {
+          <div class="month-selection-card">
+            <div class="month-selector-header">
+              <div>
+                <strong>Competência das Faturas</strong>
+                <p>Selecione o mês para visualizar os espelhos e emitir os atestos oficiais</p>
+              </div>
+
+              <div class="month-controls-inline">
+                <button type="button" class="btn btn-outline btn-sm" [class.active]="context.modoMultiplosMeses()" (click)="context.alternarModoMultiplosMeses()">
+                  {{ context.modoMultiplosMeses() ? 'Seleção Múltipla' : 'Mês Único' }}
+                </button>
+
+                @if (context.modoMultiplosMeses()) {
+                  <button type="button" class="btn btn-outline btn-sm" (click)="context.selecionarMesesFaturados()" [disabled]="context.loadingNotasConsolidado() || context.mesesComFaturamento().length === 0">Meses faturados</button>
+                  <button type="button" class="btn btn-outline btn-sm" (click)="context.selecionarTodosMeses()">12 Meses</button>
+                }
+
+                <div class="empenho-filter-select">
+                  <select [ngModel]="context.empenhoFiltroNotas()" (ngModelChange)="context.selecionarFiltroEmpenho($event)">
+                    <option [ngValue]="null">Todos os empenhos ({{ context.empenhos().length }})</option>
+                    @for (emp of context.empenhos(); track emp.id) {
+                      <option [ngValue]="emp.id">{{ emp.numeroEmpenho }} — {{ emp.secretariaSigla }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- BARRA DE 12 MESES EM PILLS -->
+            <div class="month-pills-row">
+              @for (m of context.mesesLista; track m.num) {
+                <button type="button"
+                        class="month-pill"
+                        [class.active]="context.isMesSelecionado(m.num)"
+                        [class.has-data]="context.mesesComFaturamento().includes(m.num)"
+                        [attr.aria-pressed]="context.isMesSelecionado(m.num)"
+                        [attr.aria-label]="m.nome + (context.mesesComFaturamento().includes(m.num) ? ': com faturamento' : ': sem faturamento')"
+                        (click)="context.selecionarMes(m.num)">
+                  <span class="pill-title">{{ m.sigla }}</span>
+                  <span class="pill-number">{{ m.num.toString().padStart(2, '0') }}</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- RESUMO KPI DE FATURAMENTO (PADRÃO DASHBOARD) -->
+          <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 1.25rem;">
+            <div class="metric-card">
+              <div class="metric-accent accent-blue"></div>
+              <div class="metric-icon icon-blue">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <line x1="12" y1="1" x2="12" y2="23"></line>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+              </div>
+              <div class="metric-body">
+                <span class="metric-label">Total Faturado</span>
+                <span class="metric-value font-mono">R$ {{ context.totalFaturadoSelecionado() | number:'1.2-2' }}</span>
+                <div class="metric-sub">
+                  <span class="sub-chip chip-green">
+                    {{ context.mesesSelecionados().length === 1 ? 'Mês ' + context.mesesSelecionados()[0] : context.mesesSelecionados().length + ' meses' }} / {{ context.anoFinanceiro() }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-accent accent-purple"></div>
+              <div class="metric-icon icon-purple">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+              </div>
+              <div class="metric-body">
+                <span class="metric-label">Produção de Páginas</span>
+                <span class="metric-value">{{ (context.totalCopiasMonoSelecionadas() + context.totalCopiasColorSelecionadas()) | number }}</span>
+                <div class="metric-sub">
+                  <span class="sub-chip chip-gray">Mono: {{ context.totalCopiasMonoSelecionadas() | number }}</span>
+                  <span class="sub-chip chip-gray">Color: {{ context.totalCopiasColorSelecionadas() | number }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="metric-card" [class.metric-card--alert]="(context.totalExcedenteMonoSelecionado() + context.totalExcedenteColorSelecionado()) > 0">
+              <div class="metric-accent accent-orange"></div>
+              <div class="metric-icon icon-orange">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </div>
+              <div class="metric-body">
+                <span class="metric-label">Excedente Contratual</span>
+                <span class="metric-value" [class.value-orange]="(context.totalExcedenteMonoSelecionado() + context.totalExcedenteColorSelecionado()) > 0">
+                  {{ (context.totalExcedenteMonoSelecionado() + context.totalExcedenteColorSelecionado()) | number }}
+                </span>
+                <div class="metric-sub">
+                  @if ((context.totalExcedenteMonoSelecionado() + context.totalExcedenteColorSelecionado()) > 0) {
+                    <span class="sub-chip chip-orange">Páginas acima da franquia</span>
+                  } @else {
+                    <span class="sub-chip chip-green">Dentro da franquia</span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-accent accent-green"></div>
+              <div class="metric-icon icon-green">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+              </div>
+              <div class="metric-body">
+                <span class="metric-label">Notas Fiscais</span>
+                <span class="metric-value">{{ context.quantidadeNotasGeradas() }}</span>
+                <div class="metric-sub">
+                  <span class="sub-chip chip-purple">Espelhos prontos p/ atesto</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- LISTA EXECUTIVA DE FATURAS COM EXPANSÃO PARA TERMO DE ATESTO -->
+          <div class="invoices-section">
+            <div class="invoices-header-actions">
+              <h4>Faturas do Período ({{ context.notasFiscaisLote().length }} secretarias)</h4>
+              <div class="invoices-toggles">
+                <button type="button" class="btn btn-outline btn-sm" (click)="context.expandAllInvoices()">Expandir Todas</button>
+                <button type="button" class="btn btn-outline btn-sm" (click)="context.collapseAllInvoices()">Recolher Todas</button>
+              </div>
+            </div>
+
+            @if (context.loadingNotasLote()) {
+              <div class="empty-state">
+                <div class="spinner-sm"></div>
+                <p>Processando faturas da competência...</p>
+              </div>
+            } @else if (context.notasFiscaisLote().length === 0) {
+              <div class="empty-state">
+                <div class="empty-state-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                </div>
+                <h4>Nenhuma nota fiscal encontrada</h4>
+                <p>Não há dados de faturamento para o período selecionado.</p>
+              </div>
+            } @else {
+              <div class="invoice-cards-list">
+                @for (fat of context.notasFiscaisLote(); track (fat.numeroEmpenho + '-' + fat.mesReferencia)) {
+                  <div class="invoice-summary-card" [class.is-expanded]="context.isInvoiceExpanded(fat.numeroEmpenho)">
+                    <!-- BARRA SUPERIOR DO CARD -->
+                    <div class="card-summary-header" (click)="context.toggleInvoice(fat.numeroEmpenho)">
+                      <div class="summary-left">
+                        <span class="sec-badge-lg">{{ fat.secretariaSigla }}</span>
+                        <div class="summary-info">
+                          <strong class="sec-full-name">{{ fat.secretariaNome }}</strong>
+                          <span class="meta-inline">
+                            Empenho <strong>{{ fat.numeroEmpenho }}</strong> &bull;
+                            Competência <strong>{{ fat.competenciaFormatada }}</strong> &bull;
+                            {{ fat.equipamentos.length || 0 }} equipamentos
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="summary-right">
+                        <div class="summary-price-box">
+                          <span class="price-label">Valor a Liquidar</span>
+                          <strong class="price-value font-mono">R$ {{ fat.totalFatura | number:'1.2-2' }}</strong>
+                        </div>
+
+                        <div class="summary-actions" (click)="$event.stopPropagation()">
+                          <button type="button" class="btn btn-outline btn-sm" (click)="context.imprimirNotaIndividual(fat.numeroEmpenho)" title="Gerar PDF Oficial / Imprimir Termo de Atesto e Fatura (A4)">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                              <rect x="6" y="14" width="12" height="8"></rect>
+                            </svg>
+                            Gerar PDF / Imprimir
+                          </button>
+
+                          <button type="button" class="btn btn-outline btn-sm btn-expand" (click)="context.toggleInvoice(fat.numeroEmpenho)" title="Expandir ou recolher espelho de atesto">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [style.transform]="context.isInvoiceExpanded(fat.numeroEmpenho) ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;">
+                              <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                            {{ context.isInvoiceExpanded(fat.numeroEmpenho) ? 'Recolher' : 'Ver Espelho' }}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- DOCUMENTO OFICIAL EMBUTIDO (VISÍVEL QUANDO EXPANDIDO E NA IMPRESSÃO) -->
+                    <div [id]="'invoice-card-' + fat.numeroEmpenho" class="doc-sheet official-invoice-card" [class.collapsed-view]="!context.isInvoiceExpanded(fat.numeroEmpenho)">
+                      <div class="doc-header">
+                        <div class="gov-text">
+                          <h3>PREFEITURA MUNICIPAL DE IMBÉ</h3>
+                          <p class="gov-sub">{{ fat.secretariaNome }} ({{ fat.secretariaSigla }})</p>
+                          <p class="gov-sub">Contrato Administrativo nº {{ fat.contratoNumero || '108/2024' }}</p>
+                        </div>
+
+                        <div class="invoice-meta">
+                          <span class="doc-title-badge">ESPELHO DA NOTA FISCAL / ATESTO</span>
+                          <div class="meta-row"><span>Empenho:</span> <strong>{{ fat.numeroEmpenho }}</strong></div>
+                          <div class="meta-row"><span>Competência:</span> <strong>{{ fat.competenciaFormatada }}</strong></div>
+                          <div class="meta-row"><span>Emissão:</span> <strong>{{ context.formatDatePtBr(fat.dataEmissao) || fat.dataEmissao }}</strong></div>
+                        </div>
+                      </div>
+
+                      <div class="contractor-bar">
+                        <div><strong>Contratada:</strong> Zênite Sistemas de Informação Ltda</div>
+                        <div><strong>CNPJ:</strong> 04.281.448/0001-29</div>
+                        <div><strong>Objeto:</strong> Locação de Impressoras com Franquia e Manutenção</div>
+                      </div>
+
+                      <!-- TABELA 1: ITENS FATURADOS -->
+                      <div class="doc-section">
+                        <h4>1. Demonstrativo de Custos por Item Contratual</h4>
+                        <table class="doc-table table-itens">
+                          <thead>
+                            <tr>
+                              <th style="width: 50px;">Item</th>
+                              <th style="width: 90px;">Código</th>
+                              <th>Descrição do Objeto / Serviço</th>
+                              <th style="text-align: center; width: 90px;">Unidade</th>
+                              <th style="text-align: right; width: 100px;">Qtd</th>
+                              <th style="text-align: right; width: 120px;">Valor Unit.</th>
+                              <th style="text-align: right; width: 130px;">Subtotal</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (it of fat.itens; track it.itemNumero) {
+                              <tr>
+                                <td style="text-align: center;"><strong>{{ it.itemNumero }}</strong></td>
+                                <td><code>{{ it.codigoItem }}</code></td>
+                                <td>{{ it.descricao }}</td>
+                                <td style="text-align: center;">{{ it.unidade }}</td>
+                                <td style="text-align: right;">{{ it.quantidade | number:(it.unidade === 'UNIDADE' ? '1.0-0' : '1.1-2') }}</td>
+                                <td style="text-align: right;">R$ {{ it.valorUnitario | number:(it.unidade === 'UNIDADE' ? '1.3-3' : '1.2-2') }}</td>
+                                <td style="text-align: right;"><strong>R$ {{ it.valorTotal | number:'1.2-2' }}</strong></td>
+                              </tr>
+                            }
+                            <tr class="row-total">
+                              <td colspan="6" style="text-align: right;"><strong>VALOR TOTAL DA DESPESA A LIQUIDAR:</strong></td>
+                              <td style="text-align: right; font-size: 1rem; color: #1e3a8a;"><strong>R$ {{ fat.totalFatura | number:'1.2-2' }}</strong></td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <!-- TABELA 2: EQUIPAMENTOS E MEDIÇÕES -->
+                      @if (fat.equipamentos && fat.equipamentos.length > 0) {
+                        <div class="doc-section doc-section-equipamentos" [class.no-print]="!context.incluirMedicaoImpressao()">
+                          <h4>2. Medição de Contadores por Equipamento ({{ fat.equipamentos.length }} Máquinas)</h4>
+                          <table class="doc-table table-equipamentos">
+                            <thead>
+                              <tr>
+                                <th>Item</th>
+                                <th>Modelo</th>
+                                <th>Local de Instalação</th>
+                                <th>Lote</th>
+                                <th style="text-align: right;">Leit. Anterior</th>
+                                <th style="text-align: right;">Leit. Atual</th>
+                                <th style="text-align: right;">Cópias</th>
+                                <th style="text-align: right;">Franquia</th>
+                                <th style="text-align: right;">Excedente</th>
+                                <th style="text-align: right;">Total R$</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (eq of fat.equipamentos; track (eq.numeroSerie || $index)) {
+                                <tr>
+                                  <td style="text-align: center;">#{{ eq.itemPedido || '-' }}</td>
+                                  <td>{{ eq.modelo }}</td>
+                                  <td>{{ eq.localInstalacao }}</td>
+                                  <td style="text-align: center;">L{{ eq.numeroLote }}</td>
+                                  <td style="text-align: right;">{{ eq.leituraMonoAnterior | number }}</td>
+                                  <td style="text-align: right;">{{ eq.leituraMonoAtual | number }}</td>
+                                  <td style="text-align: right;"><strong>{{ eq.copiasMono | number }}</strong></td>
+                                  <td style="text-align: right;">{{ eq.franquiaMono | number }}</td>
+                                  <td style="text-align: right;" [class.text-danger]="eq.excedenteMono > 0">{{ eq.excedenteMono | number }}</td>
+                                  <td style="text-align: right;"><strong>R$ {{ eq.valorTotal | number:'1.2-2' }}</strong></td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                      }
+
+                      <!-- TERMO OFICIAL DE ATESTO -->
+                      <div class="atesto-box">
+                        <div class="atesto-badge">TERMO OFICIAL DE ATESTO DE EXECUÇÃO DOS SERVIÇOS</div>
+                        <p class="atesto-texto">{{ fat.textoAtesto }}</p>
+                        <div class="atesto-signatures">
+                          <div class="signature-line">
+                            <div class="line"></div>
+                            <p class="signer-name">Fiscal do Contrato Administrativo</p>
+                          </div>
+                          <div class="signature-line">
+                            <div class="line"></div>
+                            <p class="signer-name">Ordenador de Despesa / Secretário Municipal</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        <!-- SUB-ABA 2: DEMONSTRATIVO ANUAL CONSOLIDADO -->
+        @if (context.subTabFinanceiro() === 'DEMONSTRATIVO_ANUAL') {
+          <div class="annual-matrix-wrapper">
+            @if (context.notasFiscaisConsolidado(); as mat) {
+              <div class="table-responsive consolidado-table-wrapper">
+                <table class="data-table table-consolidado">
+                  <thead>
+                    <tr>
+                      <th>Dotação / Secretaria</th>
+                      <th>Equip.</th>
+                      <th style="text-align: right;">Jan</th>
+                      <th style="text-align: right;">Fev</th>
+                      <th style="text-align: right;">Mar</th>
+                      <th style="text-align: right;">Abr</th>
+                      <th style="text-align: right;">Mai</th>
+                      <th style="text-align: right;">Jun</th>
+                      <th style="text-align: right;">Jul</th>
+                      <th style="text-align: right;">Ago</th>
+                      <th style="text-align: right;">Set</th>
+                      <th style="text-align: right;">Out</th>
+                      <th style="text-align: right;">Nov</th>
+                      <th style="text-align: right;">Dez</th>
+                      <th style="text-align: right;">Total Anual</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (emp of mat.empenhos; track emp.empenhoId) {
+                      <tr>
+                        <td>
+                          <strong>{{ emp.secretariaSigla }}</strong>
+                          <span class="sub-inline">Emp. {{ emp.numeroEmpenho }}</span>
+                        </td>
+                        <td style="text-align: center;">{{ emp.quantidadeEquipamentos }}</td>
+                        @for (mVal of emp.totaisMensais; track $index) {
+                          <td style="text-align: right;">
+                            @if (mVal > 0) {
+                              <span>{{ mVal | number:'1.2-2' }}</span>
+                            } @else {
+                              <span class="text-muted">—</span>
+                            }
+                          </td>
+                        }
+                        <td style="text-align: right;"><strong>R$ {{ emp.totalAnual | number:'1.2-2' }}</strong></td>
+                      </tr>
+                    }
+                    <tr class="row-total">
+                      <td><strong>TOTAL PREFEITURA</strong></td>
+                      <td>—</td>
+                      @for (totMes of mat.totaisPrefeituraMensais; track $index) {
+                        <td style="text-align: right;"><strong>{{ totMes | number:'1.2-2' }}</strong></td>
+                      }
+                      <td style="text-align: right;"><strong>R$ {{ mat.totalPrefeituraAnual | number:'1.2-2' }}</strong></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- SUB-ABA 3: DOTAÇÕES ORÇAMENTÁRIAS & EMPENHOS -->
+        @if (context.subTabFinanceiro() === 'EMPENHOS') {
+          <div class="table-card">
+            <div class="table-header-toolbar">
+              <span class="result-count">{{ context.empenhos().length }} dotações e empenhos vinculados</span>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Empenho</th>
+                    <th>Secretaria</th>
+                    <th>Descrição</th>
+                    <th style="text-align: right;">Valor Total</th>
+                    <th style="text-align: right;">Saldo Restante</th>
+                    <th>Consumo</th>
+                    <th class="col-acoes" style="text-align: right;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (emp of context.paginadosEmpenhos(); track emp.id) {
+                    <tr>
+                      <td><strong>{{ emp.numeroEmpenho }}</strong></td>
+                      <td><span class="sec-badge">{{ emp.secretariaSigla }}</span></td>
+                      <td>{{ emp.descricao || 'Locação de Impressoras' }}</td>
+                      <td style="text-align: right;" class="tabular-nums">R$ {{ emp.valorTotal | number:'1.2-2' }}</td>
+                      <td style="text-align: right;" class="tabular-nums"><strong>R$ {{ emp.saldo | number:'1.2-2' }}</strong></td>
+                      <td style="width: 140px;">
+                        <div class="progress-bar-wrap">
+                          <div class="progress-bar-fill" [style.width.%]="context.calcularPercentualEmpenho(emp)"></div>
+                        </div>
+                      </td>
+                      <td class="col-acoes" style="text-align: right;">
+                        <div class="row-actions-group">
+                          <button type="button" class="btn-icon" (click)="context.openEditEmpenhoModal(emp)" title="Editar Dotação/Empenho">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                          </button>
+                          <button type="button" class="btn-icon btn-icon-danger" (click)="confirmarExclusaoEmpenho(emp)" title="Excluir Empenho">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <polyline points="3 6 5 6 21 6"></polyline>
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            <app-pagination [totalItems]="context.empenhos().length" [currentPage]="context.paginaAtualEmpenhos()" [pageSize]="context.tamanhoEmpenhos()" (pageChange)="context.paginaEmpenhos.set($event)" (pageSizeChange)="context.tamanhoEmpenhos.set($event); context.paginaEmpenhos.set(1)"></app-pagination>
+            </div>
+          </div>
+        }
+      </div>

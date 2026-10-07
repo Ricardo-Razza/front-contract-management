@@ -1,3 +1,12 @@
+import { effect, untracked } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { DocumentoFilterOptions } from '@core/models';
+import { addEquipeMember } from '@shared/components/equipe-form/equipe-form.utils';
+import { ViewChild } from '@angular/core';
+import { EquipeFormComponent } from '@shared/components/equipe-form/equipe-form.component';
+import { AnexoManagerComponent } from '@shared/components/anexo-manager/anexo-manager.component';
+import { DestroyRef as LifecycleDestroyRef, inject as lifecycleInject } from '@angular/core';
+import { takeUntilDestroyed as untilComponentDestroyed } from '@angular/core/rxjs-interop';
 import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
@@ -11,7 +20,7 @@ import { includesNormalized, matchesSearch, exportToCsv, printFichaDocumento, pa
 @Component({
   selector: 'app-atas',
   standalone: true,
-  imports: [
+  imports: [EquipeFormComponent, AnexoManagerComponent,
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
@@ -26,6 +35,10 @@ import { includesNormalized, matchesSearch, exportToCsv, printFichaDocumento, pa
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AtasComponent implements OnInit {
+  @ViewChild(EquipeFormComponent) private equipeForm?: EquipeFormComponent;
+  @ViewChild(AnexoManagerComponent) private anexosManager?: AnexoManagerComponent;
+  private readonly requestDestroyRef = lifecycleInject(LifecycleDestroyRef);
+
   formatDatePtBr = formatDatePtBr;
 
   // ===== INJECTS =====
@@ -37,8 +50,6 @@ export class AtasComponent implements OnInit {
   private toast = inject(ToastService);
   private fb = inject(FormBuilder);
   private elementRef = inject(ElementRef);
-  private anexoService = inject(AnexoService);
-  private sanitizer = inject(DomSanitizer);
 
   // ===== DADOS =====
   agreements = signal<Agreement[]>([]);
@@ -50,34 +61,12 @@ export class AtasComponent implements OnInit {
   servidoresList = signal<{ id: number; nome: string }[]>([]);
 
   // Repositório Digital de Anexos
-  anexosAta = signal<DocumentoAnexo[]>([]);
-  loadingAnexos = signal<boolean>(false);
-  isUploadModalOpen = signal<boolean>(false);
-  uploadingAnexo = signal<boolean>(false);
-  uploadTipo = signal<string>('CONTRATO_INTEGRA');
-  uploadDescricao = signal<string>('');
-  selectedFile = signal<File | null>(null);
-  tiposDocumento = TIPOS_DOCUMENTO_LABELS;
-  readonly tiposDocumentoKeys = Object.keys(TIPOS_DOCUMENTO_LABELS);
+
   selectedSecretariasSet = signal<Set<number>>(new Set<number>());
 
   // Visualização de Anexo
-  previewAnexo = signal<DocumentoAnexo | null>(null);
-  previewUrl = signal<SafeResourceUrl | null>(null);
-  isPreviewModalOpen = signal<boolean>(false);
 
   // Equipe de Ata (No Modal)
-  openServidorDropdownIndex = signal<number | null>(null);
-  servidorSearch = signal<string>('');
-  selectedServants = signal<(Servant | null)[]>([]);
-
-  filteredServantsForDropdown = computed(() => {
-    const term = this.servidorSearch().trim();
-    if (!term) return this.servants();
-    return this.servants().filter(s =>
-      matchesSearch([s.nome, s.cargo, s.matricula, s.secretaria], term)
-    );
-  });
 
   // ===== FILTROS =====
   showFilters = signal(false);
@@ -116,16 +105,14 @@ export class AtasComponent implements OnInit {
 
   @HostListener('document:keydown.escape')
   onEscapeKey(): void {
-    if (this.isPreviewModalOpen()) {
-      this.fecharPreviewModal();
-    } else if (this.isUploadModalOpen()) {
-      this.fecharModalUploadAnexo();
+    if (this.anexosManager?.hasOpenDialog()) {
+      this.anexosManager.closeTopDialog();
     } else if (this.showSecretariaDropdown()) {
       this.showSecretariaDropdown.set(false);
     } else if (this.showPessoaSuggestions()) {
       this.showPessoaSuggestions.set(false);
-    } else if (this.openServidorDropdownIndex() !== null) {
-      this.openServidorDropdownIndex.set(null);
+    } else if (this.equipeForm && this.equipeForm.openServidorDropdownIndex() !== null) {
+      this.equipeForm?.closeDropdown();
     } else if (this.isDetailsModalOpen()) {
       this.closeDetailsModal();
     } else if (this.isModalOpen()) {
@@ -143,7 +130,7 @@ export class AtasComponent implements OnInit {
       this.showPessoaSuggestions.set(false);
     }
     if (!target.closest('.custom-select-wrapper')) {
-      this.openServidorDropdownIndex.set(null);
+      this.equipeForm?.closeDropdown();
     }
   }
 
@@ -180,19 +167,9 @@ export class AtasComponent implements OnInit {
     return count;
   });
 
-  anosDisponiveis = computed(() => {
-    const anos = new Set<number>();
-    this.agreements().forEach(a => anos.add(a.ano));
-    return Array.from(anos).sort((a, b) => b - a);
-  });
+  anosDisponiveis = computed(() => this.filterOptions().anos);
 
-  tiposDisponiveis = computed(() => {
-    const tipos = new Set<string>();
-    this.agreements().forEach(a => {
-      if (a.tipo) tipos.add(a.tipo);
-    });
-    return Array.from(tipos).sort();
-  });
+  tiposDisponiveis = computed(() => this.filterOptions().tipos);
 
   filteredSecretariasForFilter = computed(() => {
     const search = this.secretariaFilterSearch().trim();
@@ -253,8 +230,7 @@ export class AtasComponent implements OnInit {
     return Math.min(100, Math.max(0, Math.round(((now - start) / (end - start)) * 100)));
   }
 
-  filteredAgreements = computed(() => {
-    let list = this.agreements();
+  private filterAgreements(list: Agreement[]) {
 
     const global = this.globalSearch();
     const ano = this.filterAno();
@@ -340,57 +316,13 @@ export class AtasComponent implements OnInit {
 
       return true;
     });
-  });
+  }
 
-  sortedAgreements = computed(() => {
-    const list = [...this.filteredAgreements()];
-    const col = this.sortColumn();
-    const dir = this.sortDirection();
-    const multiplier = dir === 'asc' ? 1 : -1;
-
-    return list.sort((a: any, b: any) => {
-      let valA = a[col];
-      let valB = b[col];
-
-      if (col === 'numero') {
-        // Sort by ano first, then numero
-        if (a.ano !== b.ano) return (a.ano - b.ano) * multiplier;
-        return (Number(a.numero) - Number(b.numero)) * multiplier;
-      }
-
-      if (col === 'vigencia') {
-        const dateA = a.dataFim ? parseDateSafe(a.dataFim) : null;
-        const dateB = b.dataFim ? parseDateSafe(b.dataFim) : null;
-        valA = dateA ? dateA.getTime() : 0;
-        valB = dateB ? dateB.getTime() : 0;
-        return (valA - valB) * multiplier;
-      }
-
-      if (typeof valA === 'string' && typeof valB === 'string') {
-        return valA.localeCompare(valB, 'pt-BR') * multiplier;
-      }
-
-      if (typeof valA === 'number' && typeof valB === 'number') {
-        return (valA - valB) * multiplier;
-      }
-
-      if (!valA && valB) return -1 * multiplier;
-      if (valA && !valB) return 1 * multiplier;
-      return 0;
-    });
-  });
-
-  paginatedAgreements = computed(() => {
-    const sorted = this.sortedAgreements();
-    const page = this.currentPage();
-    const size = this.pageSize();
-    const startIndex = (page - 1) * size;
-    return sorted.slice(startIndex, startIndex + size);
-  });
+  paginatedAgreements = computed(() => this.agreements());
 
   // ===== LIFECYCLE =====
   ngOnInit(): void {
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe(params => {
       if (params['status']) {
         this.filterStatus.set(params['status']);
       }
@@ -404,43 +336,43 @@ export class AtasComponent implements OnInit {
         this.filterVigencia.set(params['vigencia'].toUpperCase());
       }
     });
-    this.loadData();
+
     this.loadLookups();
     this.loadServidores();
   }
 
   // ===== LOAD DATA =====
   loadData(): void {
+    this.listRequest?.unsubscribe();
     this.loading.set(true);
-    this.ataService.getAll().subscribe({
-      next: (data) => {
-        this.agreements.set(data || []);
-        this.loading.set(false);
+    const query = {search:this.globalSearch(),ano:this.filterAno(),tipo:this.filterTipo(),status:this.filterStatus(),vigencia:this.filterVigencia(),secretarias:this.filterSecretarias(),pessoas:this.filterPessoas()};
+    this.listRequest = this.ataService.getPage(this.currentPage()-1,this.pageSize(),[this.sortColumn()+','+this.sortDirection()],query).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
+      next: page => {
+        this.agreements.set(page.content); this.totalRecords.set(page.totalElements); this.loading.set(false);
+        const last = Math.max(1,page.totalPages); if(this.currentPage()>last) this.currentPage.set(last);
       },
-      error: () => {
-        this.toast.error('Erro ao carregar atas.');
-        this.loading.set(false);
-      }
+      error: () => this.loading.set(false)
     });
   }
 
   loadLookups(): void {
-    this.secService.getAll().subscribe({
+    this.loadFilterOptions();
+    this.secService.getAll().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: (items) => this.secretariats.set(items || [])
     });
-    this.lookupService.getTipos().subscribe({
+    this.lookupService.getTipos().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: (items) => this.tiposList.set(items || [])
     });
-    this.lookupService.getAtivos().subscribe({
+    this.lookupService.getAtivos().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: (items) => this.statusList.set(items || [])
     });
-    this.lookupService.getFuncoesEquipe().subscribe({
+    this.lookupService.getFuncoesEquipe().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: (items) => this.funcoesList.set(items || [])
     });
   }
 
   loadServidores(): void {
-    this.servidorService.getAll().subscribe({
+    this.servidorService.getAll().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: (data) => {
         this.servants.set(data || []);
         this.servidoresList.set((data || []).map(s => ({ id: s.id, nome: s.nome })));
@@ -449,45 +381,7 @@ export class AtasComponent implements OnInit {
   }
 
   // ============ MÉTODOS DE EQUIPE DE ATA (MODAL) ============
-  addMembro(servidorId: number | string = '', funcaoId: number | string = '', servantObj: Servant | null = null): void {
-    this.membrosArray.push(this.fb.group({
-      servidorId: [servidorId, Validators.required],
-      funcaoId: [funcaoId, Validators.required]
-    }));
-    this.selectedServants.update(list => [...list, servantObj]);
-  }
-
-  removeMembro(index: number): void {
-    this.membrosArray.removeAt(index);
-    this.selectedServants.update(list => list.filter((_, i) => i !== index));
-    if (this.openServidorDropdownIndex() === index) {
-      this.openServidorDropdownIndex.set(null);
-    }
-  }
-
-  toggleServidorDropdown(index: number): void {
-    if (this.openServidorDropdownIndex() === index) {
-      this.openServidorDropdownIndex.set(null);
-    } else {
-      this.openServidorDropdownIndex.set(index);
-      this.servidorSearch.set('');
-    }
-  }
-
-  selectServant(index: number, servant: Servant): void {
-    const ctrl = this.membrosArray.at(index);
-    if (ctrl) {
-      ctrl.get('servidorId')!.setValue(servant.id);
-      this.selectedServants.update(list => {
-        const copy = [...list];
-        copy[index] = servant;
-        return copy;
-      });
-      ctrl.get('servidorId')!.markAsTouched();
-    }
-    this.openServidorDropdownIndex.set(null);
-    this.servidorSearch.set('');
-  }
+  addMembro(servidorId: number | string = '', funcaoId: number | string = '', servantObj: Servant | null = null): void { addEquipeMember(this.membrosArray, servidorId, funcaoId); }
 
   // ===== SORT & PAGINATION METHODS =====
   setSort(column: string): void {
@@ -615,7 +509,8 @@ export class AtasComponent implements OnInit {
   }
 
   exportAgreements(): void {
-    const list = this.filteredAgreements();
+    this.ataService.getAll().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({next: data => {
+    const list = this.filterAgreements(data);
     if (!list.length) {
       this.toast.warning('Nenhuma ata para exportar com os filtros atuais.');
       return;
@@ -637,6 +532,8 @@ export class AtasComponent implements OnInit {
     ], list);
 
     this.toast.success(`${list.length} ata(s) exportada(s) com sucesso!`);
+
+    }});
   }
 
   printFicha(ata: Agreement | null): void {
@@ -753,137 +650,14 @@ export class AtasComponent implements OnInit {
   openDetailsModal(ata: Agreement): void {
     this.selectedAtaForDetails.set(ata);
     this.isDetailsModalOpen.set(true);
-    this.carregarAnexos(ata.id);
+
   }
 
   closeDetailsModal(): void {
     this.isDetailsModalOpen.set(false);
     this.selectedAtaForDetails.set(null);
-    this.anexosAta.set([]);
-    this.fecharPreviewModal();
-  }
 
-  carregarAnexos(ataId: number): void {
-    this.loadingAnexos.set(true);
-    this.anexoService.listarPorAta(ataId).subscribe({
-      next: (anexos) => {
-        this.anexosAta.set(anexos || []);
-        this.loadingAnexos.set(false);
-      },
-      error: (err) => {
-        console.error('Erro ao carregar anexos da ata:', err);
-        this.loadingAnexos.set(false);
-      }
-    });
-  }
-
-  abrirModalUploadAnexo(): void {
-    this.selectedFile.set(null);
-    this.uploadTipo.set('CONTRATO_INTEGRA');
-    this.uploadDescricao.set('');
-    this.isUploadModalOpen.set(true);
-  }
-
-  fecharModalUploadAnexo(): void {
-    this.isUploadModalOpen.set(false);
-    this.selectedFile.set(null);
-  }
-
-  onFileSelected(event: any): void {
-    const file = event.target?.files?.[0];
-    if (file) {
-      this.selectedFile.set(file);
-    }
-  }
-
-  enviarAnexo(): void {
-    const file = this.selectedFile();
-    const ata = this.selectedAtaForDetails();
-    if (!file || !ata) return;
-
-    this.uploadingAnexo.set(true);
-    this.anexoService.upload(file, this.uploadTipo(), this.uploadDescricao(), undefined, ata.id).subscribe({
-      next: () => {
-        this.toast.success('Documento anexado com sucesso!');
-        this.uploadingAnexo.set(false);
-        this.fecharModalUploadAnexo();
-        this.carregarAnexos(ata.id);
-      },
-      error: (err) => {
-        console.error('Erro ao fazer upload do anexo:', err);
-        this.toast.error('Erro ao fazer upload do documento.');
-        this.uploadingAnexo.set(false);
-      }
-    });
-  }
-
-  downloadAnexo(anexo?: DocumentoAnexo | null): void {
-    if (!anexo) return;
-    const url = this.anexoService.getUrlDownload(anexo.id);
-    window.open(url, '_blank');
-  }
-
-  visualizarAnexo(anexo: DocumentoAnexo): void {
-    this.previewAnexo.set(anexo);
-    const rawUrl = this.anexoService.getUrlVisualizar(anexo.id);
-    this.previewUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(rawUrl));
-    this.isPreviewModalOpen.set(true);
-  }
-
-  fecharPreviewModal(): void {
-    this.isPreviewModalOpen.set(false);
-    this.previewAnexo.set(null);
-    this.previewUrl.set(null);
-  }
-
-  abrirAnexoNovaAba(anexo?: DocumentoAnexo | null): void {
-    if (!anexo) return;
-    const url = this.anexoService.getUrlVisualizar(anexo.id);
-    window.open(url, '_blank');
-  }
-
-  isArquivoVisualizavel(anexo?: DocumentoAnexo | null): boolean {
-    if (!anexo) return false;
-    const nome = (anexo.nomeOriginal || '').toLowerCase();
-    const type = (anexo.contentType || '').toLowerCase();
-    return (
-      nome.endsWith('.pdf') ||
-      nome.endsWith('.png') ||
-      nome.endsWith('.jpg') ||
-      nome.endsWith('.jpeg') ||
-      type.includes('pdf') ||
-      type.includes('image')
-    );
-  }
-
-  excluirAnexo(anexo: DocumentoAnexo): void {
-    if (confirm(`Tem certeza que deseja excluir o anexo "${anexo.nomeOriginal}"?`)) {
-      this.anexoService.deletar(anexo.id).subscribe({
-        next: () => {
-          this.toast.success('Anexo excluído com sucesso!');
-          const ata = this.selectedAtaForDetails();
-          if (ata) {
-            this.carregarAnexos(ata.id);
-          }
-        },
-        error: (err) => {
-          console.error('Erro ao excluir anexo:', err);
-          this.toast.error('Erro ao excluir documento anexo.');
-        }
-      });
-    }
-  }
-
-  formatarTamanho(bytes?: number): string {
-    if (!bytes || bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-  }
-
-  getTipoDocumentoLabel(tipo: string): string {
-    return this.tiposDocumento[tipo] || tipo;
+    this.anexosManager?.closeDialogs();
   }
 
   // ============ MÉTODOS DE SELEÇÃO DE SECRETARIAS ============
@@ -918,9 +692,7 @@ export class AtasComponent implements OnInit {
     this.isEditModalOpen.set(false);
     this.modalSecretariaSearch.set('');
     this.membrosArray.clear();
-    this.selectedServants.set([]);
-    this.openServidorDropdownIndex.set(null);
-    this.servidorSearch.set('');
+    this.equipeForm?.closeDropdown();
     this.form.reset({
       numero: '',
       ano: new Date().getFullYear(),
@@ -943,9 +715,7 @@ export class AtasComponent implements OnInit {
     this.isEditModalOpen.set(true);
     this.modalSecretariaSearch.set('');
     this.membrosArray.clear();
-    this.selectedServants.set([]);
-    this.openServidorDropdownIndex.set(null);
-    this.servidorSearch.set('');
+    this.equipeForm?.closeDropdown();
 
     const ataTipoNorm = (ata.tipo || '').trim().toUpperCase();
     const tipoObj = this.tiposList().find(t =>
@@ -1004,9 +774,7 @@ export class AtasComponent implements OnInit {
     this.editingAta.set(null);
     this.modalSecretariaSearch.set('');
     this.membrosArray.clear();
-    this.selectedServants.set([]);
-    this.openServidorDropdownIndex.set(null);
-    this.servidorSearch.set('');
+    this.equipeForm?.closeDropdown();
     this.form.reset();
   }
 
@@ -1044,28 +812,28 @@ export class AtasComponent implements OnInit {
 
     if (this.editingAta()) {
       const id = this.editingAta()!.id;
-      this.ataService.update(id, payload).subscribe({
+      this.ataService.update(id, payload).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
         next: () => {
           this.toast.success('Ata atualizada com sucesso!');
           this.submitting.set(false);
           this.closeModal();
-          this.loadData();
+          this.loadData(); this.loadFilterOptions();
         },
         error: () => {
-          this.toast.error('Erro ao atualizar ata.');
+
           this.submitting.set(false);
         }
       });
     } else {
-      this.ataService.create(payload).subscribe({
+      this.ataService.create(payload).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
         next: () => {
           this.toast.success('Ata cadastrada com sucesso!');
           this.submitting.set(false);
           this.closeModal();
-          this.loadData();
+          this.loadData(); this.loadFilterOptions();
         },
         error: () => {
-          this.toast.error('Erro ao cadastrar ata.');
+
           this.submitting.set(false);
         }
       });
@@ -1088,15 +856,15 @@ export class AtasComponent implements OnInit {
     if (!item) return;
 
     this.deleting.set(true);
-    this.ataService.delete(item.id).subscribe({
+    this.ataService.delete(item.id).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: () => {
         this.toast.success('Ata excluída com sucesso.');
         this.deleting.set(false);
         this.closeDeleteModal();
-        this.loadData();
+        this.loadData(); this.loadFilterOptions();
       },
       error: () => {
-        this.toast.error('Erro ao excluir ata.');
+
         this.deleting.set(false);
       }
     });
@@ -1106,4 +874,14 @@ export class AtasComponent implements OnInit {
     if (!membros || membros.length === 0) return [];
     return new OrderEquipePipe().transform(membros);
   }
+  readonly totalRecords = signal(0);
+  readonly filterOptions = signal<DocumentoFilterOptions>({anos:[],tipos:[]});
+  private listRequest?: Subscription;
+  private readonly refreshList = effect(() => {
+    this.globalSearch(); this.filterAno(); this.filterTipo(); this.filterStatus(); this.filterVigencia(); this.filterSecretarias(); this.filterPessoas(); this.currentPage(); this.pageSize(); this.sortColumn(); this.sortDirection();
+    untracked(() => this.loadData());
+  });
+
+  private loadFilterOptions(): void { this.ataService.getFilterOptions().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe(options => this.filterOptions.set(options)); }
+
 }

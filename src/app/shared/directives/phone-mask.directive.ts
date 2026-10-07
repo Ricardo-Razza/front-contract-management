@@ -1,11 +1,11 @@
-import { Directive, HostListener, ElementRef, OnInit } from '@angular/core';
+import { Directive, HostListener, ElementRef, OnInit, inject } from '@angular/core';
 
 @Directive({
   selector: '[appPhoneMask]',
   standalone: true
 })
 export class PhoneMaskDirective implements OnInit {
-  constructor(private el: ElementRef<HTMLInputElement>) {}
+  private readonly el = inject<ElementRef<HTMLInputElement>>(ElementRef);
 
   ngOnInit(): void {
     setTimeout(() => this.formatCurrentValue(), 50);
