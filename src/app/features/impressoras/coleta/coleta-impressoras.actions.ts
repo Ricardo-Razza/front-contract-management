@@ -274,15 +274,13 @@ export class ColetaImpressorasActions {
     this.impressoraService.recoletarItem(item.id).pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
       next: () => {
         this.toast.success(`Coleta disparada para o equipamento ${item.itemPedido}!`);
-        setTimeout(() => {
-          if (this.context.coletaSessao()) {
-            this.carregarSessaoColeta(this.context.coletaSessao()!.id, false);
-          }
-        }, 3500);
+        if (this.context.coletaSessao()) {
+          this.carregarSessaoColeta(this.context.coletaSessao()!.id, false);
+        }
+        this.iniciarPollingColeta();
       },
       error: (err) => {
         item.status = statusAnterior;
-
       }
     });
   }
