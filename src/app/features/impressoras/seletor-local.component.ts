@@ -20,7 +20,7 @@ import { matchesSearch } from '@core/utils';
       @if (aberto()) {
         <div class="multiselect-popover">
           <input #buscaInput type="search" class="multiselect-search" placeholder="Buscar local por nome ou endereço..."
-                 aria-label="Buscar local" [value]="busca()" (input)="busca.set($any($event.target).value)"
+                 aria-label="Buscar local" [value]="busca()" (input)="onBuscaInput($event)"
                  (keydown.arrowdown)="focarOpcao($event)" />
           <div class="multiselect-list" [id]="id + '-opcoes'" role="group" aria-label="Locais cadastrados">
             @for (local of filtrados(); track local.id) {
@@ -91,6 +91,11 @@ export class SeletorLocalComponent implements OnChanges {
     if (changes['valor']) {
       this.valorSignal.set(this.valor);
     }
+  }
+
+  onBuscaInput(event: Event): void {
+    const val = (event.target as HTMLInputElement | null)?.value ?? '';
+    this.busca.set(val);
   }
 
   alternar(): void { this.busca.set(''); this.aberto.update(v => !v); }

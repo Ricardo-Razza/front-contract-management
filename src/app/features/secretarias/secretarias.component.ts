@@ -86,9 +86,9 @@ export class SecretariasComponent implements OnInit {
     const dir = this.sortDirection();
     const multiplier = dir === 'asc' ? 1 : -1;
 
-    return list.sort((a: any, b: any) => {
-      const valA = a[col];
-      const valB = b[col];
+    return list.sort((a, b) => {
+      const valA = (a as unknown as Record<string, unknown>)[col];
+      const valB = (b as unknown as Record<string, unknown>)[col];
 
       if (typeof valA === 'string' && typeof valB === 'string') {
         return valA.localeCompare(valB, 'pt-BR') * multiplier;

@@ -70,8 +70,9 @@ export class AnexoManagerComponent implements OnChanges {
     this.selectedFile.set(null);
   }
 
-  onFileSelected(event: any): void {
-    const file = event.target?.files?.[0];
+  onFileSelected(event: Event): void {
+    const target = event.target as HTMLInputElement | null;
+    const file = target?.files?.[0];
     if (file) {
       this.selectedFile.set(file);
     }

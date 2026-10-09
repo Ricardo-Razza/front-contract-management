@@ -83,7 +83,7 @@ export class LeiturasImpressorasActions {
     });
   }
 
-  onLeituraMonoChange(item: ItemGradeLeitura, valorStr: any): void {
+  onLeituraMonoChange(item: ItemGradeLeitura, valorStr: string | number): void {
     const str = String(valorStr ?? '').trim();
     const valor = str === '' ? null : Math.max(0, parseInt(str.replace(/\D/g, ''), 10) || 0);
     item.leituraMonoAtual = valor;
@@ -100,7 +100,7 @@ export class LeiturasImpressorasActions {
     this.context.gradeLeituras.update(lista => [...lista]);
   }
 
-  onLeituraColorChange(item: ItemGradeLeitura, valorStr: any): void {
+  onLeituraColorChange(item: ItemGradeLeitura, valorStr: string | number): void {
     const str = String(valorStr ?? '').trim();
     const valor = str === '' ? null : Math.max(0, parseInt(str.replace(/\D/g, ''), 10) || 0);
     item.leituraColorAtual = valor;

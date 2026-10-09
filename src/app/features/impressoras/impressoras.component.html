@@ -936,7 +936,7 @@
             <div class="form-grid">
               <div class="form-group full-width">
                 <label class="form-label">Secretaria de Lotação *</label>
-                <select class="form-select" formControlName="secretariaId" (change)="onSecretariaMudouCadastro($any($event.target).value)">
+                <select #secCadSelect class="form-select" formControlName="secretariaId" (change)="onSecretariaMudouCadastro(secCadSelect.value)">
                   <option value="">Selecione uma secretaria...</option>
                   @for (sec of secretariats(); track sec.id) {
                     <option [value]="sec.id">{{ sec.sigla }} — {{ sec.nome }}</option>
@@ -1068,7 +1068,7 @@
           <div class="form-grid">
             <div class="form-group full-width">
               <label class="form-label">Nova Secretaria de Destino *</label>
-              <select class="form-select" formControlName="novaSecretariaId" (change)="onSecretariaMudouRemanejar($any($event.target).value)">
+              <select #secRemSelect class="form-select" formControlName="novaSecretariaId" (change)="onSecretariaMudouRemanejar(secRemSelect.value)">
                 @for (sec of secretariats(); track sec.id) {
                   <option [value]="sec.id">{{ sec.sigla }} — {{ sec.nome }}</option>
                 }

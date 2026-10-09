@@ -11,7 +11,8 @@ module.exports = tseslint.config(
     rules: {
       '@angular-eslint/prefer-inject': 'error',
       '@typescript-eslint/no-duplicate-enum-values': 'error',
-      '@typescript-eslint/no-non-null-asserted-optional-chain': 'error'
+      '@typescript-eslint/no-non-null-asserted-optional-chain': 'error',
+      '@typescript-eslint/no-explicit-any': 'warn'
     }
   },
   {

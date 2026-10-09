@@ -14,8 +14,8 @@ import { ActivatedRoute } from '@angular/router';
 import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PaginationComponent, OrderEquipePipe } from '@shared';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { AtaService, SecretariaService, ServidorService, LookupService, ToastService, AnexoService } from '@core/services';
-import { Agreement, Secretariat, LookupItem, Servant, DocumentoAnexo, TIPOS_DOCUMENTO_LABELS } from '@core/models';
-import { includesNormalized, matchesSearch, exportToCsv, printFichaDocumento, parseDateSafe, formatDatePtBr } from '@core/utils';
+import { Agreement, Secretariat, LookupItem, Servant, DocumentoAnexo, TIPOS_DOCUMENTO_LABELS, ContractTeam, ContractTeamMember } from '@core/models';
+import { includesNormalized, matchesSearch, exportToCsv, printFichaDocumento, parseDateSafe, formatDatePtBr, PrintItemData } from '@core/utils';
 
 @Component({
   selector: 'app-atas',
@@ -260,7 +260,7 @@ export class AtasComponent implements OnInit {
           }
         }
         if (ata.equipe && ata.equipe.length > 0) {
-          for (const eq of ata.equipe as any[]) {
+          for (const eq of ata.equipe) {
             if (eq.servidor) targets.push(eq.servidor, eq.funcao);
             if (eq.membros && eq.membros.length > 0) {
               for (const m of eq.membros) {
@@ -305,9 +305,9 @@ export class AtasComponent implements OnInit {
       if (selectedPessoas.length > 0) {
         const equipes = ata.equipe || [];
         const hasPessoa = selectedPessoas.some(pessoa => {
-          return equipes.some((eq: any) => {
+          return equipes.some((eq: ContractTeam) => {
             if (eq.membros && eq.membros.length > 0) {
-              return eq.membros.some((m: any) => matchesSearch([m.servidorNome, m.servidorCargo, m.funcaoNome], pessoa));
+              return eq.membros.some((m: ContractTeamMember) => matchesSearch([m.servidorNome, m.servidorCargo, m.funcaoNome], pessoa));
             }
             return matchesSearch([eq.servidor, eq.funcao], pessoa);
           });
@@ -544,7 +544,7 @@ export class AtasComponent implements OnInit {
 
   printFicha(ata: Agreement | null): void {
     if (!ata) return;
-    const membros: any[] = [];
+    const membros: NonNullable<PrintItemData['equipe']> = [];
     if (ata.equipe) {
       ata.equipe.forEach(eq => {
         if (eq.membros && eq.membros.length > 0) {
@@ -795,7 +795,7 @@ export class AtasComponent implements OnInit {
     const val = this.form.value;
 
     const membrosPayload = val.membros && val.membros.length > 0
-      ? val.membros.map((m: any) => ({
+      ? val.membros.map((m: { servidorId: number | string; funcaoId: number | string }) => ({
           servidorId: Number(m.servidorId),
           funcaoId: Number(m.funcaoId)
         }))
@@ -876,7 +876,7 @@ export class AtasComponent implements OnInit {
     });
   }
 
-  ordenarMembros(membros: any[]): any[] {
+  ordenarMembros(membros: ContractTeamMember[]): ContractTeamMember[] {
     if (!membros || membros.length === 0) return [];
     return new OrderEquipePipe().transform(membros);
   }

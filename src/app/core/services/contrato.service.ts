@@ -32,11 +32,11 @@ export class ContratoService {
     return this.http.get<Contract>(`${this.apiUrl}/${id}`);
   }
 
-  create(dto: ContractDTO | any): Observable<Contract> {
+  create(dto: ContractDTO): Observable<Contract> {
     return this.http.post<Contract>(this.apiUrl, dto);
   }
 
-  update(id: number, dto: ContractDTO | any): Observable<Contract> {
+  update(id: number, dto: ContractDTO): Observable<Contract> {
     return this.http.put<Contract>(`${this.apiUrl}/${id}`, dto);
   }
 

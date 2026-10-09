@@ -19,11 +19,11 @@ export class EquipeService {
     return this.http.get<ContractTeam>(`${this.apiUrl}/${id}`);
   }
 
-  create(dto: ContractTeamDTO | any): Observable<ContractTeam> {
+  create(dto: ContractTeamDTO): Observable<ContractTeam> {
     return this.http.post<ContractTeam>(this.apiUrl, dto);
   }
 
-  update(id: number, dto: ContractTeamDTO | any): Observable<ContractTeam> {
+  update(id: number, dto: ContractTeamDTO): Observable<ContractTeam> {
     return this.http.put<ContractTeam>(`${this.apiUrl}/${id}`, dto);
   }
 

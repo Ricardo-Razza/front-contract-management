@@ -13,12 +13,19 @@ function getFuncaoPriority(funcaoRaw?: string): number {
   return 99;
 }
 
+export interface EquipeMemberLike {
+  funcaoNome?: string;
+  funcao?: string;
+  servidorNome?: string;
+  servidor?: string;
+}
+
 @Pipe({
   name: 'orderEquipe',
   standalone: true
 })
 export class OrderEquipePipe implements PipeTransform {
-  transform(equipe: any[]): any[] {
+  transform<T extends EquipeMemberLike>(equipe: T[] | null | undefined): T[] {
     if (!equipe || equipe.length === 0) return [];
 
     return [...equipe].sort((a, b) => {

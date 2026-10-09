@@ -296,14 +296,15 @@
                       <!-- Leitura Mono Atual (Input) -->
                       <td class="cell-input text-center">
                         <div class="input-inline-wrap">
-                          <input type="text"
+                          <input #monoInput
+                                 type="text"
                                  inputmode="numeric"
                                  class="input-inline-leitura input-mono"
                                  [class.is-dirty]="item.editado && item.leituraMonoAtual !== item.valorOriginalMono"
                                  [class.is-saved]="item.sucesso"
                                  [value]="item.leituraMonoAtual !== null && item.leituraMonoAtual !== undefined ? item.leituraMonoAtual : ''"
                                  placeholder="Mono..."
-                                 (input)="context.onLeituraMonoChange(item, $any($event.target).value)"
+                                 (input)="context.onLeituraMonoChange(item, monoInput.value)"
                                  (keydown.enter)="context.salvarLinhaLeitura(item); context.focarProximoInput($event)"
                                  [disabled]="item.salvando"
                                  title="Leitura Mono Atual — Pressione Enter para salvar" />
@@ -334,14 +335,15 @@
                       <td class="cell-input text-center">
                         @if (item.tipoImpressao === 'COLOR') {
                           <div class="input-inline-wrap">
-                            <input type="text"
+                            <input #colorInput
+                                   type="text"
                                    inputmode="numeric"
                                    class="input-inline-leitura input-color"
                                    [class.is-dirty]="item.editado && item.leituraColorAtual !== item.valorOriginalColor"
                                    [class.is-saved]="item.sucesso"
                                    [value]="item.leituraColorAtual !== null && item.leituraColorAtual !== undefined ? item.leituraColorAtual : ''"
                                    placeholder="Color..."
-                                   (input)="context.onLeituraColorChange(item, $any($event.target).value)"
+                                   (input)="context.onLeituraColorChange(item, colorInput.value)"
                                    (keydown.enter)="context.salvarLinhaLeitura(item); context.focarProximoInput($event)"
                                    [disabled]="item.salvando"
                                    title="Leitura Color Atual — Pressione Enter para salvar" />

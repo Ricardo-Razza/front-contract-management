@@ -32,7 +32,7 @@ export class AtaService {
     return this.http.get<Agreement>(`${this.apiUrl}/${id}`);
   }
 
-  create(dto: AgreementDTO | any): Observable<Agreement> {
+  create(dto: AgreementDTO): Observable<Agreement> {
     return this.http.post<Agreement>(this.apiUrl, dto);
   }
 
@@ -40,8 +40,7 @@ export class AtaService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
-  update(id: number, dto: any): Observable<Agreement> {
+  update(id: number, dto: AgreementDTO): Observable<Agreement> {
     return this.http.put<Agreement>(`${this.apiUrl}/${id}`, dto);
-    //
   }
 }

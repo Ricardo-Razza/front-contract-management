@@ -555,7 +555,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
   coletaAtiva = signal<ColetaProgresso | null>(null);
   coletaSessao = signal<ColetaSessao | null>(null);
   loadingColeta = signal<boolean>(false);
-  pollingColetaInterval: any = null;
+  pollingColetaInterval: ReturnType<typeof setInterval> | null = null;
   anoColeta = signal<number>(2026);
   mesColeta = signal<number>(8);
 
@@ -827,7 +827,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     return list;
   });
 
-  filteredLeituras = computed(() => this.filteredGradeLeituras() as any);
+  filteredLeituras = computed(() => this.filteredGradeLeituras());
 
   // Paginação da grade de medições
   paginaAtualLeituras = computed(() => {
@@ -842,7 +842,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     return this.filteredGradeLeituras().slice((page - 1) * size, page * size);
   });
 
-  paginadosLeituras = computed(() => this.paginadosGradeLeituras() as any);
+  paginadosLeituras = computed(() => this.paginadosGradeLeituras());
 
   // Métricas do Faturamento Mensal das Leituras
   totalEquipamentosGrade = computed(() => this.gradeLeituras().length);
@@ -1273,13 +1273,13 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     }
   }
 
-  getNomeSecretaria(secId: any): string {
+  getNomeSecretaria(secId: number | string | null | undefined): string {
     if (!secId) return 'Não informada';
     const sec = this.secretariats().find(s => s.id === Number(secId));
     return sec ? `${sec.sigla} - ${sec.nome}` : 'Secretaria #' + secId;
   }
 
-  onLocalSelecionadoCadastro(valor: any): void {
+  onLocalSelecionadoCadastro(valor: number | string): void {
     if (!valor) return;
     const loc = this.todosLocaisDisponiveis().find(l => l.id === Number(valor));
 
@@ -1297,13 +1297,13 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     }
   }
 
-  onSecretariaMudouCadastro(secretariaId: any): void {
+  onSecretariaMudouCadastro(secretariaId: number | string): void {
     const secId = Number(secretariaId);
     this.secretariaSelecionadaCadastro.set(secId || null);
     this.form.patchValue({ secretariaId: secId || '', localInstalacaoId: '', localInstalacao: '', endereco: '', responsavel: '', empenhoId: '' });
   }
 
-  onLocalSelecionadoRemanejar(valor: any): void {
+  onLocalSelecionadoRemanejar(valor: number | string): void {
     if (!valor) return;
     const loc = this.todosLocaisDisponiveis().find(l => l.id === Number(valor));
 
@@ -1321,7 +1321,7 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
     }
   }
 
-  onSecretariaMudouRemanejar(secretariaId: any): void {
+  onSecretariaMudouRemanejar(secretariaId: number | string): void {
     const secId = Number(secretariaId);
     this.secretariaSelecionadaRemanejo.set(secId || null);
     this.remanejarForm.patchValue({ novaSecretariaId: secId || '', localInstalacaoId: '', novoLocalInstalacao: '', novoEndereco: '', novoResponsavel: '' });
@@ -1331,9 +1331,9 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
   carregarGradeLeituras(): void { return this.leiturasActions.carregarGradeLeituras(); }
 
-  onLeituraMonoChange(item: ItemGradeLeitura, valorStr: any): void { return this.leiturasActions.onLeituraMonoChange(item, valorStr); }
+  onLeituraMonoChange(item: ItemGradeLeitura, valorStr: string | number): void { return this.leiturasActions.onLeituraMonoChange(item, valorStr); }
 
-  onLeituraColorChange(item: ItemGradeLeitura, valorStr: any): void { return this.leiturasActions.onLeituraColorChange(item, valorStr); }
+  onLeituraColorChange(item: ItemGradeLeitura, valorStr: string | number): void { return this.leiturasActions.onLeituraColorChange(item, valorStr); }
 
   recalcularExcedenteEValorItem(item: ItemGradeLeitura): void { return this.leiturasActions.recalcularExcedenteEValorItem(item); }
 
@@ -1871,9 +1871,9 @@ export class ImpressorasComponent implements OnInit, OnDestroy {
 
   carregarUltimaSessaoColeta(): void { return this.coletaActions.carregarUltimaSessaoColeta(); }
 
-  onSecretariaFiltroColetaChange(val: any): void { return this.coletaActions.onSecretariaFiltroColetaChange(val); }
+  onSecretariaFiltroColetaChange(val: string | number): void { return this.coletaActions.onSecretariaFiltroColetaChange(val); }
 
-  onFiltroSecretariaModalChange(val: any): void { return this.coletaActions.onFiltroSecretariaModalChange(val); }
+  onFiltroSecretariaModalChange(val: string | number): void { return this.coletaActions.onFiltroSecretariaModalChange(val); }
 
   abrirModalSelecaoImpressoras(): void { return this.coletaActions.abrirModalSelecaoImpressoras(); }
 

@@ -14,8 +14,8 @@ import { ActivatedRoute } from '@angular/router';
 import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PaginationComponent } from '@shared';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ContratoService, SecretariaService, ServidorService, LookupService, ToastService, AnexoService } from '@core/services';
-import { Contract, Secretariat, LookupItem, Servant, DocumentoAnexo, TIPOS_DOCUMENTO_LABELS } from '@core/models';
-import { includesNormalized, matchesSearch, exportToCsv, printFichaDocumento, parseDateSafe, formatDatePtBr } from '@core/utils';
+import { Contract, Secretariat, LookupItem, Servant, DocumentoAnexo, TIPOS_DOCUMENTO_LABELS, ContractTeam, ContractTeamMember } from '@core/models';
+import { includesNormalized, matchesSearch, exportToCsv, printFichaDocumento, parseDateSafe, formatDatePtBr, PrintItemData } from '@core/utils';
 
 @Component({
   selector: 'app-contratos',
@@ -251,7 +251,7 @@ export class ContratosComponent implements OnInit {
           }
         }
         if (contrato.equipe && contrato.equipe.length > 0) {
-          for (const eq of contrato.equipe as any[]) {
+          for (const eq of contrato.equipe) {
             if (eq.servidor) targets.push(eq.servidor, eq.funcao);
             if (eq.membros && eq.membros.length > 0) {
               for (const m of eq.membros) {
@@ -290,9 +290,9 @@ export class ContratosComponent implements OnInit {
       if (selectedPessoas.length > 0) {
         const equipes = contrato.equipe || [];
         const hasPessoa = selectedPessoas.some(pessoa => {
-          return equipes.some((eq: any) => {
+          return equipes.some((eq: ContractTeam) => {
             if (eq.membros && eq.membros.length > 0) {
-              return eq.membros.some((m: any) => matchesSearch([m.servidorNome, m.servidorCargo, m.funcaoNome], pessoa));
+              return eq.membros.some((m: ContractTeamMember) => matchesSearch([m.servidorNome, m.servidorCargo, m.funcaoNome], pessoa));
             }
             return matchesSearch([eq.servidor, eq.funcao], pessoa);
           });
@@ -571,7 +571,7 @@ export class ContratosComponent implements OnInit {
 
   printFicha(contrato: Contract | null): void {
     if (!contrato) return;
-    const membros: any[] = [];
+    const membros: NonNullable<PrintItemData['equipe']> = [];
     if (contrato.equipe) {
       contrato.equipe.forEach(eq => {
         if (eq.membros && eq.membros.length > 0) {
@@ -794,7 +794,7 @@ export class ContratosComponent implements OnInit {
     const val = this.form.value;
 
     const membrosPayload = val.membros && val.membros.length > 0
-      ? val.membros.map((m: any) => ({
+      ? val.membros.map((m: { servidorId: number | string; funcaoId: number | string }) => ({
           servidorId: Number(m.servidorId),
           funcaoId: Number(m.funcaoId)
         }))
@@ -875,7 +875,7 @@ export class ContratosComponent implements OnInit {
     });
   }
 
-  ordenarMembros(membros: any[]): any[] {
+  ordenarMembros(membros: ContractTeamMember[]): ContractTeamMember[] {
     if (!membros || membros.length === 0) return membros;
 
     const ordem: { [key: string]: number } = {

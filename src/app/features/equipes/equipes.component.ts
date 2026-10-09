@@ -5,7 +5,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, PaginationComponent, OrderEquipePipe } from '@shared';
 import { EquipeService, AtaService, ServidorService, LookupService, ToastService, ContratoService } from '@core/services';
-import { ContractTeam, Agreement, Contract, Servant, LookupItem } from '@core/models';
+import { ContractTeam, ContractTeamDTO, Agreement, Contract, Servant, LookupItem } from '@core/models';
 import { includesNormalized, matchesSearch } from '@core/utils';
 
 type TipoVinculo = 'ATA' | 'CONTRATO';
@@ -338,9 +338,9 @@ export class EquipesComponent implements OnInit {
     const dir = this.sortDirection();
     const multiplier = dir === 'asc' ? 1 : -1;
 
-    return list.sort((a: any, b: any) => {
-      const valA = a[col];
-      const valB = b[col];
+    return list.sort((a, b) => {
+      const valA = (a as unknown as Record<string, unknown>)[col];
+      const valB = (b as unknown as Record<string, unknown>)[col];
 
       if (typeof valA === 'string' && typeof valB === 'string') {
         return valA.localeCompare(valB, 'pt-BR') * multiplier;
@@ -504,10 +504,10 @@ export class EquipesComponent implements OnInit {
     this.submitting.set(true);
     const val = this.form.value;
 
-    const payload: any = {
+    const payload: ContractTeamDTO = {
       tipo,
       ativoId: Number(val.ativoId),
-      membros: val.membros.map((m: any) => ({
+      membros: (val.membros || []).map((m: { servidorId: number | string; funcaoId: number | string }) => ({
         servidorId: Number(m.servidorId),
         funcaoId: Number(m.funcaoId)
       }))
