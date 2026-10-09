@@ -15,7 +15,23 @@ import { HeaderComponent, ConfirmModalComponent, LoadingSkeletonComponent, Pagin
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { AtaService, SecretariaService, ServidorService, LookupService, ToastService, AnexoService } from '@core/services';
 import { Agreement, Secretariat, LookupItem, Servant, DocumentoAnexo, TIPOS_DOCUMENTO_LABELS, ContractTeam, ContractTeamMember } from '@core/models';
-import { includesNormalized, matchesSearch, exportToCsv, printFichaDocumento, parseDateSafe, formatDatePtBr, PrintItemData } from '@core/utils';
+import {
+  includesNormalized,
+  matchesSearch,
+  exportToCsv,
+  printFichaDocumento,
+  parseDateSafe,
+  formatDatePtBr,
+  PrintItemData,
+  getVigenciaStatus,
+  getVigenciaPercent,
+  getVigenciaPillClass,
+  getVigenciaPillText,
+  getVigenciaFilterLabel,
+  matchesVigenciaFilter,
+  getVigenciaFilterFromPill,
+  copyTextToClipboard
+} from '@core/utils';
 
 @Component({
   selector: 'app-atas',
@@ -221,14 +237,7 @@ export class AtasComponent implements OnInit {
   }
 
   getVigenciaPercent(dataInicio?: string, dataFim?: string): number {
-    if (!dataInicio || !dataFim) return 0;
-    const start = parseDateSafe(dataInicio)?.getTime() ?? 0;
-    const end = parseDateSafe(dataFim)?.getTime() ?? 0;
-    const now = new Date().getTime();
-    if (end <= start) return 100;
-    if (now <= start) return 0;
-    if (now >= end) return 100;
-    return Math.min(100, Math.max(0, Math.round(((now - start) / (end - start)) * 100)));
+    return getVigenciaPercent(dataInicio, dataFim);
   }
 
   private filterAgreements(list: Agreement[]) {
@@ -285,14 +294,8 @@ export class AtasComponent implements OnInit {
       }
 
       // 5. Vigência
-      if (vigencia) {
-        const vStatus = this.getVigenciaStatus(ata.dataFim);
-        if (vigencia === 'VIGENTE' && vStatus.badgeClass !== 'vigencia-ok') return false;
-        if (vigencia === 'ATENCAO' && vStatus.badgeClass !== 'vigencia-warning') return false;
-        if (vigencia === 'CRITICA' && vStatus.badgeClass !== 'vigencia-critical') return false;
-        if (vigencia === 'EM_ALERTA' && vStatus.badgeClass !== 'vigencia-warning' && vStatus.badgeClass !== 'vigencia-critical') return false;
-        if (vigencia === 'VENCIDO' && vStatus.badgeClass !== 'vigencia-expired') return false;
-        if (vigencia === 'TODOS_VIGENTES' && (vStatus.badgeClass === 'vigencia-expired' || vStatus.badgeClass === 'vigencia-unknown')) return false;
+      if (vigencia && !matchesVigenciaFilter(ata.dataFim, vigencia)) {
+        return false;
       }
 
       // 5. Secretarias (Multi-select)
@@ -409,48 +412,7 @@ export class AtasComponent implements OnInit {
   }
 
   getVigenciaStatus(dataFimStr?: string): { label: string; badgeClass: string; days: number; text: string } {
-    if (!dataFimStr) {
-      return { label: 'Sem data', badgeClass: 'vigencia-unknown', days: 0, text: '-' };
-    }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const end = parseDateSafe(dataFimStr);
-    if (!end) {
-      return { label: 'Sem data', badgeClass: 'vigencia-unknown', days: 0, text: '-' };
-    }
-    end.setHours(0, 0, 0, 0);
-    const diffTime = end.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) {
-      return {
-        label: 'Vencida',
-        badgeClass: 'vigencia-expired',
-        days: Math.abs(diffDays),
-        text: `Vencida há ${Math.abs(diffDays)} dia(s)`
-      };
-    } else if (diffDays <= 30) {
-      return {
-        label: 'Crítica',
-        badgeClass: 'vigencia-critical',
-        days: diffDays,
-        text: `Vence em ${diffDays} dia(s)`
-      };
-    } else if (diffDays <= 60) {
-      return {
-        label: 'Atenção',
-        badgeClass: 'vigencia-warning',
-        days: diffDays,
-        text: `Vence em ${diffDays} dias`
-      };
-    } else {
-      return {
-        label: 'Vigente',
-        badgeClass: 'vigencia-ok',
-        days: diffDays,
-        text: `${diffDays} dias restantes`
-      };
-    }
+    return getVigenciaStatus(dataFimStr);
   }
 
   getDataVigente(ata: Agreement): string {
@@ -461,57 +423,31 @@ export class AtasComponent implements OnInit {
   }
 
   getVigenciaPillClass(dataFim?: string): string {
-    const status = this.getVigenciaStatus(dataFim);
-    if (status.badgeClass === 'vigencia-expired') return 'pill-expired';
-    if (status.badgeClass === 'vigencia-critical') return 'pill-urgent';
-    if (status.badgeClass === 'vigencia-warning') return 'pill-warning';
-    if (status.badgeClass === 'vigencia-ok') return 'pill-valid';
-    return 'pill-none';
+    return getVigenciaPillClass(dataFim);
   }
 
   getVigenciaPillText(dataFim?: string): string {
-    const status = this.getVigenciaStatus(dataFim);
-    if (status.badgeClass === 'vigencia-expired') return 'Vencido';
-    if (status.badgeClass === 'vigencia-critical') return `Vence em ${status.days}d`;
-    if (status.badgeClass === 'vigencia-warning') return `Vence em ${status.days}d`;
-    if (status.badgeClass === 'vigencia-ok') return 'Vigente';
-    return '-';
+    return getVigenciaPillText(dataFim);
   }
 
   getVigenciaFilterLabel(val: string): string {
-    switch (val) {
-      case 'VIGENTE': return 'Vigente (> 60d)';
-      case 'ATENCAO': return 'Atenção (Vence em 60d)';
-      case 'CRITICA': return 'Crítica (Vence em 30d)';
-      case 'EM_ALERTA': return 'Em Alerta (≤ 60d)';
-      case 'VENCIDO': return 'Vencido';
-      case 'TODOS_VIGENTES': return 'Não Vencidos';
-      default: return val;
-    }
+    return getVigenciaFilterLabel(val);
   }
 
   filterByVigenciaPill(dataFim?: string): void {
-    if (!dataFim) return;
-    const vStatus = this.getVigenciaStatus(dataFim);
-    if (vStatus.badgeClass === 'vigencia-expired') {
-      this.filterVigencia.set('VENCIDO');
-    } else if (vStatus.badgeClass === 'vigencia-critical') {
-      this.filterVigencia.set('CRITICA');
-    } else if (vStatus.badgeClass === 'vigencia-warning') {
-      this.filterVigencia.set('ATENCAO');
-    } else if (vStatus.badgeClass === 'vigencia-ok') {
-      this.filterVigencia.set('VIGENTE');
+    const filter = getVigenciaFilterFromPill(dataFim);
+    if (filter) {
+      this.filterVigencia.set(filter);
+      this.currentPage.set(1);
     }
-    this.currentPage.set(1);
   }
 
   copyToClipboard(text: string, label: string): void {
-    if (!text) return;
-    navigator.clipboard.writeText(text).then(() => {
-      this.toast.info(`${label} copiado!`);
-    }).catch(() => {
-      this.toast.error('Não foi possível copiar');
-    });
+    copyTextToClipboard(
+      text,
+      () => this.toast.info(`${label} copiado!`),
+      () => this.toast.error('Não foi possível copiar')
+    );
   }
 
   exportAgreements(): void {
