@@ -24,22 +24,89 @@ export interface PrintItemData {
 }
 
 /**
- * Abre janela de impressão com ficha limpa formatada para folha A4 oficial.
+ * Escapa caracteres HTML para prevenir injeção (XSS).
  */
-export function printFichaDocumento(data: PrintItemData): void {
-  const printWindow = window.open('', '_blank', 'width=840,height=900');
-  if (!printWindow) return;
+export function escapeHtml(str: unknown): string {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
+/**
+ * Constrói o HTML seguro para impressão da ficha cadastral.
+ */
+export function buildFichaHtml(data: PrintItemData): string {
   const formatDate = (d?: string) => {
     return formatDatePtBr(d);
   };
 
-  const html = `
+  const tipoDoc = escapeHtml(data.tipoDocumento);
+  const numero = escapeHtml(data.numero);
+  const ano = escapeHtml(data.ano);
+  const situacao = escapeHtml(data.situacao || 'ATIVO');
+  const tipo = escapeHtml(data.tipo || 'PRODUTO');
+  const portaria = escapeHtml(data.portariaDesignacao || '-');
+  const objeto = escapeHtml(data.objeto || '-');
+
+  const secretariasHtml = data.secretarias && data.secretarias.length > 0
+    ? `
+      <div class="section">
+        <div class="section-title">3. Secretarias Participantes</div>
+        <div>${data.secretarias.map(s => s.sigla ? `<strong>${escapeHtml(s.sigla)}</strong> - ${escapeHtml(s.nome)}` : escapeHtml(s.nome)).join('; ')}</div>
+      </div>`
+    : '';
+
+  const equipeHtml = data.equipe && data.equipe.length > 0
+    ? `
+      <div class="section">
+        <div class="section-title">4. Equipe de Gestão e Fiscalização</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Função</th>
+              <th>Servidor</th>
+              <th>Cargo</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.equipe.map(e => `
+              <tr>
+                <td><strong>${escapeHtml(e.funcaoNome || e.funcao || '-')}</strong></td>
+                <td>${escapeHtml(e.servidorNome || e.servidor || '-')}</td>
+                <td>${escapeHtml(e.servidorCargo || '-')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>`
+    : '';
+
+  const observacaoHtml = data.observacao
+    ? `
+      <div class="section">
+        <div class="section-title">5. Observações Administrativas</div>
+        <div class="highlight-box">${escapeHtml(data.observacao)}</div>
+      </div>`
+    : '';
+
+  const contratadoHtml = data.nomeContratado
+    ? `
+      <div>
+        <div class="field-label">Contratado</div>
+        <div class="field-value">${escapeHtml(data.nomeContratado)}</div>
+      </div>`
+    : '';
+
+  return `
     <!DOCTYPE html>
     <html lang="pt-BR">
     <head>
       <meta charset="UTF-8">
-      <title>Ficha Cadastral - ${data.tipoDocumento} ${data.numero}/${data.ano}</title>
+      <title>Ficha Cadastral - ${tipoDoc} ${numero}/${ano}</title>
       <style>
         body {
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -142,11 +209,11 @@ export function printFichaDocumento(data: PrintItemData): void {
       <div class="header">
         <div>
           <div class="meta">Sistema de Gestão de Contratos e Atas de Registro de Preços</div>
-          <h1>${data.tipoDocumento} Nº ${data.numero}/${data.ano}</h1>
+          <h1>${tipoDoc} Nº ${numero}/${ano}</h1>
         </div>
         <div>
-          <span class="badge">${data.situacao || 'ATIVO'}</span>
-          <span class="badge">${data.tipo || 'PRODUTO'}</span>
+          <span class="badge">${situacao}</span>
+          <span class="badge">${tipo}</span>
         </div>
       </div>
 
@@ -155,13 +222,9 @@ export function printFichaDocumento(data: PrintItemData): void {
         <div class="grid">
           <div>
             <div class="field-label">Número / Ano</div>
-            <div class="field-value">${data.numero}/${data.ano}</div>
+            <div class="field-value">${numero}/${ano}</div>
           </div>
-          ${data.nomeContratado ? `
-          <div>
-            <div class="field-label">Contratado</div>
-            <div class="field-value">${data.nomeContratado}</div>
-          </div>` : ''}
+          ${contratadoHtml}
           <div>
             <div class="field-label">Data de Início da Vigência</div>
             <div class="field-value">${formatDate(data.dataInicio)}</div>
@@ -172,7 +235,7 @@ export function printFichaDocumento(data: PrintItemData): void {
           </div>
           <div>
             <div class="field-label">Portaria de Designação</div>
-            <div class="field-value">${data.portariaDesignacao || '-'}</div>
+            <div class="field-value">${portaria}</div>
           </div>
           <div>
             <div class="field-label">Data da Portaria</div>
@@ -183,43 +246,14 @@ export function printFichaDocumento(data: PrintItemData): void {
 
       <div class="section">
         <div class="section-title">2. Objeto</div>
-        <div class="highlight-box">${data.objeto || '-'}</div>
+        <div class="highlight-box">${objeto}</div>
       </div>
 
-      ${data.secretarias && data.secretarias.length > 0 ? `
-      <div class="section">
-        <div class="section-title">3. Secretarias Participantes</div>
-        <div>${data.secretarias.map(s => s.sigla ? `<strong>${s.sigla}</strong> - ${s.nome}` : s.nome).join('; ')}</div>
-      </div>` : ''}
+      ${secretariasHtml}
 
-      ${data.equipe && data.equipe.length > 0 ? `
-      <div class="section">
-        <div class="section-title">4. Equipe de Gestão e Fiscalização</div>
-        <table>
-          <thead>
-            <tr>
-              <th>Função</th>
-              <th>Servidor</th>
-              <th>Cargo</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${data.equipe.map(e => `
-              <tr>
-                <td><strong>${e.funcaoNome || e.funcao || '-'}</strong></td>
-                <td>${e.servidorNome || e.servidor || '-'}</td>
-                <td>${e.servidorCargo || '-'}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>` : ''}
+      ${equipeHtml}
 
-      ${data.observacao ? `
-      <div class="section">
-        <div class="section-title">5. Observações Administrativas</div>
-        <div class="highlight-box">${data.observacao}</div>
-      </div>` : ''}
+      ${observacaoHtml}
 
       <div style="margin-top: 35px; border-top: 1px dashed #cbd5e1; padding-top: 8px; font-size: 10px; color: #94a3b8; display: flex; justify-content: space-between;">
         <span>Documento gerado eletronicamente em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</span>
@@ -234,6 +268,16 @@ export function printFichaDocumento(data: PrintItemData): void {
     </body>
     </html>
   `;
+}
+
+/**
+ * Abre janela de impressão com ficha limpa formatada para folha A4 oficial.
+ */
+export function printFichaDocumento(data: PrintItemData): void {
+  const printWindow = window.open('', '_blank', 'width=840,height=900');
+  if (!printWindow) return;
+
+  const html = buildFichaHtml(data);
 
   printWindow.document.open();
   printWindow.document.write(html);
