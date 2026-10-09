@@ -50,6 +50,16 @@ describe('Interceptores HTTP', () => {
       expect(received).toBe(status);expect(toast.error).toHaveBeenCalledTimes(1);expect(loading.loading()).toBeFalse();
     });
   }
+  it('extrai message e array de errors da API em erro 400', () => {
+    http.get('/error-400').subscribe({ error: () => {} });
+    backend.expectOne('/error-400').flush({ message: 'x', errors: ['a', 'b'] }, { status: 400, statusText: 'Bad Request' });
+    expect(toast.error).toHaveBeenCalledWith('x: a, b');
+  });
+  it('exibe mensagem genérica amigável em erro 500', () => {
+    http.get('/error-500').subscribe({ error: () => {} });
+    backend.expectOne('/error-500').flush({ message: 'Internal DB failure' }, { status: 500, statusText: 'Server Error' });
+    expect(toast.error).toHaveBeenCalledWith('O servidor não conseguiu concluir a operação. Tente novamente.');
+  });
   it('permite chamadas silenciosas com contexto explícito',()=> {
     http.get('/silent',{context:new HttpContext().set(SKIP_GLOBAL_LOADING,true).set(SKIP_GLOBAL_ERROR,true)}).subscribe({error:()=>{}});
     expect(loading.loading()).toBeFalse();backend.expectOne('/silent').flush({},{status:404,statusText:'Not Found'});

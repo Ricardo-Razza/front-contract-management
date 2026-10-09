@@ -176,3 +176,12 @@ export interface DashboardData {
   atasEncerradas: number;
   atasRecentes: Agreement[];
 }
+
+export interface ApiErrorResponse {
+  status?: number;
+  message?: string;
+  mensagem?: string;
+  path?: string;
+  timestamp?: string;
+  errors?: Record<string, string> | string[] | Array<{ field?: string; message?: string; defaultMessage?: string }>;
+}
