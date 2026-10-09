@@ -1,0 +1,159 @@
+<div class="tab-pane-container">
+  <div class="filter-bar">
+    <!-- Linha 1: Busca Geral -->
+    <div class="filter-search-box">
+      <span class="filter-search-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </span>
+      <input type="text"
+             placeholder="Buscar por unidade, setor, endereço ou responsável..."
+             [ngModel]="context.buscaLocais()"
+             (ngModelChange)="context.buscaLocais.set($event)" />
+      @if (context.buscaLocais()) {
+        <button type="button" class="filter-clear-btn" aria-label="Limpar pesquisa" (click)="context.buscaLocais.set('')">&#x2715;</button>
+      }
+    </div>
+
+    <!-- Linha 2: Grid Alinhado -->
+    <div class="filter-grid">
+      <div class="filter-field">
+        <span class="filter-label">Secretarias</span>
+        <div class="custom-multiselect">
+          <button type="button" class="multiselect-trigger" [class.open]="context.showSecretariaDropdownLocais()"
+                  (click)="context.toggleSecretariaDropdownLocais(); $event.stopPropagation()">
+            <span class="trigger-text" [class.placeholder]="context.filtroSecretariasLocais().length === 0">
+              @if (context.filtroSecretariasLocais().length === 0) {
+                Todas as Secretarias
+              } @else if (context.filtroSecretariasLocais().length === 1) {
+                {{ context.getSecretariaNome(context.filtroSecretariasLocais()[0]) }}
+              } @else {
+                {{ context.filtroSecretariasLocais().length }} secretarias
+              }
+            </span>
+            <svg class="trigger-arrow" [class.open]="context.showSecretariaDropdownLocais()" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+
+          @if (context.showSecretariaDropdownLocais()) {
+            <div class="multiselect-popover" (click)="$event.stopPropagation()">
+              <div class="multiselect-header">
+                <span class="multiselect-count">{{ context.filtroSecretariasLocais().length }} selecionada(s)</span>
+                <div class="multiselect-actions">
+                  <button type="button" class="action-link" (click)="context.selectAllSecretariasFilterLocais()">Todas</button>
+                  <button type="button" class="action-link" (click)="context.clearSecretariaFilterLocais()">Limpar</button>
+                </div>
+              </div>
+              <input type="text" class="multiselect-search" placeholder="Filtrar secretarias..."
+                     [ngModel]="context.secretariaFilterSearchLocais()" (ngModelChange)="context.secretariaFilterSearchLocais.set($event)" />
+              <div class="multiselect-list">
+                @for (sec of context.filteredSecretariasForLocais(); track sec.id) {
+                  <label class="multiselect-item" [class.selected]="context.isSecretariaFilterSelectedLocais(sec.id)">
+                    <input type="checkbox" [checked]="context.isSecretariaFilterSelectedLocais(sec.id)"
+                           (change)="context.toggleSecretariaFilterLocais(sec.id)" />
+                    <span class="item-sigla">{{ sec.sigla }}</span>
+                    <span class="item-nome">{{ sec.nome }}</span>
+                  </label>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+    @if (context.filtroSecretariasLocais().length > 0 || context.buscaLocais()) {
+      <div class="filter-active-tags" style="padding-top: 0.5rem;">
+        <span class="filter-tags-label">Filtros:</span>
+        @if (context.buscaLocais()) {
+          <span class="filter-tag">Busca: "{{ context.buscaLocais() }}" <button class="tag-remove" (click)="context.buscaLocais.set('')">&#x2715;</button></span>
+        }
+        @for (secId of context.filtroSecretariasLocais(); track secId) {
+          <span class="filter-tag">Secretaria: {{ context.getSecretariaNome(secId) }} <button class="tag-remove" (click)="context.removeSecretariaFilterLocais(secId)">&#x2715;</button></span>
+        }
+        <button class="filter-clear-all" (click)="context.buscaLocais.set(''); context.clearSecretariaFilterLocais()">Limpar filtros</button>
+      </div>
+    }
+  </div>
+
+  <div class="table-card">
+    <div class="table-header-toolbar">
+      <span class="result-count">{{ context.filteredLocais().length }} locais de instalação cadastrados</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Unidade / Setor</th>
+            <th>Secretaria</th>
+            <th>Endereço</th>
+            <th>Responsável / Contato</th>
+            <th class="text-center">Impressoras</th>
+            <th class="col-acoes" style="text-align: right;">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (loc of context.paginadosLocais(); track loc.id) {
+            <tr>
+              <td><strong>{{ loc.nome }}</strong></td>
+              <td><span class="sec-badge">{{ loc.secretariaSigla || 'SEC' }}</span></td>
+              <td>
+                @if (loc.endereco) {
+                  <span>{{ loc.endereco }}</span>
+                } @else {
+                  <span class="text-muted" style="opacity: 0.5;">—</span>
+                }
+              </td>
+              <td>
+                @if (loc.responsavel) {
+                  <span>{{ loc.responsavel }}</span>
+                  @if (loc.telefone) {
+                    <span class="sub-inline" style="font-size: 0.75rem; color: #64748b; margin-left: 0.35rem;">({{ loc.telefone }})</span>
+                  }
+                } @else {
+                  <span class="text-muted" style="opacity: 0.5;">—</span>
+                }
+              </td>
+              <td class="text-center">
+                <span class="sub-chip tabular-nums"
+                      [class.chip-green]="(loc.quantidadeImpressorasAtivas || 0) > 0"
+                      [class.chip-orange]="!(loc.quantidadeImpressorasAtivas || 0)"
+                      title="{{ (loc.quantidadeImpressorasAtivas || 0) === 0 ? 'Nenhuma impressora alocada neste local' : (loc.quantidadeImpressorasAtivas || 0) + ' impressoras ativas' }}">
+                  <strong>{{ loc.quantidadeImpressorasAtivas || 0 }}</strong> {{ (loc.quantidadeImpressorasAtivas || 0) === 1 ? 'máquina' : 'máquinas' }}
+                </span>
+              </td>
+              <td class="col-acoes" style="text-align: right;">
+                <button type="button" class="btn btn-outline" (click)="context.historicoLocal.set(loc)">Histórico</button>
+                <button type="button" class="btn-icon" (click)="context.abrirModalEditarLocal(loc)" title="Editar Local de Instalação">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6">
+                <div class="empty-state">
+                  <div class="empty-state-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                      <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                  </div>
+                  <h4>Nenhum local encontrado</h4>
+                  <p>Tente ajustar os filtros de pesquisa ou cadastre um novo local.</p>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <app-pagination [totalItems]="context.filteredLocais().length" [currentPage]="context.paginaAtualLocais()" [pageSize]="context.tamanhoLocais()" (pageChange)="context.paginaLocais.set($event)" (pageSizeChange)="context.tamanhoLocais.set($event); context.paginaLocais.set(1)"></app-pagination>
+    </div>
+  </div>
+</div>

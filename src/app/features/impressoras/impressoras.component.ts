@@ -4,6 +4,8 @@ import { ComprovanteViewerComponent } from './components/comprovante-viewer.comp
 import { ColetaImpressorasComponent } from './components/coleta-impressoras.component';
 import { FinanceiroImpressorasComponent } from './components/financeiro-impressoras.component';
 import { GradeLeiturasComponent } from './components/grade-leituras.component';
+import { LotesFranquiasComponent } from './components/lotes-franquias.component';
+import { LocaisImpressorasComponent } from './components/locais-impressoras.component';
 import { ComprovanteImpressorasActions } from './comprovante/comprovante-impressoras.actions';
 import { ColetaImpressorasActions } from './coleta/coleta-impressoras.actions';
 import { LeiturasImpressorasActions } from './leituras/leituras-impressoras.actions';
@@ -54,7 +56,7 @@ import { LocalInstalacaoService } from '@core/services/local-instalacao.service'
 @Component({
   selector: 'app-impressoras',
   standalone: true,
-  imports: [ModalColetaSnmpComponent, ComprovanteViewerComponent, ColetaImpressorasComponent, FinanceiroImpressorasComponent, GradeLeiturasComponent,
+  imports: [ModalColetaSnmpComponent, ComprovanteViewerComponent, ColetaImpressorasComponent, FinanceiroImpressorasComponent, GradeLeiturasComponent, LotesFranquiasComponent, LocaisImpressorasComponent,
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
