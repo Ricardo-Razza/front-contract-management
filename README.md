@@ -18,9 +18,23 @@ npm ci
 npm start
 ```
 
-A aplicação abre em `http://localhost:4200`. O servidor de desenvolvimento usa `proxy.conf.json`; as configurações de ambientes ficam em `src/environments`.
+* **Frontend**: `http://localhost:4200`
+* **Backend integrado**: `http://localhost:8081/api`
 
-Use Node.js compatível com Angular 19, como Node 22. Consulte a [tabela oficial](https://angular.dev/reference/versions).
+### Ambientes e Proxy
+
+* **Desenvolvimento (`ng serve` / `npm start`)**: O dev server utiliza `proxy.conf.json`, encaminhando requisições de `/api` para `http://localhost:8081/api`.
+* **Produção (`ng build` / Docker)**: Configurado com `environment.prod.ts` (`apiUrl: '/api'`) e `nginx.conf` com proxy reverso apontando para o serviço de backend (`http://backend:8081/api/`), dispensando configuração de CORS em produção.
+
+### Execução Conjunta (Frontend + Backend)
+
+Para subir o frontend junto com o backend Spring Boot em janelas dedicadas:
+```powershell
+# A partir do diretório raiz de projetos:
+.\iniciar.ps1
+```
+
+Use Node.js compatível com Angular 19 (Node 22 LTS recomendado). Consulte a [tabela oficial](https://angular.dev/reference/versions).
 
 ## Qualidade
 
