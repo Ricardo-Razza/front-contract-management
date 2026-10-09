@@ -54,6 +54,7 @@ export class ContratosComponent implements OnInit {
   funcoesList = signal<LookupItem[]>([]);
   servants = signal<Servant[]>([]);
   servidoresList = signal<{ id: number; nome: string }[]>([]);
+  lookupError = signal<string | null>(null);
 
   // Repositório Digital de Anexos
 
@@ -339,18 +340,23 @@ export class ContratosComponent implements OnInit {
   }
 
   loadLookups(): void {
+    this.lookupError.set(null);
     this.loadFilterOptions();
     this.secService.getAll().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
-      next: (items) => this.secretariats.set(items || [])
+      next: (items) => this.secretariats.set(items || []),
+      error: () => this.lookupError.set('Não foi possível carregar as secretarias vinculadas.')
     });
     this.lookupService.getTipos().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
-      next: (items) => this.tiposList.set(items || [])
+      next: (items) => this.tiposList.set(items || []),
+      error: () => this.lookupError.set('Não foi possível carregar os tipos disponíveis.')
     });
     this.lookupService.getAtivos().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
-      next: (items) => this.statusList.set(items || [])
+      next: (items) => this.statusList.set(items || []),
+      error: () => this.lookupError.set('Não foi possível carregar as situações disponíveis.')
     });
     this.lookupService.getFuncoesEquipe().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
-      next: (items) => this.funcoesList.set(items || [])
+      next: (items) => this.funcoesList.set(items || []),
+      error: () => this.lookupError.set('Não foi possível carregar as funções da equipe.')
     });
   }
 
@@ -698,13 +704,13 @@ export class ContratosComponent implements OnInit {
       ano: new Date().getFullYear(),
       dataInicio: '',
       dataFim: '',
-      tipoId: 1,
+      tipoId: this.tiposList()[0]?.id ?? null,
       objeto: '',
       observacao: '',
       nomeContratado: '',
       portariaDesignacao: '',
       dataDesignacao: '',
-      ativoId: 1,
+      ativoId: this.statusList()[0]?.id ?? null,
       secretariasIds: []
     });
     this.selectedSecretariasSet.set(new Set());

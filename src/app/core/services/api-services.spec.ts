@@ -4,6 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ContratoService } from './contrato.service';
 import { AtaService } from './ata.service';
 import { ImpressoraService } from './impressora.service';
+import { LookupService } from './lookup.service';
 import { environment } from '@env/environment';
 import { Observable } from 'rxjs';
 import { ApiPage } from '@core/models';
@@ -36,5 +37,27 @@ describe('Contratos HTTP dos serviços', () => {
     TestBed.inject(ContratoService).getById(99).subscribe({error:error=>status=error.status});
     http.expectOne(environment.apiUrl+'/contratos/99').flush({}, {status:404,statusText:'Not Found'});
     expect(status).toBe(404);
+  });
+  it('lookupService propaga erro HTTP e não devolve dados mockados em caso de falha', () => {
+    const lookup = TestBed.inject(LookupService);
+    let errorStatus = 0;
+    let dataReceived: unknown = null;
+    lookup.getAtivos().subscribe({
+      next: data => dataReceived = data,
+      error: err => errorStatus = err.status
+    });
+    http.expectOne(environment.apiUrl + '/ativos').flush('Erro interno', { status: 500, statusText: 'Server Error' });
+    expect(errorStatus).toBe(500);
+    expect(dataReceived).toBeNull();
+  });
+  it('lookupService armazena em cache reativo e reutiliza sem nova requisição', () => {
+    const lookup = TestBed.inject(LookupService);
+    let count = 0;
+    lookup.getAtivos().subscribe(() => count++);
+    lookup.getAtivos().subscribe(() => count++);
+    const req = http.expectOne(environment.apiUrl + '/ativos');
+    req.flush([{ id: 1, nome: 'Ativo' }]);
+    expect(count).toBe(2);
+    http.expectNone(environment.apiUrl + '/ativos');
   });
 });
