@@ -8,6 +8,14 @@
         <p>Gerencie contratos municipais, vigências, contratados e equipes de gestão</p>
       </div>
       <div class="title-actions" style="display: flex; gap: 0.75rem; align-items: center;">
+        <button type="button" class="btn btn-outline" (click)="refreshAll()" title="Atualizar dados">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          Atualizar
+        </button>
         <button type="button" class="btn btn-outline" (click)="exportContracts()" title="Exportar dados filtrados para planilha CSV (Excel)">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -23,6 +31,66 @@
           </svg>
           Novo Contrato
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CARDS DE MÉTRICAS RÁPIDAS ===== -->
+  <div class="quick-metrics-bar">
+    <div class="quick-metric-card" [class.quick-metric-card--active]="filterVigencia() === ''" (click)="filterByQuickMetric('')" title="Ver todos os contratos">
+      <div class="metric-icon-wrap metric-icon-total">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+      </div>
+      <div class="metric-info">
+        <span class="metric-label">Total de Contratos</span>
+        <span class="metric-value">{{ totalContratosGeral() }}</span>
+      </div>
+    </div>
+
+    <div class="quick-metric-card" [class.quick-metric-card--active]="filterVigencia() === 'VIGENTE'" (click)="filterByQuickMetric('VIGENTE')" title="Filtrar contratos vigentes (> 60 dias)">
+      <div class="metric-icon-wrap metric-icon-success">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+      </div>
+      <div class="metric-info">
+        <span class="metric-label">Vigentes (> 60d)</span>
+        <span class="metric-value metric-success">{{ contratosVigentesCount() }}</span>
+      </div>
+    </div>
+
+    <div class="quick-metric-card" [class.quick-metric-card--active]="filterVigencia() === 'EM_ALERTA'" (click)="filterByQuickMetric('EM_ALERTA')" title="Filtrar contratos em alerta (≤ 60 dias)">
+      <div class="metric-icon-wrap metric-icon-warning">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      </div>
+      <div class="metric-info">
+        <span class="metric-label">Em Alerta (≤ 60d)</span>
+        <span class="metric-value metric-warning">{{ contratosAlertaCount() }}</span>
+      </div>
+    </div>
+
+    <div class="quick-metric-card" [class.quick-metric-card--active]="filterVigencia() === 'VENCIDO'" (click)="filterByQuickMetric('VENCIDO')" title="Filtrar contratos vencidos">
+      <div class="metric-icon-wrap metric-icon-danger">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="15" y1="9" x2="9" y2="15"></line>
+          <line x1="9" y1="9" x2="15" y2="15"></line>
+        </svg>
+      </div>
+      <div class="metric-info">
+        <span class="metric-label">Vencidos</span>
+        <span class="metric-value metric-danger">{{ contratosVencidosCount() }}</span>
       </div>
     </div>
   </div>
@@ -280,7 +348,17 @@
           @for (contrato of paginatedContracts(); track contrato.id) {
           <tr>
             <td class="text-center col-id">#{{ contrato.id }}</td>
-            <td class="text-center col-numero"><strong>{{ contrato.numero }}/{{ contrato.ano }}</strong></td>
+            <td class="text-center col-numero">
+              <div class="numero-cell-content">
+                <strong>{{ contrato.numero }}/{{ contrato.ano }}</strong>
+                <button type="button" class="btn-copy-inline" (click)="copyToClipboard(contrato.numero + '/' + contrato.ano, 'Número do contrato'); $event.stopPropagation()" title="Copiar número do contrato">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                </button>
+              </div>
+            </td>
             <td class="text-center col-vigencia">
               <div class="vigencia-cell">
                 <span class="vigencia-date">{{ getDataVigente(contrato) }}</span>
@@ -358,6 +436,14 @@
                     stroke-width="2" width="18" height="18">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                     <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </button>
+                <button class="btn-icon btn-icon-print" title="Imprimir Ficha" (click)="printFicha(contrato)">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" width="18" height="18">
+                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                    <rect x="6" y="14" width="12" height="8"></rect>
                   </svg>
                 </button>
                 <button class="btn-icon btn-icon-primary" title="Editar Contrato" (click)="openEditModal(contrato)">

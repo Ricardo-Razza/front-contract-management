@@ -50,7 +50,131 @@
   }
 }
 
-// Filter styles moved to global.scss (.filter-bar system)
+// Quick Metrics Bar
+.quick-metrics-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+
+  @media (max-width: 992px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 576px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.quick-metric-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+  user-select: none;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    border-color: #cbd5e1;
+  }
+
+  &--active {
+    border-color: #3b82f6;
+    background: #f8faff;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  }
+
+  .metric-icon-wrap {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    &.metric-icon-total {
+      background: #eff6ff;
+      color: #2563eb;
+    }
+
+    &.metric-icon-success {
+      background: #ecfdf5;
+      color: #059669;
+    }
+
+    &.metric-icon-warning {
+      background: #fffbeb;
+      color: #d97706;
+    }
+
+    &.metric-icon-danger {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+  }
+
+  .metric-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+
+    .metric-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #64748b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .metric-value {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.2;
+
+      &.metric-success { color: #059669; }
+      &.metric-warning { color: #d97706; }
+      &.metric-danger  { color: #dc2626; }
+    }
+  }
+}
+
+.numero-cell-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.btn-copy-inline {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: all 0.15s ease;
+
+  &:hover {
+    opacity: 1;
+    color: #2563eb;
+    background: #eff6ff;
+  }
+}
 
 // ===== TABELA =====
 .table-card {
@@ -345,6 +469,24 @@
     &:hover {
       background: #eff6ff;
       color: #2563eb;
+    }
+  }
+
+  &-info {
+    color: #0284c7;
+
+    &:hover {
+      background: #f0f9ff;
+      color: #0369a1;
+    }
+  }
+
+  &-print {
+    color: #475569;
+
+    &:hover {
+      background: #f1f5f9;
+      color: #0f172a;
     }
   }
 

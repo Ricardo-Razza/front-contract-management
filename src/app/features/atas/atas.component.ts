@@ -69,6 +69,7 @@ export class AtasComponent implements OnInit {
 
   // ===== DADOS =====
   agreements = signal<Agreement[]>([]);
+  allAgreements = signal<Agreement[]>([]);
   secretariats = signal<Secretariat[]>([]);
   tiposList = signal<LookupItem[]>([]);
   statusList = signal<LookupItem[]>([]);
@@ -172,6 +173,17 @@ export class AtasComponent implements OnInit {
   }
 
   // ===== COMPUTED =====
+  totalAtasGeral = computed(() => this.allAgreements().length);
+  atasVigentesCount = computed(() =>
+    this.allAgreements().filter(a => matchesVigenciaFilter(a.dataFim, 'VIGENTE')).length
+  );
+  atasAlertaCount = computed(() =>
+    this.allAgreements().filter(a => matchesVigenciaFilter(a.dataFim, 'EM_ALERTA')).length
+  );
+  atasVencidosCount = computed(() =>
+    this.allAgreements().filter(a => matchesVigenciaFilter(a.dataFim, 'VENCIDO')).length
+  );
+
   activeFiltersCount = computed(() => {
     let count = 0;
     if (this.globalSearch()) count++;
@@ -343,6 +355,30 @@ export class AtasComponent implements OnInit {
 
     this.loadLookups();
     this.loadServidores();
+    this.loadAllAgreements();
+  }
+
+  loadAllAgreements(): void {
+    this.ataService.getAll().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
+      next: (data) => this.allAgreements.set(data || []),
+      error: () => {}
+    });
+  }
+
+  filterByQuickMetric(vigenciaType: string): void {
+    if (this.filterVigencia() === vigenciaType) {
+      this.filterVigencia.set('');
+    } else {
+      this.filterVigencia.set(vigenciaType);
+    }
+    this.currentPage.set(1);
+  }
+
+  refreshAll(): void {
+    this.loadData();
+    this.loadAllAgreements();
+    this.loadFilterOptions();
+    this.toast.info('Dados atualizados com sucesso!');
   }
 
   // ===== LOAD DATA =====
@@ -759,7 +795,7 @@ export class AtasComponent implements OnInit {
           this.toast.success('Ata atualizada com sucesso!');
           this.submitting.set(false);
           this.closeModal();
-          this.loadData(); this.loadFilterOptions();
+          this.loadData(); this.loadFilterOptions(); this.loadAllAgreements();
         },
         error: () => {
 
@@ -772,7 +808,7 @@ export class AtasComponent implements OnInit {
           this.toast.success('Ata cadastrada com sucesso!');
           this.submitting.set(false);
           this.closeModal();
-          this.loadData(); this.loadFilterOptions();
+          this.loadData(); this.loadFilterOptions(); this.loadAllAgreements();
         },
         error: () => {
 
@@ -803,7 +839,7 @@ export class AtasComponent implements OnInit {
         this.toast.success('Ata excluída com sucesso.');
         this.deleting.set(false);
         this.closeDeleteModal();
-        this.loadData(); this.loadFilterOptions();
+        this.loadData(); this.loadFilterOptions(); this.loadAllAgreements();
       },
       error: () => {
 

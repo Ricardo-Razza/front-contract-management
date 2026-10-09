@@ -64,6 +64,7 @@ export class ContratosComponent implements OnInit {
   private elementRef = inject(ElementRef);
 
   contracts = signal<Contract[]>([]);
+  allContracts = signal<Contract[]>([]);
   secretariats = signal<Secretariat[]>([]);
   tiposList = signal<LookupItem[]>([]);
   statusList = signal<LookupItem[]>([]);
@@ -71,6 +72,15 @@ export class ContratosComponent implements OnInit {
   servants = signal<Servant[]>([]);
   servidoresList = signal<{ id: number; nome: string }[]>([]);
   lookupError = signal<string | null>(null);
+
+  // KPIs Rápidos no Topo
+  totalContratosGeral = computed(() => this.allContracts().length);
+  contratosVigentesCount = computed(() => this.allContracts().filter(c => getVigenciaStatus(c.dataFim).badgeClass === 'vigencia-ok').length);
+  contratosAlertaCount = computed(() => this.allContracts().filter(c => {
+    const b = getVigenciaStatus(c.dataFim).badgeClass;
+    return b === 'vigencia-warning' || b === 'vigencia-critical';
+  }).length);
+  contratosVencidosCount = computed(() => this.allContracts().filter(c => getVigenciaStatus(c.dataFim).badgeClass === 'vigencia-expired').length);
 
   // Repositório Digital de Anexos
 
@@ -324,6 +334,30 @@ export class ContratosComponent implements OnInit {
 
     this.loadLookups();
     this.loadServidores();
+    this.loadAllContracts();
+  }
+
+  loadAllContracts(): void {
+    this.contratoService.getAll().pipe(untilComponentDestroyed(this.requestDestroyRef)).subscribe({
+      next: all => this.allContracts.set(all || []),
+      error: () => {}
+    });
+  }
+
+  filterByQuickMetric(vigenciaType: string): void {
+    if (this.filterVigencia() === vigenciaType) {
+      this.filterVigencia.set('');
+    } else {
+      this.filterVigencia.set(vigenciaType);
+    }
+    this.currentPage.set(1);
+  }
+
+  refreshAll(): void {
+    this.loadData();
+    this.loadAllContracts();
+    this.loadFilterOptions();
+    this.toast.info('Dados atualizados com sucesso!');
   }
 
   loadData(): void {
@@ -738,7 +772,7 @@ export class ContratosComponent implements OnInit {
           this.toast.success('Contrato atualizado com sucesso!');
           this.submitting.set(false);
           this.closeModal();
-          this.loadData(); this.loadFilterOptions();
+          this.loadData(); this.loadFilterOptions(); this.loadAllContracts();
         },
         error: () => {
 
@@ -751,7 +785,7 @@ export class ContratosComponent implements OnInit {
           this.toast.success('Contrato cadastrado com sucesso!');
           this.submitting.set(false);
           this.closeModal();
-          this.loadData(); this.loadFilterOptions();
+          this.loadData(); this.loadFilterOptions(); this.loadAllContracts();
         },
         error: () => {
 
@@ -781,7 +815,7 @@ export class ContratosComponent implements OnInit {
         this.toast.success('Contrato excluído com sucesso.');
         this.deleting.set(false);
         this.closeDeleteModal();
-        this.loadData(); this.loadFilterOptions();
+        this.loadData(); this.loadFilterOptions(); this.loadAllContracts();
       },
       error: () => {
 
