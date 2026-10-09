@@ -5,6 +5,8 @@ import { ContratoService } from './contrato.service';
 import { AtaService } from './ata.service';
 import { ImpressoraService } from './impressora.service';
 import { LookupService } from './lookup.service';
+import { SecretariaService } from './secretaria.service';
+import { ServidorService } from './servidor.service';
 import { environment } from '@env/environment';
 import { Observable } from 'rxjs';
 import { ApiPage } from '@core/models';
@@ -59,5 +61,40 @@ describe('Contratos HTTP dos serviços', () => {
     req.flush([{ id: 1, nome: 'Ativo' }]);
     expect(count).toBe(2);
     http.expectNone(environment.apiUrl + '/ativos');
+  });
+  it('secretariaService usa cache e limpa cache ao criar secretaria', () => {
+    const secService = TestBed.inject(SecretariaService);
+    let count = 0;
+    secService.getAll().subscribe(() => count++);
+    secService.getAll().subscribe(() => count++);
+    const req1 = http.expectOne(environment.apiUrl + '/secretarias');
+    req1.flush([{ id: 1, nome: 'Sec 1', sigla: 'S1' }]);
+    expect(count).toBe(2);
+    http.expectNone(environment.apiUrl + '/secretarias');
+
+    // Ao criar, invalida o cache
+    secService.create({ nome: 'Sec 2', sigla: 'S2', ativoId: 1 }).subscribe();
+    http.expectOne(environment.apiUrl + '/secretarias').flush({ id: 2, nome: 'Sec 2', sigla: 'S2' });
+
+    secService.getAll().subscribe(() => count++);
+    http.expectOne(environment.apiUrl + '/secretarias').flush([{ id: 1, nome: 'Sec 1', sigla: 'S1' }, { id: 2, nome: 'Sec 2', sigla: 'S2' }]);
+    expect(count).toBe(3);
+  });
+  it('servidorService usa cache e limpa cache ao criar servidor', () => {
+    const srvService = TestBed.inject(ServidorService);
+    let count = 0;
+    srvService.getAll().subscribe(() => count++);
+    srvService.getAll().subscribe(() => count++);
+    const req1 = http.expectOne(environment.apiUrl + '/servidores');
+    req1.flush([{ id: 1, nome: 'João', matricula: 123 }]);
+    expect(count).toBe(2);
+    http.expectNone(environment.apiUrl + '/servidores');
+
+    srvService.create({ nome: 'Maria', matricula: 456, ativoId: 1, cargo: 'Analista', email: 'maria@test.com', telefone: '1234', secretariaId: 1 }).subscribe();
+    http.expectOne(environment.apiUrl + '/servidores').flush({ id: 2, nome: 'Maria', matricula: 456 });
+
+    srvService.getAll().subscribe(() => count++);
+    http.expectOne(environment.apiUrl + '/servidores').flush([{ id: 1, nome: 'João', matricula: 123 }, { id: 2, nome: 'Maria', matricula: 456 }]);
+    expect(count).toBe(3);
   });
 });

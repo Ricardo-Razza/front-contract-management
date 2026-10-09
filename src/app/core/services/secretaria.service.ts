@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, shareReplay } from 'rxjs';
+import { Observable, shareReplay, catchError, throwError } from 'rxjs';
 import { environment } from '@env/environment';
 import { Secretariat, SecretariatDTO } from '@core/models';
 
@@ -15,6 +15,10 @@ export class SecretariaService {
   getAll(forceRefresh = false): Observable<Secretariat[]> {
     if (!this.cache$ || forceRefresh) {
       this.cache$ = this.http.get<Secretariat[]>(this.apiUrl).pipe(
+        catchError(err => {
+          this.cache$ = undefined;
+          return throwError(() => err);
+        }),
         shareReplay({ bufferSize: 1, refCount: false })
       );
     }
@@ -29,12 +33,12 @@ export class SecretariaService {
     return this.http.get<Secretariat>(`${this.apiUrl}/${id}`);
   }
 
-  create(dto: SecretariatDTO | any): Observable<Secretariat> {
+  create(dto: SecretariatDTO): Observable<Secretariat> {
     this.clearCache();
     return this.http.post<Secretariat>(this.apiUrl, dto);
   }
 
-  update(id: number, dto: SecretariatDTO | any): Observable<Secretariat> {
+  update(id: number, dto: SecretariatDTO): Observable<Secretariat> {
     this.clearCache();
     return this.http.put<Secretariat>(`${this.apiUrl}/${id}`, dto);
   }
